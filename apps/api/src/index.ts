@@ -8,6 +8,7 @@ import { HttpError } from "./lib/http-error.js"
 import { validationHook } from "./lib/validation-hook.js"
 import { authRoutes } from "./routes/auth.js"
 import { meRoutes } from "./routes/me.js"
+import { menuRoutes } from "./routes/menus.js"
 import { otpRoutes } from "./routes/otp.js"
 import { roleRoutes } from "./routes/roles.js"
 import { userRoutes } from "./routes/users.js"
@@ -51,6 +52,7 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
   app.route("/", otpRoutes(cfg.jwtSecret))
   app.route("/", meRoutes(cfg.jwtSecret))
   app.route("/", roleRoutes(cfg.jwtSecret))
+  app.route("/", menuRoutes(cfg.jwtSecret))
   app.route("/", userRoutes(cfg.jwtSecret))
 
   app.notFound((c) =>

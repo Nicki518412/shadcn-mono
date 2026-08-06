@@ -67,8 +67,9 @@ export const menuNodeSchema: z.ZodType<MenuNode> = z.lazy(() =>
  * MenuNode 引用 schema（类型保持 MenuNode；文档中渲染为 $ref → 手工注册的 MenuNode 组件）。
  * 不能用 refId（z.any().openapi("MenuNode")）：v7 的 generateComponents 会把 schemaRefs 合并覆盖同名组件（实证：MenuNode 被污染为 {"nullable":true}）。
  * metadata.$ref 无 refId 不进 schemaRefs；类型层面 zod-openapi 的 metadata 类型不含 $ref 键，故 as never 绕过（运行时仅附加 $ref 键）。
+ * 响应使用方：me navTree、menus 路由（tree/详情/create/update 复用同一组件）。
  */
-const menuNodeRefSchema: z.ZodType<MenuNode> = z.any().openapi({ $ref: "#/components/schemas/MenuNode" } as never)
+export const menuNodeRefSchema: z.ZodType<MenuNode> = z.any().openapi({ $ref: "#/components/schemas/MenuNode" } as never)
 
 /** me 响应：user + roles + 交集 navTree + permissionCodes */
 export const meResponseSchema = z
