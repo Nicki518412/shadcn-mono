@@ -5,7 +5,7 @@ import { prisma } from "@repo/db"
 import { badRequest, conflict, notFound } from "../lib/http-error.js"
 import { createSubApp, okBody } from "../lib/openapi.js"
 import { p2002FieldMessage } from "../lib/prisma-error.js"
-import { errorBodySchema, roleDetailSchema, roleListItemSchema, rolePageResultSchema } from "../lib/schemas.js"
+import { errorBodySchema, idParamSchema, roleDetailSchema, roleListItemSchema, rolePageResultSchema } from "../lib/schemas.js"
 import { authenticate, requirePermission } from "../middleware/auth.js"
 
 const pageQuery = z.object({
@@ -29,8 +29,6 @@ const roleUpdateSchema = roleCreateSchema.partial().extend({
 
 // 授权全量提交的菜单 id 数组；上限 500 防超大 payload（菜单树规模远小于此）
 const menuIdsSchema = z.object({ menuIds: z.array(z.string()).max(500) })
-
-const idParam = z.object({ id: z.string() })
 
 /** P2002 字段 → 409 message 映射（create/PATCH 共用；code 统一大写存储，大小写变体同样命中唯一约束） */
 const ROLE_UNIQUE_FIELDS = {
@@ -161,7 +159,7 @@ export function roleRoutes(jwtSecret: string): OpenAPIHono {
       method: "get",
       path: "/api/roles/{id}",
       middleware: [authenticate(jwtSecret), requirePermission("system:role:query")],
-      request: { params: idParam },
+      request: { params: idParamSchema },
       responses: {
         200: { description: "角色详情", ...okBody(roleDetailSchema) },
         401: { description: "未登录", content: { "application/json": { schema: errorBodySchema } } },
@@ -180,7 +178,7 @@ export function roleRoutes(jwtSecret: string): OpenAPIHono {
       method: "patch",
       path: "/api/roles/{id}",
       middleware: [authenticate(jwtSecret), requirePermission("system:role:update")],
-      request: { params: idParam, body: { content: { "application/json": { schema: roleUpdateSchema } } } },
+      request: { params: idParamSchema, body: { content: { "application/json": { schema: roleUpdateSchema } } } },
       responses: {
         200: { description: "更新成功（返回详情）", ...okBody(roleDetailSchema) },
         400: { description: "参数错误", content: { "application/json": { schema: errorBodySchema } } },
@@ -216,7 +214,7 @@ export function roleRoutes(jwtSecret: string): OpenAPIHono {
       method: "delete",
       path: "/api/roles/{id}",
       middleware: [authenticate(jwtSecret), requirePermission("system:role:delete")],
-      request: { params: idParam },
+      request: { params: idParamSchema },
       responses: {
         200: { description: "删除成功", ...okBody(z.null()) },
         401: { description: "未登录", content: { "application/json": { schema: errorBodySchema } } },
@@ -239,7 +237,7 @@ export function roleRoutes(jwtSecret: string): OpenAPIHono {
       method: "get",
       path: "/api/roles/{id}/menus",
       middleware: [authenticate(jwtSecret), requirePermission("system:role:query")],
-      request: { params: idParam },
+      request: { params: idParamSchema },
       responses: {
         200: { description: "已授权菜单 id 数组（树形勾选回显，含按钮节点）", ...okBody(menuIdsSchema) },
         401: { description: "未登录", content: { "application/json": { schema: errorBodySchema } } },
@@ -266,7 +264,7 @@ export function roleRoutes(jwtSecret: string): OpenAPIHono {
       method: "put",
       path: "/api/roles/{id}/menus",
       middleware: [authenticate(jwtSecret), requirePermission("system:role:assign")],
-      request: { params: idParam, body: { content: { "application/json": { schema: menuIdsSchema } } } },
+      request: { params: idParamSchema, body: { content: { "application/json": { schema: menuIdsSchema } } } },
       responses: {
         200: { description: "授权成功（全量替换，允许含按钮节点）", ...okBody(z.null()) },
         400: { description: "参数错误", content: { "application/json": { schema: errorBodySchema } } },

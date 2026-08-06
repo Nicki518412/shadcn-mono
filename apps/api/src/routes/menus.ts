@@ -7,10 +7,8 @@ import { buildTree } from "@repo/shared"
 import { badRequest, conflict, notFound } from "../lib/http-error.js"
 import { createSubApp, okBody } from "../lib/openapi.js"
 import { p2002FieldMessage } from "../lib/prisma-error.js"
-import { errorBodySchema, menuNodeRefSchema } from "../lib/schemas.js"
+import { errorBodySchema, idParamSchema, menuNodeRefSchema, menuTypeSchema } from "../lib/schemas.js"
 import { authenticate, requirePermission } from "../middleware/auth.js"
-
-const idParam = z.object({ id: z.string() })
 
 // 字段级限制：path/component/icon/permission 可显式传 null（清空/无值）；min(1) 拒绝空串（"" 会与真实值撞 permission 唯一索引）
 const menuFieldShape = {
@@ -86,6 +84,8 @@ async function collectSubtreeIds(id: string): Promise<Set<string>> {
   const stack: string[] = []
   while (current !== undefined) {
     for (const child of childrenByParent.get(current) ?? []) {
+      // visited 守卫：节点已入集合即跳过（防脏数据环导致死循环）
+      if (ids.has(child)) continue
       ids.add(child)
       stack.push(child)
     }
@@ -93,9 +93,6 @@ async function collectSubtreeIds(id: string): Promise<Set<string>> {
   }
   return ids
 }
-
-// Prisma Menu.type 为 string，zod 枚举校验收窄为 MenuType（禁止裸 as；脏数据抛 ZodError → onError 500）
-const menuTypeSchema = z.enum(["DIR", "MENU", "BUTTON"])
 
 /** Prisma Menu → MenuNode（children 置空，buildTree 组装） */
 function toMenuNode(menu: Menu): MenuNode {
@@ -188,7 +185,7 @@ export function menuRoutes(jwtSecret: string): OpenAPIHono {
       method: "get",
       path: "/api/menus/{id}",
       middleware: [authenticate(jwtSecret), requirePermission("system:menu:query")],
-      request: { params: idParam },
+      request: { params: idParamSchema },
       responses: {
         200: { description: "菜单详情", ...okBody(menuNodeRefSchema) },
         401: { description: "未登录", content: { "application/json": { schema: errorBodySchema } } },
@@ -207,7 +204,7 @@ export function menuRoutes(jwtSecret: string): OpenAPIHono {
       method: "patch",
       path: "/api/menus/{id}",
       middleware: [authenticate(jwtSecret), requirePermission("system:menu:update")],
-      request: { params: idParam, body: { content: { "application/json": { schema: menuUpdateSchema } } } },
+      request: { params: idParamSchema, body: { content: { "application/json": { schema: menuUpdateSchema } } } },
       responses: {
         200: { description: "更新成功（返回详情）", ...okBody(menuNodeRefSchema) },
         400: { description: "参数错误", content: { "application/json": { schema: errorBodySchema } } },
@@ -238,6 +235,15 @@ export function menuRoutes(jwtSecret: string): OpenAPIHono {
           newParentId !== null ? await prisma.menu.findUnique({ where: { id: newParentId }, select: { type: true } }) : null
         if (newParentId !== null && parent === null) throw badRequest("父菜单不存在")
         if (!canAttachTo(parent, effectiveType)) throw badRequest("菜单类型与父节点不匹配")
+        // type 变化时校验直接子节点与新 type 兼容（矩阵不变式：改 type 不得破坏既有子树的挂载规则，否则要求先调整子节点）
+        if (typeChanged) {
+          const children = await prisma.menu.findMany({ where: { parentId: id }, select: { type: true } })
+          for (const child of children) {
+            if (!canAttachTo({ type: effectiveType }, menuTypeSchema.parse(child.type))) {
+              throw badRequest("菜单类型与子节点不兼容，请先调整子节点")
+            }
+          }
+        }
         // 防自挂：不能挂到自己或自己的子孙（祖先链上沿 parentId 可达的集合）
         if (parentChanged) {
           if (newParentId === id) throw badRequest("不能挂到自身")
@@ -272,7 +278,7 @@ export function menuRoutes(jwtSecret: string): OpenAPIHono {
       method: "delete",
       path: "/api/menus/{id}",
       middleware: [authenticate(jwtSecret), requirePermission("system:menu:delete")],
-      request: { params: idParam },
+      request: { params: idParamSchema },
       responses: {
         200: { description: "删除成功（级联删除子树）", ...okBody(z.null()) },
         401: { description: "未登录", content: { "application/json": { schema: errorBodySchema } } },

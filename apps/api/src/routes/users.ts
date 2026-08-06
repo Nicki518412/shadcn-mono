@@ -6,7 +6,7 @@ import { badRequest, conflict, notFound } from "../lib/http-error.js"
 import { createSubApp, okBody } from "../lib/openapi.js"
 import { hashPassword } from "../lib/password.js"
 import { p2002FieldMessage } from "../lib/prisma-error.js"
-import { errorBodySchema, userDetailSchema, userPageResultSchema } from "../lib/schemas.js"
+import { errorBodySchema, idParamSchema, userDetailSchema, userPageResultSchema } from "../lib/schemas.js"
 import { authenticate, requirePermission } from "../middleware/auth.js"
 
 const pageQuery = z.object({
@@ -34,8 +34,6 @@ const userUpdateSchema = userCreateSchema
   })
 
 const roleIdsSchema = z.object({ roleIds: z.array(z.string()) })
-
-const idParam = z.object({ id: z.string() })
 
 /** P2002 字段 → 409 message 映射（create/PATCH 共用） */
 const USER_UNIQUE_FIELDS = {
@@ -166,7 +164,7 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
       method: "get",
       path: "/api/users/{id}",
       middleware: [authenticate(jwtSecret), requirePermission("system:user:query")],
-      request: { params: idParam },
+      request: { params: idParamSchema },
       responses: {
         200: { description: "用户详情（含已挂角色）", ...okBody(userDetailSchema) },
         401: { description: "未登录", content: { "application/json": { schema: errorBodySchema } } },
@@ -185,7 +183,7 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
       method: "patch",
       path: "/api/users/{id}",
       middleware: [authenticate(jwtSecret), requirePermission("system:user:update")],
-      request: { params: idParam, body: { content: { "application/json": { schema: userUpdateSchema } } } },
+      request: { params: idParamSchema, body: { content: { "application/json": { schema: userUpdateSchema } } } },
       responses: {
         200: { description: "更新成功（返回详情）", ...okBody(userDetailSchema) },
         400: { description: "参数错误", content: { "application/json": { schema: errorBodySchema } } },
@@ -234,7 +232,7 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
       method: "delete",
       path: "/api/users/{id}",
       middleware: [authenticate(jwtSecret), requirePermission("system:user:delete")],
-      request: { params: idParam },
+      request: { params: idParamSchema },
       responses: {
         200: { description: "删除成功", ...okBody(z.null()) },
         400: { description: "不能删除自己", content: { "application/json": { schema: errorBodySchema } } },
@@ -259,7 +257,7 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
       method: "put",
       path: "/api/users/{id}/roles",
       middleware: [authenticate(jwtSecret), requirePermission("system:user:assign-role")],
-      request: { params: idParam, body: { content: { "application/json": { schema: roleIdsSchema } } } },
+      request: { params: idParamSchema, body: { content: { "application/json": { schema: roleIdsSchema } } } },
       responses: {
         200: { description: "分配成功（返回详情）", ...okBody(userDetailSchema) },
         400: { description: "参数错误", content: { "application/json": { schema: errorBodySchema } } },

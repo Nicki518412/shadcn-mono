@@ -31,6 +31,12 @@ export const errorBodySchema = z
   })
   .openapi("ErrorBody")
 
+/** 菜单类型校验收窄（Prisma Menu.type 为 string → MenuType；auth-info 与 menus 路由共用，禁止裸 as；脏数据抛 ZodError → onError 500） */
+export const menuTypeSchema = z.enum(["DIR", "MENU", "BUTTON"])
+
+/** {id} 路径参数（users/roles/menus 路由共用） */
+export const idParamSchema = z.object({ id: z.string() })
+
 /** 登录响应 data（tokenPair + user） */
 export const loginResponseSchema = tokenPairSchema.extend({ user: publicUserSchema }).openapi("LoginResponse")
 

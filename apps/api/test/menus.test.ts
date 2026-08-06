@@ -141,12 +141,18 @@ describe("menus CRUD", () => {
       permission: "menu_crud_m1",
     })
     expect(m1.status).toBe(200)
+    // DIR 下挂 DIR → 200（矩阵：DIR→DIR 嵌套合法）
+    expect((await post({ name: "MENU_CRUD_嵌套目录", type: "DIR", parentId: dirId })).status).toBe(200)
+    // DIR 下挂 BUTTON → 400
+    expect((await post({ name: "MENU_CRUD_目录按钮", type: "BUTTON", parentId: dirId })).status).toBe(400)
     // MENU 缺 path → 400
     expect((await post({ name: "MENU_CRUD_缺路径", type: "MENU", parentId: dirId, component: "x" })).status).toBe(400)
     // MENU 缺 component → 400
     expect((await post({ name: "MENU_CRUD_缺组件", type: "MENU", parentId: dirId, path: "/x" })).status).toBe(400)
     // BUTTON 带 path → 400
     expect((await post({ name: "MENU_CRUD_带路径按钮", type: "BUTTON", parentId: menuId, path: "/x" })).status).toBe(400)
+    // BUTTON 带 component → 400（与 path 对称）
+    expect((await post({ name: "MENU_CRUD_带组件按钮", type: "BUTTON", parentId: menuId, component: "x" })).status).toBe(400)
     // BUTTON 无父（不能是根）→ 400；根可为 DIR/MENU（Dashboard 是 MENU 根）
     expect((await post({ name: "MENU_CRUD_根按钮", type: "BUTTON" })).status).toBe(400)
     expect((await post({ name: "MENU_CRUD_根目录", type: "DIR" })).status).toBe(200)
@@ -261,5 +267,75 @@ describe("menus CRUD", () => {
     // 不存在的 id → 404
     const missing = await app.request("/api/menus/no_such_menu_id", { method: "DELETE", headers: auth })
     expect(missing.status).toBe(404)
+  })
+
+  it("PATCH 条件字段合并校验：MENU 清空 path 400；MENU 改 type 为 BUTTON 400（存量 path 不兼容）", async () => {
+    const app = createApp()
+    const token = await loginAdmin()
+    const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
+    const patch = (id: string, body: Record<string, unknown>) =>
+      app.request(`/api/menus/${id}`, { method: "PATCH", headers: auth, body: JSON.stringify(body) })
+    const menu = await prisma.menu.create({
+      data: {
+        name: "MENU_CRUD_条件菜单",
+        type: "MENU",
+        parentId: dirId,
+        path: "/cond",
+        component: "cond",
+        permission: "menu_crud_cond",
+      },
+    })
+    // MENU 清空 path（null）→ 400（有效状态 = 请求字段与存量合并，MENU 必填 path）
+    expect((await patch(menu.id, { path: null })).status).toBe(400)
+    // MENU → BUTTON（存量 path/component 未清，且 DIR 父不允许 BUTTON 子级）→ 400
+    expect((await patch(menu.id, { type: "BUTTON" })).status).toBe(400)
+    // 两次失败均不落库
+    const stored = await prisma.menu.findUnique({ where: { id: menu.id } })
+    expect(stored?.type).toBe("MENU")
+    expect(stored?.path).toBe("/cond")
+  })
+
+  it("PATCH 改 type 校验子节点与组合挂载：不兼容子节点 400；移走子节点后 MENU→DIR 200；type+parent 双变不兼容 400", async () => {
+    const app = createApp()
+    const token = await loginAdmin()
+    const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
+    const patch = (id: string, body: Record<string, unknown>) =>
+      app.request(`/api/menus/${id}`, { method: "PATCH", headers: auth, body: JSON.stringify(body) })
+    // 建 MENU（挂 dirId 下）带一个 BUTTON 子节点
+    const menu = await prisma.menu.create({
+      data: {
+        name: "MENU_CRUD_改型菜单",
+        type: "MENU",
+        parentId: dirId,
+        path: "/cvt",
+        component: "cvt",
+        permission: "menu_crud_cvt_m",
+      },
+    })
+    const btn = await prisma.menu.create({
+      data: { name: "MENU_CRUD_改型按钮", type: "BUTTON", parentId: menu.id, permission: "menu_crud_cvt_b" },
+    })
+    // 存在 BUTTON 子节点时 MENU→DIR → 400（DIR 不能挂 BUTTON 子级，须先调整子节点）
+    expect((await patch(menu.id, { type: "DIR" })).status).toBe(400)
+    // 先用 API 把 BUTTON 子移到另一个 MENU 下，再 MENU→DIR → 200（type 合法变更）
+    const host = await prisma.menu.create({
+      data: {
+        name: "MENU_CRUD_宿主菜单",
+        type: "MENU",
+        parentId: dirId,
+        path: "/host",
+        component: "host",
+        permission: "menu_crud_cvt_host",
+      },
+    })
+    expect((await patch(btn.id, { parentId: host.id })).status).toBe(200)
+    expect((await patch(menu.id, { type: "DIR" })).status).toBe(200)
+    expect((await prisma.menu.findUnique({ where: { id: menu.id } }))?.type).toBe("DIR")
+    // type 不变、仅换父到不兼容父（DIR 挂到 MENU 下）→ 400
+    const dirA = await prisma.menu.create({ data: { name: "MENU_CRUD_组合目录", type: "DIR", parentId: dirId } })
+    expect((await patch(dirA.id, { parentId: menuId })).status).toBe(400)
+    // type 与 parent 同时变化且组合不合法（BUTTON 不能挂 DIR 父）→ 400
+    const dirB = await prisma.menu.create({ data: { name: "MENU_CRUD_组合目录B", type: "DIR" } })
+    expect((await patch(dirA.id, { type: "BUTTON", parentId: dirB.id })).status).toBe(400)
   })
 })

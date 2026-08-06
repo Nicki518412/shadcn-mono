@@ -2,8 +2,7 @@ import { prisma } from "@repo/db"
 import type { Menu } from "@repo/db"
 import type { MenuNode } from "@repo/shared"
 import { computeVisibleMenus } from "@repo/shared"
-import { z } from "zod"
-import type { PublicUser } from "../lib/schemas.js"
+import { menuTypeSchema, type PublicUser } from "../lib/schemas.js"
 
 /** 用户完整权限信息（me 响应 / requirePermission 共用） */
 export interface AuthInfo {
@@ -13,8 +12,7 @@ export interface AuthInfo {
   permissionCodes: string[]
 }
 
-// Prisma Menu.type 为 string，zod 枚举校验收窄为 MenuType（禁止裸 as；脏数据抛 ZodError → onError 500）
-const menuTypeSchema = z.enum(["DIR", "MENU", "BUTTON"])
+// Prisma Menu.type 为 string，zod 枚举校验收窄为 MenuType（menuTypeSchema 定义见 lib/schemas.ts，auth-info 与 menus 路由共用）
 
 /** Prisma Menu → MenuNode（children 置空，computeVisibleMenus 内部 buildTree 组装） */
 function toMenuNode(menu: Menu): MenuNode {
