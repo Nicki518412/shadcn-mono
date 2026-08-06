@@ -20,7 +20,7 @@ export function meRoutes(jwtSecret: string): OpenAPIHono {
       },
     }),
     async (c) => {
-      const info = await getUserAuthInfo(c.get("userId"))
+      const info = await getUserAuthInfo(c.get("userId"), c.get("authUser"))
       return c.json({ code: 0, data: info, message: "ok" }, 200)
     },
   )

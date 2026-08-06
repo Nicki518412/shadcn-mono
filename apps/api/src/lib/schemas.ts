@@ -43,11 +43,11 @@ export function toPublicUser(user: Pick<User, "id" | "username" | "nickname" | "
 }
 
 /**
- * 递归 MenuNode schema（运行时校验 + 类型推断）。
+ * 递归 MenuNode schema（运行时校验 + 类型推断；schemas.test.ts 以真实 me 响应实测）。
  * 实证：zod-to-openapi v7（7.3.4）不支持 z.lazy —— 文档生成时抛 UnknownZodTypeError（typeName: ZodLazy）。
  * openapi.json 中的 MenuNode 组件由 index.ts 手工注册（见 createApp），me 响应用 menuNodeRefSchema 以 $ref 引用。
  */
-const menuNodeSchema: z.ZodType<MenuNode> = z.lazy(() =>
+export const menuNodeSchema: z.ZodType<MenuNode> = z.lazy(() =>
   z.object({
     id: z.string(),
     parentId: z.string().nullable(),

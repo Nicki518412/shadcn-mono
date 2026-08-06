@@ -3,8 +3,7 @@ import type { Menu } from "@repo/db"
 import type { MenuNode } from "@repo/shared"
 import { computeVisibleMenus } from "@repo/shared"
 import { z } from "zod"
-import { unauthorized } from "../lib/http-error.js"
-import { toPublicUser, type PublicUser } from "../lib/schemas.js"
+import type { PublicUser } from "../lib/schemas.js"
 
 /** 用户完整权限信息（me 响应 / requirePermission 共用） */
 export interface AuthInfo {
@@ -34,22 +33,25 @@ function toMenuNode(menu: Menu): MenuNode {
   }
 }
 
-/** 查询用户权限信息：user + roles + 全部角色授权菜单的严格交集 navTree + permissionCodes；调用方（authenticate）已保证用户存在 */
-export async function getUserAuthInfo(userId: string): Promise<AuthInfo> {
-  const user = await prisma.user.findUnique({ where: { id: userId } })
-  if (!user) throw unauthorized("账号不可用")
-
+/**
+ * 查询用户权限信息：roles + 全部授权角色的严格交集 navTree + permissionCodes。
+ * user 由调用方传入（authenticate 已查询并保证存在且启用，避免重复查询）；禁用角色/禁用菜单不参与计算。
+ */
+export async function getUserAuthInfo(userId: string, user: PublicUser): Promise<AuthInfo> {
   const userRoles = await prisma.userRole.findMany({ where: { userId }, include: { role: true } })
-  const roleIds = userRoles.map((ur) => ur.roleId)
-  const roles = userRoles.map((ur) => ({ id: ur.role.id, name: ur.role.name, code: ur.role.code }))
+  // 禁用角色不参与权限计算（授权无效）
+  const activeRoles = userRoles.filter((ur) => ur.role.status)
+  const roles = activeRoles.map((ur) => ({ id: ur.role.id, name: ur.role.name, code: ur.role.code }))
+  const roleIds = activeRoles.map((ur) => ur.roleId)
 
   const [roleMenus, menus] = await Promise.all([
     roleIds.length > 0 ? prisma.roleMenu.findMany({ where: { roleId: { in: roleIds } } }) : Promise.resolve([]),
-    prisma.menu.findMany({ orderBy: { sort: "asc" } }),
+    // 禁用菜单不进导航/权限码
+    prisma.menu.findMany({ where: { status: true }, orderBy: { sort: "asc" } }),
   ])
   // 每角色一个授权 menuId 数组（交集为集合运算，数组内顺序无关）
   const roleMenuIdsList = roleIds.map((rid) => roleMenus.filter((rm) => rm.roleId === rid).map((rm) => rm.menuId))
   const visible = computeVisibleMenus(roleMenuIdsList, menus.map(toMenuNode))
 
-  return { user: toPublicUser(user), roles, navTree: visible.navTree, permissionCodes: [...visible.permissionCodes] }
+  return { user, roles, navTree: visible.navTree, permissionCodes: [...visible.permissionCodes] }
 }

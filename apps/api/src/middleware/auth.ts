@@ -2,16 +2,18 @@ import { prisma } from "@repo/db"
 import type { MiddlewareHandler } from "hono"
 import { forbidden, unauthorized } from "../lib/http-error.js"
 import { verifyAccessToken } from "../lib/jwt.js"
+import { toPublicUser, type PublicUser } from "../lib/schemas.js"
 import { getUserAuthInfo, type AuthInfo } from "../services/auth-info.js"
 
 declare module "hono" {
   interface ContextVariableMap {
     userId: string
+    authUser: PublicUser
     authInfo?: AuthInfo
   }
 }
 
-/** Bearer 认证：解析 access token → 用户存在且启用 → c.set("userId")；失败一律 401 */
+/** Bearer 认证：解析 access token → 用户存在且启用 → c.set("userId"/"authUser")；失败一律 401 */
 export function authenticate(jwtSecret: string): MiddlewareHandler {
   return async (c, next) => {
     const header = c.req.header("authorization")
@@ -21,7 +23,9 @@ export function authenticate(jwtSecret: string): MiddlewareHandler {
     if (!userId) throw unauthorized("登录已过期")
     const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user?.status) throw unauthorized("账号不可用")
+    // authUser 与 getUserAuthInfo 共用（避免重复查 user）；authInfo 由 requirePermission 设置
     c.set("userId", user.id)
+    c.set("authUser", toPublicUser(user))
     await next()
   }
 }
@@ -31,7 +35,7 @@ export function requirePermission(code: string): MiddlewareHandler {
   return async (c, next) => {
     const userId = c.get("userId")
     if (!userId) throw unauthorized("未登录")
-    const info = await getUserAuthInfo(userId)
+    const info = await getUserAuthInfo(userId, c.get("authUser"))
     if (!info.permissionCodes.includes(code)) throw forbidden(`缺少权限: ${code}`)
     c.set("authInfo", info)
     await next()
