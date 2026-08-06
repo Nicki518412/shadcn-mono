@@ -24,6 +24,10 @@ export const config = tseslint.config(
       "**/eslint.config.ts",
       // 生成物（openapi-typescript 输出，永久 ignore——Task 15 web 包建 tsconfig 后仍需保留）
       "apps/web/src/api/schema.d.ts",
+      // shadcn CLI 管理的产物（组件与随装 hooks 均为官方 registry 源码，禁止手写修改；
+      // 官方产物与 strictTypeChecked 风格规则存在已知偏差，参照 schema.d.ts 生成物先例永久 ignore）
+      "apps/web/src/components/**",
+      "apps/web/src/hooks/**",
     ],
   },
 )
