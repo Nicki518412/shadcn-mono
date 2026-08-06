@@ -292,7 +292,7 @@ Dashboard（MENU, path=/, component=dashboard）
 
 **角色**：`ADMIN` 管理员（勾选全部菜单+按钮）、`GUEST` 访客（仅 Dashboard）
 **用户**：`admin / Admin@123`（挂 ADMIN；email=admin@example.com，telephone=13800138000，便于演示三种登录）
-密码 bcrypt 哈希入库。
+密码 scrypt 哈希入库（node:crypto，N=2^17，实现位于 packages/db/src/lib/password.ts）。
 
 ## 9.1 智能体开发辅助资产（仅开发辅助层，已确认 B 方案）
 
