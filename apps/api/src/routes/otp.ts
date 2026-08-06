@@ -1,12 +1,12 @@
-import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi"
+import { createRoute, z } from "@hono/zod-openapi"
+import type { OpenAPIHono } from "@hono/zod-openapi"
 import { createHash, randomInt } from "node:crypto"
-import type { Env } from "hono"
 import { prisma } from "@repo/db"
 import { HttpError } from "../lib/http-error.js"
+import { createSubApp, okBody } from "../lib/openapi.js"
 import { otpSender } from "../lib/otp-sender.js"
 import { errorBodySchema, loginResponseSchema, toPublicUser } from "../lib/schemas.js"
 import { issueTokenPair } from "../lib/tokens.js"
-import { validationHook } from "../lib/validation-hook.js"
 
 const OTP_TTL_MS = 5 * 60 * 1000
 const OTP_COOLDOWN_MS = 60 * 1000
@@ -18,15 +18,8 @@ const sendSchema = z.object({
 })
 const loginOtpSchema = sendSchema.extend({ code: z.string().regex(/^\d{6}$/) })
 
-// 统一成功响应包装（契约体 { code, data, message }，data 随路由不同）——与 auth.ts 一致
-const okBody = (dataSchema: z.ZodType) =>
-  z.object({ code: z.number(), data: dataSchema, message: z.string() })
-
 export function otpRoutes(jwtSecret: string): OpenAPIHono {
-  const app = new OpenAPIHono<Env>({
-    // 子应用不继承根应用 defaultHook，校验失败契约体保持一致
-    defaultHook: validationHook,
-  })
+  const app = createSubApp()
 
   app.openapi(
     createRoute({
@@ -34,10 +27,7 @@ export function otpRoutes(jwtSecret: string): OpenAPIHono {
       path: "/api/auth/otp/send",
       request: { body: { content: { "application/json": { schema: sendSchema } } } },
       responses: {
-        200: {
-          description: "已发送",
-          content: { "application/json": { schema: okBody(z.object({ sent: z.boolean() })) } },
-        },
+        200: { description: "已发送", ...okBody(z.object({ sent: z.boolean() })) },
         429: { description: "发送过于频繁", content: { "application/json": { schema: errorBodySchema } } },
       },
     }),
@@ -57,11 +47,14 @@ export function otpRoutes(jwtSecret: string): OpenAPIHono {
         throw new HttpError(429, "RATE_LIMITED", "发送过于频繁，请 60 秒后再试")
       }
 
+      // 已知并发限制（TOCTOU）：冷却检查与 create 之间无原子约束——SQLite 单写者串行掩盖；
+      // MySQL/PG 下并发 send 可能同时通过检查，影响仅多发一条码（login 取最新记录），生产可叠加基础设施限流
       const code = randomInt(100000, 1000000).toString()
       const user = await prisma.user.findFirst({
         where: channel === "email" ? { email: normalized } : { telephone: normalized },
       })
       const hash = createHash("sha256").update(code).digest("hex")
+      // 明文不回写：devPlainCode 由 DevOtpSender 内部回写（测试明文通道）；真实发送实现不包含该逻辑，换 sender 即自动停用明文存储
       await prisma.otpCode.create({
         data: {
           channel: storedChannel,
@@ -69,12 +62,11 @@ export function otpRoutes(jwtSecret: string): OpenAPIHono {
           codeHash: hash,
           expiresAt: new Date(Date.now() + OTP_TTL_MS),
           userId: user?.id ?? null,
-          // 测试专用明文（DevOtpSender 场景）：仅开发库保留；生产实现不写入
-          devPlainCode: code,
         },
       })
       // 防枚举：目标不存在也"发送成功"（不投递）
       if (user) {
+        // 命中查询字段（email/telephone）时该字段必非空；异常为 null 时静默不投递——保持防枚举语义，不抛错
         const address = channel === "email" ? user.email : user.telephone
         if (address !== null) {
           if (channel === "email") await otpSender.sendEmail(address, code)
@@ -91,10 +83,7 @@ export function otpRoutes(jwtSecret: string): OpenAPIHono {
       path: "/api/auth/otp/login",
       request: { body: { content: { "application/json": { schema: loginOtpSchema } } } },
       responses: {
-        200: {
-          description: "登录成功",
-          content: { "application/json": { schema: okBody(loginResponseSchema) } },
-        },
+        200: { description: "登录成功", ...okBody(loginResponseSchema) },
         401: { description: "验证码无效或已过期", content: { "application/json": { schema: errorBodySchema } } },
         423: { description: "尝试次数过多", content: { "application/json": { schema: errorBodySchema } } },
       },

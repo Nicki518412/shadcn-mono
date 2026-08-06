@@ -1,12 +1,12 @@
-import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi"
-import type { Env } from "hono"
+import { createRoute, z } from "@hono/zod-openapi"
+import type { OpenAPIHono } from "@hono/zod-openapi"
 import { prisma } from "@repo/db"
 import { HttpError, forbidden, unauthorized } from "../lib/http-error.js"
-import { verifyPassword } from "../lib/password.js"
-import { hashToken, issueTokenPair } from "../lib/tokens.js"
 import { checkThrottle, recordFailure, resetThrottle } from "../lib/login-throttle.js"
+import { createSubApp, okBody } from "../lib/openapi.js"
+import { verifyPassword } from "../lib/password.js"
 import { errorBodySchema, loginResponseSchema, toPublicUser, tokenPairSchema } from "../lib/schemas.js"
-import { validationHook } from "../lib/validation-hook.js"
+import { hashToken, issueTokenPair } from "../lib/tokens.js"
 
 const loginSchema = z.object({
   username: z.string().min(1).max(64),
@@ -16,15 +16,8 @@ const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 })
 
-// 统一成功响应包装（契约体 { code, data, message }，data 随路由不同）
-const okBody = (dataSchema: z.ZodType) =>
-  z.object({ code: z.number(), data: dataSchema, message: z.string() })
-
 export function authRoutes(jwtSecret: string): OpenAPIHono {
-  const app = new OpenAPIHono<Env>({
-    // 子应用不继承根应用 defaultHook，校验失败契约体保持一致
-    defaultHook: validationHook,
-  })
+  const app = createSubApp()
 
   app.openapi(
     createRoute({
@@ -32,7 +25,7 @@ export function authRoutes(jwtSecret: string): OpenAPIHono {
       path: "/api/auth/login",
       request: { body: { content: { "application/json": { schema: loginSchema } } } },
       responses: {
-        200: { description: "登录成功", content: { "application/json": { schema: okBody(loginResponseSchema) } } },
+        200: { description: "登录成功", ...okBody(loginResponseSchema) },
         401: { description: "用户名或密码错误", content: { "application/json": { schema: errorBodySchema } } },
         403: { description: "账号已被禁用", content: { "application/json": { schema: errorBodySchema } } },
         423: { description: "账号锁定", content: { "application/json": { schema: errorBodySchema } } },
@@ -67,7 +60,7 @@ export function authRoutes(jwtSecret: string): OpenAPIHono {
       path: "/api/auth/refresh",
       request: { body: { content: { "application/json": { schema: refreshSchema } } } },
       responses: {
-        200: { description: "轮换成功", content: { "application/json": { schema: okBody(tokenPairSchema) } } },
+        200: { description: "轮换成功", ...okBody(tokenPairSchema) },
         401: { description: "无效", content: { "application/json": { schema: errorBodySchema } } },
       },
     }),
@@ -95,7 +88,7 @@ export function authRoutes(jwtSecret: string): OpenAPIHono {
       path: "/api/auth/logout",
       request: { body: { content: { "application/json": { schema: refreshSchema } } } },
       responses: {
-        200: { description: "已吊销", content: { "application/json": { schema: okBody(z.null()) } } },
+        200: { description: "已吊销", ...okBody(z.null()) },
       },
     }),
     async (c) => {
