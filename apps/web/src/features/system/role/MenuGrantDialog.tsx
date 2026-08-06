@@ -3,6 +3,7 @@ import type { JSX } from "react"
 
 import {
   collectAncestorIds,
+  collectOrphanAncestorIds,
   collectSelfAndDescendantIds,
   TreeCheckbox,
 } from "@/components/business/TreeCheckbox"
@@ -50,17 +51,30 @@ export function MenuGrantDialog({
 
   const tree = menuTreeQuery.data
 
-  /** 父子联动：勾选 → 自身 + 自动带上全部祖先；取消 → 自身 + 全部后代级联取消 */
+  /**
+   * 对称联动语义（对偶于取消）：勾选（含半选→全选点击）= 自身 + 祖先链 + 全部后代
+   * （子树完整，点击父节点即带全子树）；取消 = 自身 + 全部后代 + 自下而上清理
+   * 无剩余选中后代的孤儿祖先。不变式：任意勾选节点其祖先链与子树均完整；
+   * 半选态仅在回显非闭包数据时可达。
+   */
   function handleToggle(node: MenuNode, checked: boolean): void {
     setSelected((prev) => {
       const next = new Set(prev)
       if (checked) {
         next.add(node.id)
         if (tree) {
-          for (const ancestorId of collectAncestorIds(node.id, tree)) next.add(ancestorId)
+          for (const id of [
+            ...collectSelfAndDescendantIds(node),
+            ...collectAncestorIds(node.id, tree),
+          ]) {
+            next.add(id)
+          }
         }
       } else {
-        for (const descendantId of collectSelfAndDescendantIds(node)) next.delete(descendantId)
+        for (const id of collectSelfAndDescendantIds(node)) next.delete(id)
+        if (tree) {
+          for (const id of collectOrphanAncestorIds(node.id, next, tree)) next.delete(id)
+        }
       }
       return next
     })
@@ -81,8 +95,8 @@ export function MenuGrantDialog({
         <DialogHeader>
           <DialogTitle>分配权限</DialogTitle>
           <DialogDescription>
-            为角色「{role.name}」配置菜单权限（勾选自动带上父目录，取消自动取消子项），
-            保存后将覆盖原有权限
+            为角色「{role.name}」配置菜单权限（勾选自动带上父目录与全部子项，取消自动
+            级联取消并清理空授权目录），保存后将覆盖原有权限
           </DialogDescription>
         </DialogHeader>
         {assignMutation.error && (
@@ -115,7 +129,13 @@ export function MenuGrantDialog({
           >
             取消
           </Button>
-          <Button type="button" onClick={handleSave} disabled={assignMutation.isPending}>
+          <Button
+            type="button"
+            onClick={handleSave}
+            // 树/回显任一未就绪（pending 或 error，以 data 有无判定）即禁用保存——
+            // 防止数据未到齐时误存空集、清空角色全部权限
+            disabled={assignMutation.isPending || !menuTreeQuery.data || !roleMenusQuery.data}
+          >
             {assignMutation.isPending ? "保存中…" : "保存"}
           </Button>
         </DialogFooter>

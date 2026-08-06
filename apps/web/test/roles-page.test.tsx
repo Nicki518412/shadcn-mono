@@ -123,7 +123,7 @@ function toUrlString(input: RequestInfo | URL): string {
  * 路由式 fetch mock：GET /api/roles 分页列表、GET /api/roles/{id}/menus 回显（grantIds 可配）、
  * GET /api/menus/tree 全量树、POST/PATCH/PUT/DELETE 均返回成功；其余 URL 抛错防静默。
  */
-function createFetchMock(options: { total?: number; grantIds?: string[] } = {}) {
+function createFetchMock(options: { total?: number; grantIds?: string[]; pendingMenus?: boolean } = {}) {
   const grantIds = options.grantIds ?? []
   const total = options.total ?? roleList.length
   return vi.fn((input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
@@ -142,7 +142,10 @@ function createFetchMock(options: { total?: number; grantIds?: string[] } = {}) 
       return Promise.resolve(okResponse(null))
     }
     if (method === "GET" && url.includes("/api/roles/") && url.endsWith("/menus")) {
-      return Promise.resolve(okResponse({ menuIds: grantIds }))
+      // pendingMenus：回显查询永不 resolve，用于断言数据未就绪时保存按钮禁用
+      return options.pendingMenus
+        ? new Promise<Response>(() => undefined)
+        : Promise.resolve(okResponse({ menuIds: grantIds }))
     }
     if (url.startsWith("/api/roles")) {
       return Promise.resolve(okResponse({ list: roleList, total }))
@@ -354,6 +357,50 @@ describe("RolePage", () => {
     expect(screen.getByRole("checkbox", { name: "系统管理" })).not.toBeChecked()
   })
 
+  it("树形勾选联动：取消父节点后清理孤儿祖先（勾选 b1 → 取消 m1 → 全树清空）", async () => {
+    const fetchMock = createFetchMock()
+    await openGrantDialog(fetchMock)
+
+    // 勾选 b1：自动带上 m1/d1
+    fireEvent.click(await screen.findByRole("checkbox", { name: "用户新增" }))
+    expect(screen.getByRole("checkbox", { name: "系统管理" })).toBeChecked()
+    // 取消 m1：m1 子树级联取消，且 d1 无剩余选中后代 → 孤儿祖先一并清理
+    fireEvent.click(screen.getByRole("checkbox", { name: "用户管理" }))
+    expect(screen.getByRole("checkbox", { name: "用户新增" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "用户编辑" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "用户管理" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "系统管理" })).not.toBeChecked()
+  })
+
+  it("树形勾选联动：点击半选父节点全选整个子树（父 + 全部后代）", async () => {
+    // 回显仅 {b1}（非闭包数据）：m1 呈半选态
+    const fetchMock = createFetchMock({ grantIds: ["b1"] })
+    await openGrantDialog(fetchMock)
+
+    await waitFor(() => {
+      expect(screen.getByRole("checkbox", { name: "用户管理" })).toHaveAttribute(
+        "aria-checked",
+        "mixed",
+      )
+    })
+    // 点击半选父节点（native 语义 → 勾选）：自身 + 全部后代 + 祖先
+    fireEvent.click(screen.getByRole("checkbox", { name: "用户管理" }))
+    expect(screen.getByRole("checkbox", { name: "用户管理" })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "用户新增" })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "用户编辑" })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name: "系统管理" })).toBeChecked()
+  })
+
+  it("回显查询未就绪时保存按钮禁用（防误存空集清空权限）", async () => {
+    const fetchMock = createFetchMock({ pendingMenus: true })
+    await openGrantDialog(fetchMock)
+
+    await waitFor(() => {
+      expect(screen.getByText("菜单加载中…")).toBeInTheDocument()
+    })
+    expect(screen.getByRole("button", { name: "保存" })).toBeDisabled()
+  })
+
   it("保存 → PUT /api/roles/{id}/menus 全量提交（含自动带上的祖先与按钮节点）", async () => {
     const fetchMock = createFetchMock()
     await openGrantDialog(fetchMock)
@@ -368,6 +415,8 @@ describe("RolePage", () => {
       const body = fetchBodies(fetchMock, "PUT")[0]
       expect(body).toBeDefined()
       expect(body?.menuIds).toEqual(expect.arrayContaining(["d1", "m1", "b1", "m2", "b3"]))
+      // 保存成功后对话框关闭
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
     })
   })
 })

@@ -1,5 +1,6 @@
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox"
 import { CheckIcon, MinusIcon } from "lucide-react"
+import { useId } from "react"
 import type { JSX } from "react"
 
 import type { components } from "@/api/schema"
@@ -18,21 +19,47 @@ export function collectSelfAndDescendantIds(node: MenuNode): string[] {
 }
 
 /**
- * 收集某节点的全部祖先 id（自近根向下，勾选时自动带上的父目录）。
- * 在 nodes 子树中查找 nodeId：命中顶层节点返回 []（无祖先）；在子树中找到则把
- * 当前节点作为祖先拼接其自身的祖先链；整棵树都找不到返回 []（数据异常兜底）。
+ * 在 nodes 子树中查找 nodeId 的祖先链（自近根向下，勾选时自动带上的父目录）：
+ * 命中顶层节点返回 []（无祖先）；在子树中找到则把当前节点作为祖先拼接其自身
+ * 的祖先链；整棵树都找不到返回 null（数据异常兜底）。
  */
-function findAncestorChain(nodeId: string, nodes: MenuNode[]): string[] | null {
+function findAncestorChain(nodeId: string, nodes: MenuNode[]): MenuNode[] | null {
   for (const node of nodes) {
     if (node.id === nodeId) return []
     const chain = findAncestorChain(nodeId, node.children)
-    if (chain !== null) return [node.id, ...chain]
+    if (chain !== null) return [node, ...chain]
   }
   return null
 }
 
 export function collectAncestorIds(nodeId: string, nodes: MenuNode[]): string[] {
-  return findAncestorChain(nodeId, nodes) ?? []
+  return (findAncestorChain(nodeId, nodes) ?? []).map((node) => node.id)
+}
+
+/**
+ * 取消勾选后需清理的孤儿祖先 id（自下而上）：某祖先不再有任何仍选中的后代时移除
+ * （该祖先自身在 selected 中同样清理——全选语义下"空目录授权"无实际意义）；
+ * 一旦遇到仍有选中后代的祖先即停止（其上方祖先必然也持有该后代）。
+ */
+export function collectOrphanAncestorIds(
+  nodeId: string,
+  selected: Set<string>,
+  allNodes: MenuNode[],
+): string[] {
+  const chain = findAncestorChain(nodeId, allNodes) ?? []
+  const orphans: string[] = []
+  // 自下而上（最近祖先优先）：无剩余选中后代的祖先逐个清理，遇仍有后代的祖先即停
+  for (const ancestor of [...chain].reverse()) {
+    if (hasSelectedDescendant(ancestor, selected)) break
+    orphans.push(ancestor.id)
+  }
+  return orphans
+}
+
+function hasSelectedDescendant(node: MenuNode, selected: Set<string>): boolean {
+  return node.children.some(
+    (child) => selected.has(child.id) || hasSelectedDescendant(child, selected),
+  )
 }
 
 /** 类型 Badge 配色：目录/菜单/按钮一屏可辨 */
@@ -46,9 +73,11 @@ function badgeVariant(type: MenuNode["type"]): "default" | "outline" | "secondar
  * 菜单授权树形勾选（受控组件，父组件持有 selected Set）：
  * - checked = 节点在 selected 中；indeterminate = 未全选但部分后代在 selected 中
  *   （回显数据可能不是祖先闭包——如后端直存了子节点——此时祖先呈现半选态而非误标全选）
- * - onToggle(node, checked) 由父组件按联动规则改写 Set（勾选带祖先/取消级联后代）
+ * - onToggle(node, checked) 由父组件按对称联动规则改写 Set（勾选带祖先+全子项、
+ *   取消级联后代并清理孤儿祖先；半选态仅在回显非闭包数据时可达）
  * 复选框为手写渲染（Base UI Root + 半选 MinusIcon）：ui/checkbox.tsx 属 shadcn CLI 管理
  * 产物禁止手写修改，且其 Indicator 恒渲染 CheckIcon，无法表达半选态。
+ * checkbox id 以 useId() 做前缀，多实例（如 Task 22 树表格）复用互不碰撞。
  */
 export function TreeCheckbox({
   nodes,
@@ -61,12 +90,13 @@ export function TreeCheckbox({
   onToggle: (node: MenuNode, checked: boolean) => void
   depth?: number
 }): JSX.Element {
+  const rowPrefix = useId()
   return (
     <>
       {nodes.map((node) => {
         const checked = selected.has(node.id)
         const indeterminate = !checked && collectSelfAndDescendantIds(node).some((id) => selected.has(id))
-        const checkboxId = `menu-grant-${node.id}`
+        const checkboxId = `${rowPrefix}-${node.id}`
         return (
           <div key={node.id}>
             <div
