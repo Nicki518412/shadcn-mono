@@ -1,5 +1,5 @@
 // 种子数据（幂等可重跑）：菜单树 / 角色授权 / admin 账号（设计文档 §9）
-// upsert 策略：有 permission 的按 permission findUnique；无 permission 的按 name+parentId findFirst；
+// upsert 策略：有 permission 的按 permission findUnique；无 permission 的按 name+parentId+path findFirst；
 // 存在则复用（不更新字段），不存在创建——重复运行不产生重复数据、不触发唯一约束冲突
 import { prisma } from "./client.js"
 import { hashPassword } from "./lib/password.js"
@@ -17,7 +17,9 @@ interface MenuSeedInput {
 async function upsertMenu(input: MenuSeedInput): Promise<string> {
   const existing = input.permission
     ? await prisma.menu.findUnique({ where: { permission: input.permission } })
-    : await prisma.menu.findFirst({ where: { name: input.name, parentId: input.parentId ?? null } })
+    : await prisma.menu.findFirst({
+        where: { name: input.name, parentId: input.parentId ?? null, path: input.path ?? null },
+      })
   if (existing) return existing.id
   const created = await prisma.menu.create({
     data: {
@@ -38,6 +40,7 @@ async function main(): Promise<void> {
   try {
     // 1. 菜单树（与设计文档 §9 一致）
     const dashboardId = await upsertMenu({ name: "Dashboard", type: "MENU", path: "/", component: "dashboard", sort: 0 })
+    // 系统管理无 permission/path 稳定键，按 name+parentId 匹配：种子源码改名会静默新建（旧节点残留，需人工清理）；菜单管理页创建同名根节点会被误命中
     const sysId = await upsertMenu({ name: "系统管理", type: "DIR", sort: 100 })
     const userMenuId = await upsertMenu({
       name: "用户管理", type: "MENU", path: "/system/user", component: "system/user",
@@ -70,17 +73,21 @@ async function main(): Promise<void> {
       update: { name: "管理员" },
       create: { name: "管理员", code: "ADMIN", sort: 0 },
     })
-    await prisma.roleMenu.deleteMany({ where: { roleId: adminRole.id } })
-    await prisma.roleMenu.createMany({ data: allMenuIds.map((menuId) => ({ roleId: adminRole.id, menuId })) })
+    await prisma.$transaction([
+      prisma.roleMenu.deleteMany({ where: { roleId: adminRole.id } }),
+      prisma.roleMenu.createMany({ data: allMenuIds.map((menuId) => ({ roleId: adminRole.id, menuId })) }),
+    ])
     const guestRole = await prisma.role.upsert({
       where: { code: "GUEST" },
       update: { name: "访客" },
       create: { name: "访客", code: "GUEST", sort: 100 },
     })
-    await prisma.roleMenu.deleteMany({ where: { roleId: guestRole.id } })
-    await prisma.roleMenu.createMany({ data: [{ roleId: guestRole.id, menuId: dashboardId }] })
+    await prisma.$transaction([
+      prisma.roleMenu.deleteMany({ where: { roleId: guestRole.id } }),
+      prisma.roleMenu.createMany({ data: [{ roleId: guestRole.id, menuId: dashboardId }] }),
+    ])
 
-    // 3. 用户：admin / Admin@123（挂 ADMIN；update 也重置口令，保证 seed 后账号口令确定）
+    // 3. 用户：admin / Admin@123（挂 ADMIN；update 分支同样重置口令与联系信息，保证 seed 后账号口令与演示联系方式确定）
     const adminPasswordHash = await hashPassword("Admin@123")
     const adminUser = await prisma.user.upsert({
       where: { username: "admin" },
@@ -98,8 +105,10 @@ async function main(): Promise<void> {
         telephone: "13800138000",
       },
     })
-    await prisma.userRole.deleteMany({ where: { userId: adminUser.id } })
-    await prisma.userRole.create({ data: { userId: adminUser.id, roleId: adminRole.id } })
+    await prisma.$transaction([
+      prisma.userRole.deleteMany({ where: { userId: adminUser.id } }),
+      prisma.userRole.create({ data: { userId: adminUser.id, roleId: adminRole.id } }),
+    ])
 
     // 4. 摘要
     const menuCount = await prisma.menu.count()
