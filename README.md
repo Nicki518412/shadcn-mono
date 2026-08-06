@@ -18,7 +18,7 @@ CLAUDE.md         # 智能体开发指南；.claude/skills/ 项目技能；.mcp.
 
 ## 快速开始
 
-要求：Node >= 20.11，pnpm 9.x（`packageManager: pnpm@9.12.0`）。
+要求：Node >= 22（@testing-library/jest-dom@7 的 engines 下限），pnpm 9.x（`packageManager: pnpm@9.12.0`）。
 
 ```bash
 pnpm install              # postinstall 自动 prisma generate

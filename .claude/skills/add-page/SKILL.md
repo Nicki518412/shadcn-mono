@@ -14,7 +14,7 @@ description: Use when adding a new page or menu to this RBAC admin (new manageme
    - **在线创建**：登录后用菜单管理页创建（运行时配置，不入种子）。注意种子重跑不会删除在线创建的节点（upsert 只增不改）。
 2. **创建页面组件**：`src/features/<component>/page.tsx`。component key 约定：菜单 `component` 字段如 `system/user` → 文件 `features/system/user/page.tsx`。路由由 `src/router/generateRoutes.tsx`（import.meta.glob）自动注册，**无需改路由文件**；新增后重新 dev/build 生效。
 3. **需要的权限码**：种子菜单加 BUTTON 行（如 `system:user:create`，规范 `模块:资源:操作`）；后端路由挂中间件 `requirePermission("...")`（`apps/api/src/routes/*.ts` 的 createRoute middleware 数组）。
-4. **前端按钮门控**：操作按钮用 `<Permission code="...">` 包裹（或 `usePermissionCodes()` hook），无权限时渲染 fallback（默认不渲染）。
+4. **前端按钮门控**：操作按钮用 `<Permission code="...">` 包裹（或 `usePermissionCodes()` hook），无权限时不渲染（可传 fallback 自定义替代内容）。
 5. **后端接口响应补 OpenAPI**：`apps/api/src/lib/schemas.ts` 写具名 zod schema，响应经 `okBody(schema)` 包装（zod 同时驱动请求校验、OpenAPI 文档、前端类型三处）。
 6. **文档同步**：涉及表结构变更时同步 `docs/database/schema.sql`（与 schema.prisma 双源约定）；纯接口/页面变更不需要。
 7. **测试 + 提交**：补对应测试（api 集成 or web RTL），`pnpm turbo test` 全绿后按 conventional commits 提交。pre-commit 自动重生成 openapi.json + schema.d.ts——若 typecheck 报错提示 schema.d.ts 缺类型，说明生成产物陈旧，先手动跑 `pnpm --filter @repo/api generate:openapi && pnpm --filter @repo/api generate:types`。
