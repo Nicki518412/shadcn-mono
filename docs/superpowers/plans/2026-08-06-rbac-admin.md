@@ -1622,7 +1622,7 @@ export async function captureCodeFromDb(target: string): Promise<string> {
 
 > **关键设计（实现者必读）**：验证码库中只存 sha256 哈希，测试无法反推明文——因此 `OtpCode.devPlainCode`（Task 4 已含）作为测试专用明文通道：`DevOtpSender` 场景下写入，真实发送实现不写。`captureCodeFromDb` 读取 `devPlainCode`。
 
-- [ ] **Step 4: 实现 OTP 路由**
+- [ ] **Step 4: 实现 OTP 路由**（实现时顺带过期清理：send 流程中 `deleteMany({ where: { expiresAt: { lt: new Date() } } })` 清理该 target 的过期记录，防表无界增长——schema 已加 `@@index([channel, target, createdAt])`）
 
 `apps/api/src/routes/otp.ts`（完整实现）：
 ```ts

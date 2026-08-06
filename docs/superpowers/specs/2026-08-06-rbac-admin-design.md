@@ -59,7 +59,7 @@ shadcn-mono/
 |---|---|---|
 | id | String (cuid) | PK |
 | username | String | unique，**统一小写存储** |
-| passwordHash | String | **可空**（仅 Clerk 用户可为空） |
+| passwordHash | String（NOT NULL） | **空字符串约定**：仅 Clerk 用户为空串（实现已定为非空字段 + 空串语义，Task 7 校验 `!user.passwordHash`） |
 | nickname | String | |
 | email | String? | unique，可空 |
 | telephone | String? | unique，可空 |
