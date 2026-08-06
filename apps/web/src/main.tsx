@@ -6,6 +6,7 @@ import { BrowserRouter, Route, Routes } from "react-router"
 import { AuthProviderView } from "./auth/AuthProvider"
 import { JwtAuthProvider } from "./auth/JwtAuthProvider"
 import type { AuthProvider } from "./auth/types"
+import { Toaster } from "./components/ui/sonner"
 import AppLayout from "./layout/AppLayout"
 import LoginPage from "./pages/LoginPage"
 import { RequireAuth } from "./router/guards"
@@ -39,6 +40,8 @@ function App() {
             </Route>
           </Routes>
         </BrowserRouter>
+        {/* toast 全局出口（sonner）；next-themes 未挂 Provider 时 useTheme 回落 system，安全 */}
+        <Toaster />
       </AuthProviderView>
     </QueryClientProvider>
   )

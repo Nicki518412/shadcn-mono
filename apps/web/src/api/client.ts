@@ -1,6 +1,11 @@
 import { API_BASE, doRefresh, getAccessToken } from "./session"
 import type { ApiEnvelope } from "./session"
 
+/** 统一错误文案：api() 契约一律抛 Error（message 为后端文案或网络错误兜底）；非 Error 兜底通用文案 */
+export function apiErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : "操作失败，请重试"
+}
+
 /** fetch 网络异常（TypeError，非 HTTP 错误）统一包装为业务 Error——api() 一律抛 Error 的契约 */
 async function safeFetch(path: string, init: RequestInit, headers: Headers): Promise<Response> {
   try {

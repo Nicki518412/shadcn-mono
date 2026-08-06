@@ -11,7 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Field, FieldContent, FieldGroup, FieldLabel } from "@/components/ui/field"
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -135,6 +141,7 @@ export function UserFormDialog({
                   disabled={isEdit}
                   placeholder="登录用户名"
                 />
+                {isEdit && <FieldDescription>用户名创建后不可修改</FieldDescription>}
               </FieldContent>
             </Field>
             <Field>

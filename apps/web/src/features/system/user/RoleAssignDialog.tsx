@@ -56,7 +56,9 @@ export function RoleAssignDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>分配角色</DialogTitle>
-          <DialogDescription>为用户「{user.nickname}」配置角色（可多选）</DialogDescription>
+          <DialogDescription>
+            为用户「{user.nickname}」配置角色（可多选），保存后将覆盖原有角色
+          </DialogDescription>
         </DialogHeader>
         {assignMutation.error && (
           <p role="alert" className="text-sm text-destructive">

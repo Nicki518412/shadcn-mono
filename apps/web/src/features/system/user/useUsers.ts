@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
-import { api } from "@/api/client"
+import { api, apiErrorMessage } from "@/api/client"
 import type { components, paths } from "@/api/schema"
 
 type UserPageResult = components["schemas"]["UserPageResult"]
@@ -20,10 +20,8 @@ export type UserUpdateInput = NonNullable<
 
 /** users 查询 key 前缀：mutation 成功后 invalidate 前缀即所有分页/搜索变体失效重取 */
 export const USERS_QUERY_KEY = ["users"] as const
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : "操作失败，请重试"
-}
+/** roles 查询 key 前缀（Task 21 角色页复用；列表类查询挂 "list" 等子键） */
+export const ROLES_QUERY_KEY = ["roles"] as const
 
 /** 用户分页列表查询（queryKey ["users", page, pageSize, keyword]） */
 export function useUsersQuery(page: number, pageSize: number, keyword: string) {
@@ -38,7 +36,7 @@ export function useUsersQuery(page: number, pageSize: number, keyword: string) {
 /** 角色全量列表（表单/分配角色的选项源，GET /api/roles/list 无分页） */
 export function useRolesListQuery() {
   return useQuery({
-    queryKey: ["roles", "list"],
+    queryKey: [...ROLES_QUERY_KEY, "list"],
     queryFn: () => api<RoleListItem[]>("/roles/list"),
   })
 }
@@ -54,7 +52,7 @@ export function useCreateUserMutation() {
       toast.success("用户创建成功")
     },
     onError: (error) => {
-      toast.error(errorMessage(error))
+      toast.error(apiErrorMessage(error))
     },
   })
 }
@@ -70,13 +68,13 @@ export function useUpdateUserMutation() {
       toast.success("用户更新成功")
     },
     onError: (error) => {
-      toast.error(errorMessage(error))
+      toast.error(apiErrorMessage(error))
     },
   })
 }
 
 /** 删除用户（DELETE /api/users/{id}） */
-export function useRemoveUserMutation() {
+export function useDeleteUserMutation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api<null>(`/users/${id}`, { method: "DELETE" }),
@@ -85,7 +83,7 @@ export function useRemoveUserMutation() {
       toast.success("用户已删除")
     },
     onError: (error) => {
-      toast.error(errorMessage(error))
+      toast.error(apiErrorMessage(error))
     },
   })
 }
@@ -104,7 +102,7 @@ export function useAssignRolesMutation() {
       toast.success("角色分配成功")
     },
     onError: (error) => {
-      toast.error(errorMessage(error))
+      toast.error(apiErrorMessage(error))
     },
   })
 }

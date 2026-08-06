@@ -8,3 +8,20 @@ class ResizeObserverStub {
 }
 
 globalThis.ResizeObserver = ResizeObserverStub
+
+// jsdom 未实现 PointerEvent（Base UI checkbox 的 dispatchClickWithModifiers
+// 内部构造 new PointerEvent("click") 分发到隐藏 input），注入 MouseEvent 子类兜底
+if (typeof window.PointerEvent === "undefined") {
+  class PointerEventStub extends MouseEvent {
+    readonly pointerId: number
+    readonly pointerType: string
+    readonly isPrimary: boolean
+    constructor(type: string, params: PointerEventInit = {}) {
+      super(type, params)
+      this.pointerId = params.pointerId ?? 0
+      this.pointerType = params.pointerType ?? "mouse"
+      this.isPrimary = params.isPrimary ?? true
+    }
+  }
+  window.PointerEvent = PointerEventStub as typeof PointerEvent
+}

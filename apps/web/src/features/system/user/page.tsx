@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { JSX } from "react"
 
 import { Permission } from "@/components/business/Permission"
@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input"
 import {
   Pagination,
   PaginationContent,
+  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -38,9 +39,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { usePagination } from "@/hooks/usePagination"
 import { RoleAssignDialog } from "./RoleAssignDialog"
 import { UserFormDialog } from "./UserFormDialog"
-import { useRemoveUserMutation, useUsersQuery } from "./useUsers"
+import { useDeleteUserMutation, useUsersQuery } from "./useUsers"
 import type { UserListItem } from "./useUsers"
 
 const PAGE_SIZE = 10
@@ -56,27 +58,37 @@ function formatDateTime(value: string): string {
  * 分配角色 Dialog；所有操作按钮由 <Permission> 按按钮级权限码门控。
  */
 export default function UserPage(): JSX.Element {
-  const [page, setPage] = useState(1)
+  const { page, pageSize, totalPages, setPage, setTotalPages } = usePagination(1, PAGE_SIZE)
   const [keywordInput, setKeywordInput] = useState("")
   const [keyword, setKeyword] = useState("")
   const [formOpen, setFormOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<UserListItem | null>(null)
   const [assignUser, setAssignUser] = useState<UserListItem | null>(null)
   const [deleteUser, setDeleteUser] = useState<UserListItem | null>(null)
-  const removeMutation = useRemoveUserMutation()
+  const deleteMutation = useDeleteUserMutation()
 
-  const { data, isLoading, isError, error } = useUsersQuery(page, PAGE_SIZE, keyword)
+  const { data, isLoading, isError, error } = useUsersQuery(page, pageSize, keyword)
   const users = data?.list ?? []
-  const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE))
+
+  // 数据就绪后同步 totalPages（usePagination 内部在 totalPages 变小时自动钳制 page）。
+  // 仅 data 存在时写入：切页瞬间新 query 处于 pending（data=undefined），若此时把 totalPages
+  // 打成 1 会触发钳制把 page 拽回首页（真实竞态，测试曾复现）
+  useEffect(() => {
+    if (data) setTotalPages(Math.max(1, Math.ceil(data.total / pageSize)))
+  }, [data, pageSize, setTotalPages])
 
   function applyKeyword(): void {
     setKeyword(keywordInput.trim())
     setPage(1)
   }
 
+  function gotoPage(pageNumber: number): void {
+    setPage(pageNumber)
+  }
+
   function confirmDelete(): void {
     if (!deleteUser) return
-    removeMutation.mutate(deleteUser.id, { onSuccess: () => { setDeleteUser(null); } })
+    deleteMutation.mutate(deleteUser.id, { onSuccess: () => { setDeleteUser(null); } })
   }
 
   return (
@@ -112,13 +124,11 @@ export default function UserPage(): JSX.Element {
         </div>
       </div>
 
-      {isError && (
+      {isError ? (
         <p role="alert" className="text-sm text-destructive">
           {error.message}
         </p>
-      )}
-
-      {!isLoading && users.length === 0 ? (
+      ) : !isLoading && users.length === 0 ? (
         <Empty className="py-16">
           <EmptyContent>
             <EmptyTitle>暂无用户</EmptyTitle>
@@ -226,43 +236,81 @@ export default function UserPage(): JSX.Element {
         </Table>
       )}
 
-      <Pagination className="justify-end">
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious
-              text="上一页"
-              aria-label="上一页"
-              onClick={(event) => {
-                event.preventDefault()
-                if (page > 1) setPage(page - 1)
-              }}
-            />
-          </PaginationItem>
-          {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
-            <PaginationItem key={pageNumber}>
-              <PaginationLink
-                isActive={pageNumber === page}
+      {totalPages > 1 && (
+        <Pagination className="justify-end">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                text="上一页"
+                aria-label="上一页"
                 onClick={(event) => {
                   event.preventDefault()
-                  setPage(pageNumber)
+                  if (page > 1) gotoPage(page - 1)
                 }}
-              >
-                {pageNumber}
-              </PaginationLink>
+              />
             </PaginationItem>
-          ))}
-          <PaginationItem>
-            <PaginationNext
-              text="下一页"
-              aria-label="下一页"
-              onClick={(event) => {
-                event.preventDefault()
-                if (page < totalPages) setPage(page + 1)
-              }}
-            />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
+            {totalPages > 7 ? (
+              // 页数过多截断：首页 + 省略号 + 末页（简单实现，prev/next 仍可翻页）
+              <>
+                <PaginationItem>
+                  <PaginationLink
+                    href="#"
+                    isActive={page === 1}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      gotoPage(1)
+                    }}
+                  >
+                    1
+                  </PaginationLink>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationLink
+                    href="#"
+                    isActive={page === totalPages}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      gotoPage(totalPages)
+                    }}
+                  >
+                    {totalPages}
+                  </PaginationLink>
+                </PaginationItem>
+              </>
+            ) : (
+              Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+                <PaginationItem key={pageNumber}>
+                  <PaginationLink
+                    href="#"
+                    isActive={pageNumber === page}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      gotoPage(pageNumber)
+                    }}
+                  >
+                    {pageNumber}
+                  </PaginationLink>
+                </PaginationItem>
+              ))
+            )}
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                text="下一页"
+                aria-label="下一页"
+                onClick={(event) => {
+                  event.preventDefault()
+                  if (page < totalPages) gotoPage(page + 1)
+                }}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
 
       {formOpen && (
         <UserFormDialog
@@ -302,9 +350,9 @@ export default function UserPage(): JSX.Element {
               <AlertDialogAction
                 variant="destructive"
                 onClick={confirmDelete}
-                disabled={removeMutation.isPending}
+                disabled={deleteMutation.isPending}
               >
-                {removeMutation.isPending ? "删除中…" : "删除"}
+                {deleteMutation.isPending ? "删除中…" : "删除"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
