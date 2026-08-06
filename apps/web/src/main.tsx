@@ -15,10 +15,13 @@ const queryClient = new QueryClient()
 
 /**
  * provider 按 VITE_AUTH_PROVIDER 选择：local → JwtAuthProvider；
- * clerk → Task 24 替换为 ClerkAuthProvider（其 getSession 走 Clerk 会话，守卫/布局代码不感知差异）
+ * clerk → Task 24 实现 ClerkAuthProvider（其 getSession 走 Clerk 会话，守卫/布局代码不感知差异）。
+ * 未实现前显式抛错，防止提前设置 env 时静默得到 JWT 行为
  */
 function createAuthProvider(): AuthProvider {
-  if (import.meta.env.VITE_AUTH_PROVIDER === "clerk") return new JwtAuthProvider()
+  if (import.meta.env.VITE_AUTH_PROVIDER === "clerk") {
+    throw new Error("ClerkAuthProvider 未实现（Task 24）")
+  }
   return new JwtAuthProvider()
 }
 

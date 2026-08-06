@@ -7,7 +7,7 @@ import { ChevronRightIcon, LogOutIcon } from "lucide-react"
 
 import type { components } from "@/api/schema"
 import { useAuth } from "@/auth/AuthProvider"
-import { useMeQuery } from "@/router/guards"
+import { ME_QUERY_KEY, useMeQuery } from "@/router/guards"
 import { menuToRoutes } from "@/router/generateRoutes"
 import { Button } from "@/components/ui/button"
 import {
@@ -37,14 +37,19 @@ import NotFoundPage from "@/pages/NotFoundPage"
 
 type MenuNode = components["schemas"]["MenuNode"]
 
-/** 顶层 MENU：SidebarMenuButton 渲染为 NavLink，isActive 由当前 pathname 精确匹配驱动 data-active 高亮 */
+/**
+ * MENU → SidebarMenuButton 渲染为 NavLink（end：对齐 aria-current 与视觉精确匹配，
+ * 避免 to="/" 时前缀匹配导致的常驻高亮）；isActive 驱动 data-active 高亮
+ */
 function MenuLink({ node }: { node: MenuNode }): JSX.Element | null {
   const location = useLocation()
-  const path = node.path ?? ""
   if (!node.path) return null
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton render={<NavLink to={path} />} isActive={location.pathname === path}>
+      <SidebarMenuButton
+        render={<NavLink to={node.path} end />}
+        isActive={location.pathname === node.path}
+      >
         <span>{node.name}</span>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -52,11 +57,14 @@ function MenuLink({ node }: { node: MenuNode }): JSX.Element | null {
 }
 
 /** DIR 子级 MENU：SidebarMenuSubButton 渲染为 NavLink（缩进 + 左侧边框样式） */
-function SubMenuLink({ node }: { node: MenuNode }): JSX.Element {
+function SubMenuLink({ node }: { node: MenuNode }): JSX.Element | null {
   const location = useLocation()
-  const path = node.path ?? ""
+  if (!node.path) return null
   return (
-    <SidebarMenuSubButton render={<NavLink to={path} />} isActive={location.pathname === path}>
+    <SidebarMenuSubButton
+      render={<NavLink to={node.path} end />}
+      isActive={location.pathname === node.path}
+    >
       <span>{node.name}</span>
     </SidebarMenuSubButton>
   )
@@ -133,7 +141,7 @@ export default function AppLayout(): JSX.Element {
   async function handleLogout(): Promise<void> {
     await auth.logout()
     // 清掉 me 缓存，避免退出后旧用户数据残留（同一 QueryClient 跨登录复用）
-    queryClient.removeQueries({ queryKey: ["me"] })
+    queryClient.removeQueries({ queryKey: ME_QUERY_KEY })
     void navigate("/login")
   }
 

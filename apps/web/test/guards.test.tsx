@@ -101,6 +101,21 @@ describe("RequireAuth", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
+  it("me 查询失败（网络错误）：重定向到 /login", async () => {
+    // getSession 成功但 /auth/me 请求失败（瞬时网络错误）——retry:false 下立即按未登录处理
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError("network down"))
+    vi.stubGlobal("fetch", fetchMock)
+    renderRequireAuth(
+      createMockProvider({ getSession: vi.fn<AuthProvider["getSession"]>().mockResolvedValue(session) }),
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("登录页")).toBeInTheDocument()
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText("受保护内容")).not.toBeInTheDocument()
+  })
+
   it("会话解析中：展示加载态", () => {
     renderRequireAuth(
       createMockProvider({
