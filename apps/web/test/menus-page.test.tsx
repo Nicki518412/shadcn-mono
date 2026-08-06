@@ -293,9 +293,11 @@ describe("MenuPage", () => {
     expect(screen.queryByRole("option", { name: "系统管理" })).not.toBeInTheDocument()
     clickOption("用户管理")
 
-    // 切回 MENU：type 变更后原父节点（BUTTON 专用父）非法 → 自动重置；重选 DIR 父并填表提交
+    // 切回 MENU：type 变更后原父节点（BUTTON 专用父 m1）非法 → 自动重置
     fireEvent.click(within(dialog).getByLabelText("类型"))
     clickOption("MENU")
+    // 父 Select 已重置为空 → 显示「无（根目录）」占位
+    expect(within(dialog).getByLabelText("父节点")).toHaveTextContent("无（根目录）")
     fireEvent.click(within(dialog).getByLabelText("父节点"))
     expect(screen.getByRole("option", { name: "系统管理" })).toBeInTheDocument()
     clickOption("系统管理")
@@ -314,6 +316,59 @@ describe("MenuPage", () => {
         icon: null,
         permission: null,
         sort: 0,
+        status: true,
+      })
+    })
+  })
+
+  it("编辑菜单：字段回显 + 父选项排除自身子树 + 改 BUTTON 时 path/component 显式 null", async () => {
+    const fetchMock = createFetchMock()
+    renderMenuPage(fetchMock)
+
+    await waitFor(() => {
+      expect(screen.getByText("系统管理")).toBeInTheDocument()
+    })
+    fireEvent.click(rowButton("用户管理", "编辑"))
+
+    const dialog = await screen.findByRole("dialog")
+    expect(dialog).toHaveTextContent("编辑菜单")
+    // 字段回显：名称/类型/路由/组件
+    expect(within(dialog).getByLabelText("菜单名称")).toHaveValue("用户管理")
+    expect(within(dialog).getByLabelText("类型")).toHaveTextContent("MENU")
+    expect(within(dialog).getByLabelText("路由路径")).toHaveValue("/system/user")
+    expect(within(dialog).getByLabelText("组件")).toHaveValue("system/user")
+
+    // 排除自身子树：父选项只余 DIR 级节点，自身（用户管理）及后代（用户新增/用户编辑）不可选
+    fireEvent.click(within(dialog).getByLabelText("父节点"))
+    expect(screen.getByRole("option", { name: "无（根目录）" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "系统管理" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "系统监控" })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "用户管理" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "用户新增" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "用户编辑" })).not.toBeInTheDocument()
+    clickOption("系统管理")
+
+    // MENU → BUTTON：path/component 显式传 null 清空（防后端"BUTTON 不允许填写 path 和 component"）；
+    // 原父 d1（DIR）非法自动重置，需重选 MENU 父（监控面板）
+    fireEvent.click(within(dialog).getByLabelText("类型"))
+    clickOption("BUTTON")
+    fireEvent.click(within(dialog).getByLabelText("父节点"))
+    expect(screen.getByRole("option", { name: "监控面板" })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "无（根目录）" })).not.toBeInTheDocument()
+    clickOption("监控面板")
+    fireEvent.click(within(dialog).getByRole("button", { name: "保存" }))
+
+    await waitFor(() => {
+      expect(fetchUrls(fetchMock, "PATCH")).toContain("/api/menus/m1")
+      expect(fetchBodies(fetchMock, "PATCH")).toContainEqual({
+        name: "用户管理",
+        type: "BUTTON",
+        parentId: "m2",
+        path: null,
+        component: null,
+        icon: null,
+        permission: "system:user:query",
+        sort: 1,
         status: true,
       })
     })
