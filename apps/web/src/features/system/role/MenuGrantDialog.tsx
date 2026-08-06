@@ -18,7 +18,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field"
-import { useAssignMenusMutation, useMenuTreeQuery, useRoleMenusQuery } from "./useRoles"
+import { useMenuTreeQuery } from "../menu/useMenus"
+import { useAssignMenusMutation, useRoleMenusQuery } from "./useRoles"
 import type { RoleListItem } from "./useRoles"
 
 /**

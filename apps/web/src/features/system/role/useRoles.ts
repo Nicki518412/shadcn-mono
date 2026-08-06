@@ -7,7 +7,6 @@ import type { components, paths } from "@/api/schema"
 type RolePageResult = components["schemas"]["RolePageResult"]
 export type RoleListItem = components["schemas"]["RoleListItem"]
 type RoleDetail = components["schemas"]["RoleDetail"]
-export type MenuNode = components["schemas"]["MenuNode"]
 
 /** POST /api/roles 请求体（openapi-typescript 生成类型，随 schema.d.ts 自动同步） */
 export type RoleCreateInput = NonNullable<
@@ -40,14 +39,6 @@ export function useRolesListQuery() {
   return useQuery({
     queryKey: [...ROLES_QUERY_KEY, "list"],
     queryFn: () => api<RoleListItem[]>("/roles/list"),
-  })
-}
-
-/** 全量菜单树（授权勾选源，GET /api/menus/tree 含按钮节点；Task 22 菜单页建 useMenus.ts 时迁移） */
-export function useMenuTreeQuery() {
-  return useQuery({
-    queryKey: ["menus", "tree"],
-    queryFn: () => api<MenuNode[]>("/menus/tree"),
   })
 }
 
