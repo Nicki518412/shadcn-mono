@@ -107,3 +107,24 @@ export const userDetailSchema = userListItemSchema.extend({}).openapi("UserDetai
 export const userPageResultSchema = z
   .object({ list: z.array(userListItemSchema), total: z.number() })
   .openapi("UserPageResult")
+
+/** 角色列表项（分页列表 data.list 元素 / 全量列表共用） */
+export const roleListItemSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    code: z.string(),
+    description: z.string().nullable(),
+    sort: z.number(),
+    status: z.boolean(),
+    createdAt: z.string(),
+  })
+  .openapi("RoleListItem")
+
+/** 角色详情（结构同列表项） */
+export const roleDetailSchema = roleListItemSchema.extend({}).openapi("RoleDetail")
+
+/** 角色分页结果 */
+export const rolePageResultSchema = z
+  .object({ list: z.array(roleListItemSchema), total: z.number() })
+  .openapi("RolePageResult")
