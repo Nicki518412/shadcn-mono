@@ -9,6 +9,7 @@ import { validationHook } from "./lib/validation-hook.js"
 import { authRoutes } from "./routes/auth.js"
 import { meRoutes } from "./routes/me.js"
 import { otpRoutes } from "./routes/otp.js"
+import { userRoutes } from "./routes/users.js"
 
 export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
   const app = new OpenAPIHono<Env>({
@@ -48,6 +49,7 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
   app.route("/", authRoutes(cfg.jwtSecret))
   app.route("/", otpRoutes(cfg.jwtSecret))
   app.route("/", meRoutes(cfg.jwtSecret))
+  app.route("/", userRoutes(cfg.jwtSecret))
 
   app.notFound((c) =>
     c.json({ code: "NOT_FOUND", message: "接口不存在", data: null }, 404),

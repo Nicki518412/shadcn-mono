@@ -79,3 +79,30 @@ export const meResponseSchema = z
     permissionCodes: z.array(z.string()),
   })
   .openapi("MeResponse")
+
+/** 用户-角色简要信息（用户列表/详情响应共用） */
+export const userRoleSchema = z
+  .object({ id: z.string(), name: z.string(), code: z.string() })
+  .openapi("UserRole")
+
+/** 用户列表项（分页列表 data.list 元素） */
+export const userListItemSchema = z
+  .object({
+    id: z.string(),
+    username: z.string(),
+    nickname: z.string(),
+    email: z.string().nullable(),
+    telephone: z.string().nullable(),
+    status: z.boolean(),
+    createdAt: z.string(),
+    roles: z.array(userRoleSchema),
+  })
+  .openapi("UserListItem")
+
+/** 用户详情（含已挂角色；结构同列表项） */
+export const userDetailSchema = userListItemSchema.extend({}).openapi("UserDetail")
+
+/** 用户分页结果 */
+export const userPageResultSchema = z
+  .object({ list: z.array(userListItemSchema), total: z.number() })
+  .openapi("UserPageResult")
