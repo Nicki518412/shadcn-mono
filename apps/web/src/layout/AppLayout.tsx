@@ -7,9 +7,10 @@ import { ChevronRightIcon, LogOutIcon } from "lucide-react"
 
 import type { components } from "@/api/schema"
 import { useAuth } from "@/auth/AuthProvider"
+import ErrorBoundary from "@/components/business/ErrorBoundary"
+import { Button } from "@/components/ui/button"
 import { ME_QUERY_KEY, useMeQuery } from "@/router/guards"
 import { menuToRoutes } from "@/router/generateRoutes"
-import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +34,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import ForbiddenPage from "@/pages/ForbiddenPage"
 import NotFoundPage from "@/pages/NotFoundPage"
 
 type MenuNode = components["schemas"]["MenuNode"]
@@ -184,12 +186,17 @@ export default function AppLayout(): JSX.Element {
           </div>
         </header>
         <main className="flex-1 overflow-auto p-4">
-          <Routes>
-            {routes.map((route) => (
-              <Route key={route.path} path={route.path} element={route.element} />
-            ))}
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
+          {/* 错误边界只包内层 Routes：页面渲染抛错时兜底，侧边栏/顶栏与登录流程不受影响 */}
+          <ErrorBoundary>
+            <Routes>
+              {routes.map((route) => (
+                <Route key={route.path} path={route.path} element={route.element} />
+              ))}
+              {/* 403 兜底：权限交集已过滤导航，此路由供错误边界/未来扩展或手动访问使用 */}
+              <Route path="/403" element={<ForbiddenPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </ErrorBoundary>
         </main>
       </SidebarInset>
     </SidebarProvider>
