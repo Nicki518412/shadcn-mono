@@ -1,0 +1,175 @@
+// 数据库权威 schema（三方言可移植：SQLite / MySQL / PostgreSQL）
+// 全字段中文 docstring 为强制规范，须与 docs/database/schema.sql（Task 5，MySQL DDL）双源同步
+// 三方言约定见 docs/superpowers/specs/2026-08-06-rbac-admin-design.md §11：不用 Prisma enum，字符串 + zod 校验
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // 开发默认 SQLite，切换 MySQL/PostgreSQL 见 docs/database/README.md
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// 用户账号（统一认证主体：账号密码 / Clerk / 动态码三种登录方式共用）
+model User {
+  /// 主键（cuid 全局唯一）
+  id            String         @id @default(cuid())
+  /// 登录用户名（统一小写存储）
+  username      String         @unique
+  /// 密码哈希（scrypt 算法；Clerk 用户可为空字符串）
+  passwordHash  String
+  /// 显示昵称
+  nickname      String
+  /// 邮箱（可空，邮箱动态码登录用）
+  email         String?        @unique
+  /// 手机号（可空）
+  telephone     String?        @unique
+  /// Clerk 用户 ID 映射（Clerk 登录时关联）
+  clerkId       String?        @unique
+  /// 启用状态（false=禁用）
+  status        Boolean        @default(true)
+  /// 创建时间（UTC）
+  createdAt     DateTime       @default(now())
+  /// 更新时间（UTC）
+  updatedAt     DateTime       @updatedAt
+  /// 用户角色关联
+  roles         UserRole[]
+  /// 刷新令牌记录
+  refreshTokens RefreshToken[]
+  /// 动态码记录（邮箱/手机号验证码）
+  otpCodes      OtpCode[]
+}
+
+/// 角色（权限分组，通过 UserRole 关联用户、RoleMenu 关联菜单权限）
+model Role {
+  /// 主键（cuid 全局唯一）
+  id          String     @id @default(cuid())
+  /// 角色名称（展示用）
+  name        String
+  /// 角色编码（如 ADMIN，程序判断用）
+  code        String     @unique
+  /// 角色描述
+  description String?
+  /// 排序值（列表展示顺序）
+  sort        Int        @default(0)
+  /// 启用状态（false=禁用）
+  status      Boolean    @default(true)
+  /// 创建时间（UTC）
+  createdAt   DateTime   @default(now())
+  /// 更新时间（UTC）
+  updatedAt   DateTime   @updatedAt
+  /// 用户角色关联
+  users       UserRole[]
+  /// 角色菜单权限关联
+  menus       RoleMenu[]
+}
+
+/// 菜单/按钮权限（自关联树；类型约束见 parentId 注释）
+model Menu {
+  /// 主键（cuid 全局唯一）
+  id         String     @id @default(cuid())
+  /// 父节点 ID（null=根；类型约束: DIR→DIR/MENU, MENU→BUTTON, BUTTON→无子级）
+  parentId   String?
+  /// 菜单名称
+  name       String
+  /// 类型（DIR 目录 / MENU 菜单 / BUTTON 按钮，字符串 + zod 校验，兼容三方言）
+  type       String
+  /// 路由路径（MENU 必填，如 /system/user）
+  path       String?
+  /// 前端组件注册 key（MENU 必填）
+  component  String?
+  /// lucide 图标名（DIR/MENU 用）
+  icon       String?
+  /// 权限码（MENU/BUTTON 用，如 system:user:add；应用层校验唯一）
+  permission String?    @unique
+  /// 同层排序值
+  sort       Int        @default(0)
+  /// 启用状态（false=禁用）
+  status     Boolean    @default(true)
+  /// 创建时间（UTC）
+  createdAt  DateTime   @default(now())
+  /// 更新时间（UTC）
+  updatedAt  DateTime   @updatedAt
+  /// 子节点（级联删除）
+  children   Menu[]     @relation("MenuTree")
+  /// 父节点（删除父节点时级联删除子节点）
+  parent     Menu?      @relation("MenuTree", fields: [parentId], references: [id], onDelete: Cascade)
+  /// 角色菜单权限关联
+  roles      RoleMenu[]
+}
+
+/// 用户-角色关联（联合主键防重复）
+model UserRole {
+  /// 用户 ID
+  userId String
+  /// 角色 ID
+  roleId String
+  /// 关联用户（级联删除）
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// 关联角色（级联删除）
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  /// 联合主键（同一用户同一角色仅一条）
+  @@id([userId, roleId])
+}
+
+/// 角色-菜单权限关联（含 BUTTON 节点）
+model RoleMenu {
+  /// 角色 ID
+  roleId String
+  /// 菜单 ID（含 BUTTON 节点）
+  menuId String
+  /// 关联角色（级联删除）
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  /// 关联菜单（级联删除）
+  menu   Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  /// 联合主键（同一角色同一菜单仅一条）
+  @@id([roleId, menuId])
+}
+
+/// 刷新令牌（登录后签发，轮换时旧令牌吊销）
+model RefreshToken {
+  /// 主键（cuid 全局唯一）
+  id        String    @id @default(cuid())
+  /// 所属用户
+  userId    String
+  /// 令牌哈希（sha256，不存明文）
+  tokenHash String    @unique
+  /// 过期时间（签发后 7 天）
+  expiresAt DateTime
+  /// 吊销时间（null=有效）
+  revokedAt DateTime?
+  /// 创建时间（UTC）
+  createdAt DateTime  @default(now())
+  /// 所属用户（级联删除）
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// 动态码（邮箱/手机号一次性验证码，OTP 登录用）
+model OtpCode {
+  /// 主键（cuid 全局唯一）
+  id           String    @id @default(cuid())
+  /// 渠道（EMAIL 邮箱 / TELEPHONE 手机号）
+  channel      String
+  /// 目标地址（邮箱地址或手机号）
+  target       String
+  /// 验证码哈希（sha256，不存明文）
+  codeHash     String
+  /// 过期时间（5 分钟）
+  expiresAt    DateTime
+  /// 已尝试次数（上限 5 次）
+  attempts     Int       @default(0)
+  /// 消费时间（null=未消费）
+  consumedAt   DateTime?
+  /// 明文验证码（测试专用：DevOtpSender 明文回写，仅开发环境；真实发送实现不写入）
+  devPlainCode String?
+  /// 创建时间（UTC）
+  createdAt    DateTime  @default(now())
+  /// 关联用户 ID（可空，未登录场景无关联）
+  userId       String?
+  /// 关联用户
+  user         User?     @relation(fields: [userId], references: [id])
+}
