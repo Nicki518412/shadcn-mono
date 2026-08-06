@@ -72,11 +72,15 @@ export default function DashboardPage(): JSX.Element {
         </CardHeader>
         <CardContent className="flex gap-10">
           <div>
-            <p className="text-2xl font-semibold text-foreground">{permissionCount}</p>
+            <p data-testid="stat-permission-count" className="text-2xl font-semibold text-foreground">
+              {permissionCount}
+            </p>
             <p className="text-muted-foreground">按钮权限码</p>
           </div>
           <div>
-            <p className="text-2xl font-semibold text-foreground">{menuCount}</p>
+            <p data-testid="stat-menu-count" className="text-2xl font-semibold text-foreground">
+              {menuCount}
+            </p>
             <p className="text-muted-foreground">导航菜单</p>
           </div>
         </CardContent>

@@ -78,9 +78,23 @@ const me: MeResponse = {
             },
           ],
         },
+        {
+          id: "m5",
+          parentId: "m2",
+          name: "角色管理",
+          type: "MENU",
+          path: "/system/role",
+          component: "system/role",
+          icon: null,
+          permission: "system:role:query",
+          sort: 2,
+          status: true,
+          children: [],
+        },
       ],
     },
   ],
+  // 权限码 2 个 vs MENU 节点 3 个：数值刻意不相等，断言可区分两项统计（若相等，互换后测试无法察觉）
   permissionCodes: ["system:user:query", "system:user:create"],
 }
 
@@ -114,10 +128,9 @@ describe("DashboardPage", () => {
 
     render(<DashboardPage />)
 
-    expect(screen.getByText("按钮权限码")).toBeInTheDocument()
-    expect(screen.getByText("导航菜单")).toBeInTheDocument()
-    // permissionCodes 2 个；navTree 内 MENU 节点 2 个（Dashboard + 用户管理，BUTTON 不计）
-    expect(screen.getAllByText("2", { selector: ".text-2xl" })).toHaveLength(2)
+    // 按 testid 绑定到具体统计项（不依赖样式 class）：permissionCodes 2 个 vs MENU 3 个（Dashboard+用户管理+角色管理，BUTTON 不计）
+    expect(screen.getByTestId("stat-permission-count")).toHaveTextContent("2")
+    expect(screen.getByTestId("stat-menu-count")).toHaveTextContent("3")
   })
 
   it("me 为 null：优雅降级（?? 兜底，不报错）", () => {
@@ -128,6 +141,7 @@ describe("DashboardPage", () => {
     expect(screen.getByText("欢迎回来，…")).toBeInTheDocument()
     expect(screen.getByText("用户名：—")).toBeInTheDocument()
     expect(screen.getByText("未分配角色")).toBeInTheDocument()
-    expect(screen.getAllByText("0", { selector: ".text-2xl" })).toHaveLength(2)
+    expect(screen.getByTestId("stat-permission-count")).toHaveTextContent("0")
+    expect(screen.getByTestId("stat-menu-count")).toHaveTextContent("0")
   })
 })
