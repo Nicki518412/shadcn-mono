@@ -191,7 +191,7 @@ export default function LoginPage() {
   }
 
   if (import.meta.env.VITE_AUTH_PROVIDER === "clerk") {
-    // Clerk 托管登录：hash 路由（SPA 无需宿主路由集成），登录成功跳转 afterSignInUrl
+    // Clerk 托管登录：hash 路由（SPA 无需宿主路由集成），登录成功跳转 fallbackRedirectUrl
     return (
       <main className="flex min-h-screen items-center justify-center bg-background p-4">
         <SignIn routing="hash" fallbackRedirectUrl="/" />

@@ -3,7 +3,8 @@ import type { ClerkClient, User as ClerkUser } from "@clerk/backend"
 import type { MiddlewareHandler } from "hono"
 import { prisma } from "@repo/db"
 import type { User } from "@repo/db"
-import { HttpError, unauthorized } from "../lib/http-error.js"
+import { HttpError, conflict, unauthorized } from "../lib/http-error.js"
+import { p2002FieldMessage } from "../lib/prisma-error.js"
 import { toPublicUser } from "../lib/schemas.js"
 
 /** 清洗 email 前缀为合法 username 基底（小写 + 仅保留 [a-z0-9_.-] + 截断 32）；空 → "user"（由 uniqueUsername 兜底） */
@@ -31,7 +32,8 @@ export async function uniqueUsername(
  * 按 clerkId 取本地用户；不存在时用 Clerk 档案自动建号（首次登录）：
  * username 从 email 前缀唯一化、passwordHash 空串（Clerk 用户约定）、nickname 取 firstName/lastName、
  * email 取第一个（统一小写，与本地邮箱存储一致）、clerkId 绑定。
- * Clerk API 异常（用户不存在/网络）→ 401；DB 异常（如 email 撞唯一索引）不吞，走全局错误处理（409）。
+ * 建号冲突分两类处理：并发竞态（双请求同时 miss clerkId，一方撞唯一索引）→ 按 clerkId 复用胜者（自愈）；
+ * email 撞已有本地账号（唯一索引）→ 可操作 409 引导文案。其余异常原样上抛。
  */
 async function findOrCreateUser(client: ClerkClient, clerkId: string): Promise<User> {
   const existing = await prisma.user.findUnique({ where: { clerkId } })
@@ -45,15 +47,26 @@ async function findOrCreateUser(client: ClerkClient, clerkId: string): Promise<U
   }
   const email = clerkUser.emailAddresses[0]?.emailAddress.toLowerCase() ?? null
   const username = await uniqueUsername(email?.split("@")[0] ?? "clerk")
-  return prisma.user.create({
-    data: {
-      username,
-      passwordHash: "",
-      nickname: [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || username,
-      email,
-      clerkId,
-    },
-  })
+  try {
+    return await prisma.user.create({
+      data: {
+        username,
+        passwordHash: "",
+        nickname: [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || username,
+        email,
+        clerkId,
+      },
+    })
+  } catch (err) {
+    // 并发首次登录竞态：双请求同时 miss clerkId → 一方 create 成功、一方撞唯一索引 → 按 clerkId 复用胜者
+    const winner = await prisma.user.findUnique({ where: { clerkId } })
+    if (winner) return winner
+    // email 与已有本地账号冲突（P2002 message 含字段名，三方言一致，见 prisma-error.ts）→ 可操作 409
+    if (p2002FieldMessage(err, { email: "email" }) !== null) {
+      throw conflict("该邮箱已被本地账号使用，请联系管理员")
+    }
+    throw err
+  }
 }
 
 /**

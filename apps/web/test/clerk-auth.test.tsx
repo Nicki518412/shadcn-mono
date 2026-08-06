@@ -1,14 +1,18 @@
+import { StrictMode } from "react"
 import { act, cleanup, render, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { api } from "../src/api/client"
 import { ClerkAuthProvider, ClerkSessionAdapter } from "../src/auth/ClerkAuthProvider"
-import { clearTokens, getAccessToken } from "../src/api/session"
+import { clearTokens, getAccessToken, getTokenRefresher } from "../src/api/session"
 
-// @clerk/clerk-react 全量 mock：会话状态由 clerkState 驱动（改值 + rerender 模拟会话变化）
+// @clerk/clerk-react 全量 mock：会话状态由 clerkState 驱动（改值 + rerender 模拟会话变化）；
+// deferToken 挂起 getToken（手动 resolveToken 放行），用于测迟解析时序
 const clerkState = vi.hoisted(() => ({
   isSignedIn: true,
   token: "clerk-token",
+  deferToken: false,
+  resolveToken: null as ((token: string | null) => void) | null,
   signOut: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
 }))
 
@@ -16,7 +20,12 @@ vi.mock("@clerk/clerk-react", () => ({
   useAuth: () => ({
     isLoaded: true,
     isSignedIn: clerkState.isSignedIn,
-    getToken: () => Promise.resolve(clerkState.token),
+    getToken: () =>
+      clerkState.deferToken
+        ? new Promise<string | null>((resolve) => {
+            clerkState.resolveToken = resolve
+          })
+        : Promise.resolve(clerkState.token),
     signOut: clerkState.signOut,
   }),
   useUser: () => ({
@@ -76,6 +85,8 @@ function renderAdapter() {
 beforeEach(() => {
   clerkState.isSignedIn = true
   clerkState.token = "clerk-token"
+  clerkState.deferToken = false
+  clerkState.resolveToken = null
   clerkState.signOut.mockClear()
   fetchMock.mockReset()
   vi.stubGlobal("fetch", fetchMock)
@@ -124,11 +135,10 @@ describe("ClerkSessionAdapter 桥接", () => {
     await expect(new ClerkAuthProvider().getSession()).resolves.toBeNull()
   })
 
-  it("login/sendOtp 抛错（Clerk 模式由 <SignIn/> 处理）", () => {
+  it("login/sendOtp 返回 rejected promise（Clerk 模式由 <SignIn/> 处理）", async () => {
     const provider = new ClerkAuthProvider()
-    // 同步 throw（非 async 方法）：调用即抛，契约上 clerk 模式无人调用
-    expect(() => provider.login()).toThrow(/SignIn/)
-    expect(() => provider.sendOtp()).toThrow(/Clerk/)
+    await expect(provider.login()).rejects.toThrow(/SignIn/)
+    await expect(provider.sendOtp()).rejects.toThrow(/Clerk/)
   })
 
   it("logout：调用 Clerk signOut 并清理本地 token 与桥状态", async () => {
@@ -189,5 +199,49 @@ describe("ClerkSessionAdapter 桥接", () => {
 
     await expect(api<{ ok: boolean }>("/auth/me")).rejects.toThrow("Clerk 会话无效")
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("登出后迟解析的 token 不回写（stale token 守卫）", async () => {
+    clerkState.deferToken = true
+    const { rerender } = renderAdapter()
+    // token 同步挂起：getToken 未放行
+    await waitFor(() => {
+      expect(clerkState.resolveToken).not.toBeNull()
+    })
+    expect(getAccessToken()).toBeNull()
+
+    // 挂起期间登出（会话切换 → effect 重跑 → 清空）
+    act(() => {
+      clerkState.isSignedIn = false
+    })
+    rerender()
+    await waitFor(() => {
+      expect(getAccessToken()).toBeNull()
+    })
+
+    // 迟解析的旧 token 不得回写
+    act(() => {
+      clerkState.resolveToken?.("stale-token")
+      clerkState.resolveToken = null
+    })
+    await waitFor(() => {
+      expect(getAccessToken()).toBeNull()
+    })
+  })
+
+  it("StrictMode 双重挂载后 401 刷新器可用；卸载时清空", async () => {
+    const view = render(
+      <StrictMode>
+        <ClerkSessionAdapter>
+          <div>app</div>
+        </ClerkSessionAdapter>
+      </StrictMode>,
+    )
+    await waitFor(() => {
+      expect(getTokenRefresher()).not.toBeNull()
+    })
+
+    view.unmount()
+    expect(getTokenRefresher()).toBeNull()
   })
 })

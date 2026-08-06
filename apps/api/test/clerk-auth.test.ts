@@ -96,6 +96,54 @@ describe("clerk-auth 中间件", () => {
     expect(user?.username).toBe("clerk_conflict1")
   })
 
+  it("email 撞库（本地账号已用该邮箱）：409 引导文案，不建号", async () => {
+    await prisma.user.create({
+      data: { username: "local_taken", passwordHash: "", nickname: "本地占用", email: "taken@example.com" },
+    })
+    clerkClientMock.authenticateRequest.mockResolvedValueOnce({
+      isAuthenticated: true,
+      toAuth: () => ({ userId: "clerk_test_5" }),
+    })
+    clerkClientMock.users.getUser.mockResolvedValueOnce(clerkUser({ id: "clerk_test_5", email: "taken@example.com" }))
+
+    const app = clerkApp()
+    const res = await app.request("/api/auth/me", { headers: { authorization: "Bearer clerk-token" } })
+    expect(res.status).toBe(409)
+    const body = (await res.json()) as { code: string; message: string }
+    expect(body.code).toBe("CONFLICT")
+    expect(body.message).toBe("该邮箱已被本地账号使用，请联系管理员")
+    const count = await prisma.user.count({ where: { clerkId: "clerk_test_5" } })
+    expect(count).toBe(0)
+  })
+
+  it("并发首次登录竞态：create 撞唯一索引后按 clerkId 复用胜者账号", async () => {
+    clerkClientMock.authenticateRequest.mockResolvedValueOnce({
+      isAuthenticated: true,
+      toAuth: () => ({ userId: "clerk_test_6" }),
+    })
+    // 模拟并发对手已抢先建号：在 getUser（Clerk API）之后、本地 create 之前写入胜者 →
+    // 中间件 create 撞真实 clerkId 唯一索引（P2002）→ 按 clerkId 重查复用，不重复建号
+    clerkClientMock.users.getUser.mockImplementationOnce(async () => {
+      await prisma.user.create({
+        data: {
+          username: "race_winner",
+          passwordHash: "",
+          nickname: "竞态胜者",
+          email: "race@example.com",
+          clerkId: "clerk_test_6",
+        },
+      })
+      return clerkUser({ id: "clerk_test_6", email: "race@example.com" })
+    })
+
+    const app = clerkApp()
+    const res = await app.request("/api/auth/me", { headers: { authorization: "Bearer clerk-token" } })
+    expect(res.status).toBe(200)
+    const users = await prisma.user.findMany({ where: { clerkId: "clerk_test_6" } })
+    expect(users).toHaveLength(1)
+    expect(users[0]?.username).toBe("race_winner")
+  })
+
   it("本地账号禁用：401 账号不可用", async () => {
     await prisma.user.create({
       data: {

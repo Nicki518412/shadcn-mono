@@ -2,7 +2,7 @@ import { useEffect } from "react"
 import type { JSX, ReactNode } from "react"
 import { useAuth, useUser } from "@clerk/clerk-react"
 
-import { getAccessToken, setAccessToken, setTokenRefresher } from "../api/session"
+import { getAccessToken, getTokenRefresher, setAccessToken, setTokenRefresher } from "../api/session"
 import type { AuthProvider, AuthSession, SessionUser } from "./types"
 
 /** Clerk UserResource 结构子集（toSessionUser 用；避免依赖 @clerk/types 的类型导入） */
@@ -34,8 +34,6 @@ function toSessionUser(user: ClerkUserLike): SessionUser {
 export const clerkBridge = {
   /** 当前会话用户（Clerk 档案映射；无会话/未加载为 null） */
   sessionUser: null as SessionUser | null,
-  /** 重取 session token（useAuth().getToken 包装；api() 401 刷新器与 refresh() 共用） */
-  getToken: null as (() => Promise<string | null>) | null,
   /** Clerk 登出（useAuth().signOut 包装） */
   signOut: null as (() => Promise<void>) | null,
 }
@@ -57,9 +55,14 @@ export function ClerkSessionAdapter({ children }: { children: ReactNode }): JSX.
       setAccessToken(null)
       return
     }
+    let disposed = false
     void getToken().then((token) => {
-      if (token) setAccessToken(token)
+      // 迟解析守卫：effect 重跑（登出/会话切换）后不再回写旧 token
+      if (token && !disposed) setAccessToken(token)
     })
+    return () => {
+      disposed = true
+    }
   }, [isLoaded, isSignedIn, getToken])
 
   // 桥状态：当前会话用户（getSession 的判定依据）
@@ -70,13 +73,11 @@ export function ClerkSessionAdapter({ children }: { children: ReactNode }): JSX.
     }
   }, [isLoaded, isSignedIn, user])
 
-  // 注册 401 刷新器与登出操作（卸载时清理；StrictMode 双重挂载安全）
+  // 注册 401 刷新器（session.ts，api() 与 refresh() 共用同一注册点）与登出操作（卸载时清理；StrictMode 双重挂载安全）
   useEffect(() => {
-    clerkBridge.getToken = getToken
     clerkBridge.signOut = signOut
     setTokenRefresher(getToken)
     return () => {
-      clerkBridge.getToken = null
       clerkBridge.signOut = null
       setTokenRefresher(null)
     }
@@ -92,12 +93,13 @@ export function ClerkSessionAdapter({ children }: { children: ReactNode }): JSX.
  * api() 的 Bearer token 由 ClerkSessionAdapter 同步，401 走桥注册的刷新器。
  */
 export class ClerkAuthProvider implements AuthProvider {
-  login(): Promise<AuthSession> {
-    throw new Error("Clerk 模式下登录由 <SignIn/> 组件处理")
+  async login(): Promise<AuthSession> {
+    // 契约：返回 rejected promise（调用方可能用 .catch 链）；Clerk 模式下登录不可达（<SignIn/> 处理）
+    return await Promise.reject(new Error("Clerk 模式下登录由 <SignIn/> 组件处理"))
   }
 
-  sendOtp(): Promise<void> {
-    throw new Error("Clerk 模式下验证码由 Clerk 处理")
+  async sendOtp(): Promise<void> {
+    await Promise.reject(new Error("Clerk 模式下验证码由 Clerk 处理"))
   }
 
   async logout(): Promise<void> {
@@ -116,8 +118,10 @@ export class ClerkAuthProvider implements AuthProvider {
   async refresh(): Promise<AuthSession> {
     const session = await this.getSession()
     if (!session) throw new Error("Clerk 会话未就绪，请重新登录")
-    if (clerkBridge.getToken) {
-      const token = await clerkBridge.getToken()
+    // 复用 session.ts 注册的刷新器（与 api() 401 路径同一注册点；adapter 未挂载时跳过 token 刷新）
+    const refresher = getTokenRefresher()
+    if (refresher) {
+      const token = await refresher()
       if (token) setAccessToken(token)
     }
     return { user: session.user, accessToken: getAccessToken() ?? "" }
