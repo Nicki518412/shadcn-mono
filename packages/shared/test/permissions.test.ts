@@ -19,14 +19,21 @@ function menu(partial: Partial<MenuNode> & { id: string }): MenuNode {
 }
 
 const dirSystem = menu({ id: "d1", name: "系统管理", type: "DIR", sort: 1 })
+const dirEmpty = menu({ id: "d2", name: "空目录", type: "DIR", sort: 2 })
 const mUser = menu({ id: "m1", parentId: "d1", name: "用户管理", permission: "system:user:query", sort: 1 })
 const bAdd = menu({ id: "b1", parentId: "m1", name: "用户新增", type: "BUTTON", permission: "system:user:add", sort: 1 })
 const mRole = menu({ id: "m2", parentId: "d1", name: "角色管理", permission: "system:role:query", sort: 2 })
-const allMenus = [dirSystem, mUser, bAdd, mRole]
+const allMenus = [dirSystem, mUser, bAdd, mRole, dirEmpty]
 
 describe("computeVisibleMenus", () => {
   it("无角色时返回空", () => {
     const r = computeVisibleMenus([], allMenus)
+    expect(r.navTree).toEqual([])
+    expect(r.permissionCodes.size).toBe(0)
+  })
+
+  it("任一角色为空数组 ⇒ 权限为空", () => {
+    const r = computeVisibleMenus([["d1", "m1"], []], allMenus)
     expect(r.navTree).toEqual([])
     expect(r.permissionCodes.size).toBe(0)
   })
@@ -44,6 +51,13 @@ describe("computeVisibleMenus", () => {
     expect(r.permissionCodes).toEqual(new Set(["system:user:query", "system:user:add"]))
   })
 
+  it("按钮被交集剔除", () => {
+    const r = computeVisibleMenus([["d1", "m1", "b1", "m2"], ["d1", "m1"]], allMenus)
+    expect(r.navTree.map((n) => n.id)).toEqual(["d1"])
+    expect(r.navTree[0]?.children.map((n) => n.id)).toEqual(["m1"])
+    expect(r.permissionCodes).toEqual(new Set(["system:user:query"]))
+  })
+
   it("交集为空时导航树为空", () => {
     const r = computeVisibleMenus([["m2"], ["m1"]], allMenus)
     expect(r.navTree).toEqual([])
@@ -56,8 +70,9 @@ describe("computeVisibleMenus", () => {
   })
 
   it("空目录折叠：目录无可见子孙则隐藏", () => {
-    const r = computeVisibleMenus([["d1", "m1"]], allMenus)
+    const r = computeVisibleMenus([["d1", "m1", "d2"]], allMenus)
     expect(r.navTree.map((n) => n.id)).toEqual(["d1"])
+    expect(r.navTree[0]?.children.map((n) => n.id)).toEqual(["m1"])
   })
 
   it("按 sort 排序", () => {
