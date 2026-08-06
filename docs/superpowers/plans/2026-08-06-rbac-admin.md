@@ -46,6 +46,9 @@
 - 所有文件为 `.ts`/`.tsx`；禁止 `.js`/`.jsx` 源码、禁止 `// @ts-ignore`、禁止 `any`（除非显式注明并通过 eslint-disable 行内豁免）
 - 提交信息用 `feat:`/`test:`/`docs:`/`chore:` 前缀，每条附 `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`
 - 每任务结束提交一次；提交前运行该任务验证命令
+- **typescript-eslint 崩溃预防**：已锁定修复版本（Task 2 收尾时确认）；若 `tsutils.unionConstituents` 崩溃再次出现，立即停止并固定已知良好版本，不要绕过 hook
+- **exactOptionalPropertyTypes × Prisma 豁免条款**：Prisma 生成客户端与该选项存在已知不兼容（prisma/prisma#10894 长期开放）。若 `apps/api` 包内 Prisma 调用因 `undefined` 显式赋值报错，允许在 `apps/api/tsconfig.json` **包级关闭该选项并注释原因**，勿回改 base
+- **projectService 覆盖要求**：每个含 `vitest.config.ts`/`vite.config.ts` 等配置文件的包，其 tsconfig include 必须覆盖这些配置文件（否则 lint-staged 对它们跑 eslint 会硬失败）
 
 ---
 
@@ -936,7 +939,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["src", "test"]
+  "include": ["src", "test", "vitest.config.ts"]
 }
 ```
 
