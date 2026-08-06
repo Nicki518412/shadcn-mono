@@ -1,6 +1,7 @@
 import { createRoute, z } from "@hono/zod-openapi"
 import type { OpenAPIHono } from "@hono/zod-openapi"
 import { prisma } from "@repo/db"
+import type { AppConfig } from "../config.js"
 import { HttpError, forbidden, unauthorized } from "../lib/http-error.js"
 import { checkThrottle, recordFailure, resetThrottle } from "../lib/login-throttle.js"
 import { createSubApp, okBody } from "../lib/openapi.js"
@@ -16,7 +17,7 @@ const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 })
 
-export function authRoutes(jwtSecret: string): OpenAPIHono {
+export function authRoutes(cfg: AppConfig): OpenAPIHono {
   const app = createSubApp()
 
   app.openapi(
@@ -49,7 +50,7 @@ export function authRoutes(jwtSecret: string): OpenAPIHono {
       if (!user.status) throw forbidden("账号已被禁用")
 
       resetThrottle(key) // 登录成功清除失败计数
-      const pair = await issueTokenPair(user.id, jwtSecret)
+      const pair = await issueTokenPair(user.id, cfg.jwtSecret)
       return c.json({ code: 0, data: { ...pair, user: toPublicUser(user) }, message: "ok" }, 200)
     },
   )
@@ -77,7 +78,7 @@ export function authRoutes(jwtSecret: string): OpenAPIHono {
         data: { revokedAt: new Date() },
       })
       if (revoked.count !== 1) throw unauthorized("登录已过期")
-      const pair = await issueTokenPair(user.id, jwtSecret)
+      const pair = await issueTokenPair(user.id, cfg.jwtSecret)
       return c.json({ code: 0, data: pair, message: "ok" }, 200)
     },
   )

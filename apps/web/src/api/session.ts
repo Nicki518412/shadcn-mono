@@ -17,6 +17,19 @@ let accessToken: string | null = null
 /** refresh 单飞：并发 401 只发一次 /auth/refresh，其余调用共享同一 promise */
 let refreshPromise: Promise<void> | null = null
 
+/** 401 恢复钩子：Clerk 模式由 ClerkSessionAdapter 注册（getToken 重取 session token），null = JWT 模式走 doRefresh */
+export type TokenRefresher = () => Promise<string | null>
+
+let tokenRefresher: TokenRefresher | null = null
+
+export function setTokenRefresher(refresher: TokenRefresher | null): void {
+  tokenRefresher = refresher
+}
+
+export function getTokenRefresher(): TokenRefresher | null {
+  return tokenRefresher
+}
+
 export function setAccessToken(token: string | null): void {
   accessToken = token
 }

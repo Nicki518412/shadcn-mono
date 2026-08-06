@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { SignIn } from "@clerk/clerk-react"
 import { useNavigate } from "react-router"
 
 import { useAuth } from "@/auth/AuthProvider"
@@ -190,10 +191,10 @@ export default function LoginPage() {
   }
 
   if (import.meta.env.VITE_AUTH_PROVIDER === "clerk") {
-    // Task 24：替换为 Clerk 的 <SignIn /> 托管登录组件
+    // Clerk 托管登录：hash 路由（SPA 无需宿主路由集成），登录成功跳转 afterSignInUrl
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background">
-        Cloak SignIn 占位（Task 24）
+      <main className="flex min-h-screen items-center justify-center bg-background p-4">
+        <SignIn routing="hash" fallbackRedirectUrl="/" />
       </main>
     )
   }

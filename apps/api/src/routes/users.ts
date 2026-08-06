@@ -3,6 +3,7 @@ import type { OpenAPIHono } from "@hono/zod-openapi"
 import type { Prisma } from "@repo/db"
 import { prisma } from "@repo/db"
 import { badRequest, conflict, notFound } from "../lib/http-error.js"
+import type { AppConfig } from "../config.js"
 import { createSubApp, okBody } from "../lib/openapi.js"
 import { hashPassword } from "@repo/db"
 import { p2002FieldMessage } from "../lib/prisma-error.js"
@@ -76,14 +77,14 @@ function toUserDetail(user: UserDetail) {
   }
 }
 
-export function userRoutes(jwtSecret: string): OpenAPIHono {
+export function userRoutes(cfg: AppConfig): OpenAPIHono {
   const app = createSubApp()
 
   app.openapi(
     createRoute({
       method: "get",
       path: "/api/users",
-      middleware: [authenticate(jwtSecret), requirePermission("system:user:query")],
+      middleware: [authenticate(cfg), requirePermission("system:user:query")],
       request: { query: pageQuery },
       responses: {
         200: { description: "用户分页列表", ...okBody(userPageResultSchema) },
@@ -124,7 +125,7 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
     createRoute({
       method: "post",
       path: "/api/users",
-      middleware: [authenticate(jwtSecret), requirePermission("system:user:create")],
+      middleware: [authenticate(cfg), requirePermission("system:user:create")],
       request: { body: { content: { "application/json": { schema: userCreateSchema } } } },
       responses: {
         200: { description: "创建成功（返回详情）", ...okBody(userDetailSchema) },
@@ -163,7 +164,7 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
     createRoute({
       method: "get",
       path: "/api/users/{id}",
-      middleware: [authenticate(jwtSecret), requirePermission("system:user:query")],
+      middleware: [authenticate(cfg), requirePermission("system:user:query")],
       request: { params: idParamSchema },
       responses: {
         200: { description: "用户详情（含已挂角色）", ...okBody(userDetailSchema) },
@@ -182,7 +183,7 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
     createRoute({
       method: "patch",
       path: "/api/users/{id}",
-      middleware: [authenticate(jwtSecret), requirePermission("system:user:update")],
+      middleware: [authenticate(cfg), requirePermission("system:user:update")],
       request: { params: idParamSchema, body: { content: { "application/json": { schema: userUpdateSchema } } } },
       responses: {
         200: { description: "更新成功（返回详情）", ...okBody(userDetailSchema) },
@@ -231,7 +232,7 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
     createRoute({
       method: "delete",
       path: "/api/users/{id}",
-      middleware: [authenticate(jwtSecret), requirePermission("system:user:delete")],
+      middleware: [authenticate(cfg), requirePermission("system:user:delete")],
       request: { params: idParamSchema },
       responses: {
         200: { description: "删除成功", ...okBody(z.null()) },
@@ -256,7 +257,7 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
     createRoute({
       method: "put",
       path: "/api/users/{id}/roles",
-      middleware: [authenticate(jwtSecret), requirePermission("system:user:assign-role")],
+      middleware: [authenticate(cfg), requirePermission("system:user:assign-role")],
       request: { params: idParamSchema, body: { content: { "application/json": { schema: roleIdsSchema } } } },
       responses: {
         200: { description: "分配成功（返回详情）", ...okBody(userDetailSchema) },

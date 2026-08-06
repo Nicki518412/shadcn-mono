@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
+    "@clerk/clerk-react": "^5.61.3",
     "@fontsource-variable/geist": "^5.3.0",
     "@repo/shared": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",

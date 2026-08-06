@@ -1,9 +1,11 @@
 import { prisma } from "@repo/db"
 import type { MiddlewareHandler } from "hono"
+import type { AppConfig } from "../config.js"
 import { forbidden, unauthorized } from "../lib/http-error.js"
 import { verifyAccessToken } from "../lib/jwt.js"
 import { toPublicUser, type PublicUser } from "../lib/schemas.js"
 import { getUserAuthInfo, type AuthInfo } from "../services/auth-info.js"
+import { clerkAuthenticate } from "./clerk-auth.js"
 
 declare module "hono" {
   interface ContextVariableMap {
@@ -13,8 +15,8 @@ declare module "hono" {
   }
 }
 
-/** Bearer 认证：解析 access token → 用户存在且启用 → c.set("userId"/"authUser")；失败一律 401 */
-export function authenticate(jwtSecret: string): MiddlewareHandler {
+/** JWT Bearer 认证：解析 access token → 用户存在且启用 → c.set("userId"/"authUser")；失败一律 401 */
+function authenticateJwt(jwtSecret: string): MiddlewareHandler {
   return async (c, next) => {
     const header = c.req.header("authorization")
     const token = header?.startsWith("Bearer ") ? header.slice("Bearer ".length) : null
@@ -28,6 +30,11 @@ export function authenticate(jwtSecret: string): MiddlewareHandler {
     c.set("authUser", toPublicUser(user))
     await next()
   }
+}
+
+/** 认证选择器：按 cfg.authProvider 分支（local → JWT Bearer；clerk → Clerk session token） */
+export function authenticate(cfg: AppConfig): MiddlewareHandler {
+  return cfg.authProvider === "clerk" ? clerkAuthenticate() : authenticateJwt(cfg.jwtSecret)
 }
 
 /** 权限校验：实时计算用户权限码（数据量小不缓存），含 code 放行；无权 403；未认证（未挂 authenticate）401 */

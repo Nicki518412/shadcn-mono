@@ -49,12 +49,12 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
     required: ["id", "parentId", "name", "type", "path", "component", "icon", "permission", "sort", "status", "children"],
   })
 
-  app.route("/", authRoutes(cfg.jwtSecret))
-  app.route("/", otpRoutes(cfg.jwtSecret))
-  app.route("/", meRoutes(cfg.jwtSecret))
-  app.route("/", roleRoutes(cfg.jwtSecret))
-  app.route("/", menuRoutes(cfg.jwtSecret))
-  app.route("/", userRoutes(cfg.jwtSecret))
+  app.route("/", authRoutes(cfg))
+  app.route("/", otpRoutes(cfg))
+  app.route("/", meRoutes(cfg))
+  app.route("/", roleRoutes(cfg))
+  app.route("/", menuRoutes(cfg))
+  app.route("/", userRoutes(cfg))
 
   app.notFound((c) =>
     c.json({ code: "NOT_FOUND", message: "接口不存在", data: null }, 404),

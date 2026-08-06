@@ -3,6 +3,7 @@ import type { OpenAPIHono } from "@hono/zod-openapi"
 import { createHash, randomInt } from "node:crypto"
 import { prisma } from "@repo/db"
 import { HttpError } from "../lib/http-error.js"
+import type { AppConfig } from "../config.js"
 import { createSubApp, okBody } from "../lib/openapi.js"
 import { otpSender } from "../lib/otp-sender.js"
 import { errorBodySchema, loginResponseSchema, toPublicUser } from "../lib/schemas.js"
@@ -18,7 +19,7 @@ const sendSchema = z.object({
 })
 const loginOtpSchema = sendSchema.extend({ code: z.string().regex(/^\d{6}$/) })
 
-export function otpRoutes(jwtSecret: string): OpenAPIHono {
+export function otpRoutes(cfg: AppConfig): OpenAPIHono {
   const app = createSubApp()
 
   app.openapi(
@@ -116,7 +117,7 @@ export function otpRoutes(jwtSecret: string): OpenAPIHono {
       })
       if (consumed.count !== 1) throw new HttpError(401, "INVALID_OTP", "验证码无效或已过期")
 
-      const pair = await issueTokenPair(user.id, jwtSecret)
+      const pair = await issueTokenPair(user.id, cfg.jwtSecret)
       return c.json({ code: 0, data: { ...pair, user: toPublicUser(user) }, message: "ok" }, 200)
     },
   )

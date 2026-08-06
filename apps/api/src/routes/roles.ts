@@ -3,6 +3,7 @@ import type { OpenAPIHono } from "@hono/zod-openapi"
 import type { Prisma } from "@repo/db"
 import { prisma } from "@repo/db"
 import { badRequest, conflict, notFound } from "../lib/http-error.js"
+import type { AppConfig } from "../config.js"
 import { createSubApp, okBody } from "../lib/openapi.js"
 import { p2002FieldMessage } from "../lib/prisma-error.js"
 import { errorBodySchema, idParamSchema, roleDetailSchema, roleListItemSchema, rolePageResultSchema } from "../lib/schemas.js"
@@ -65,14 +66,14 @@ function toRoleDetail(role: RoleDetail) {
   }
 }
 
-export function roleRoutes(jwtSecret: string): OpenAPIHono {
+export function roleRoutes(cfg: AppConfig): OpenAPIHono {
   const app = createSubApp()
 
   app.openapi(
     createRoute({
       method: "get",
       path: "/api/roles",
-      middleware: [authenticate(jwtSecret), requirePermission("system:role:query")],
+      middleware: [authenticate(cfg), requirePermission("system:role:query")],
       request: { query: pageQuery },
       responses: {
         200: { description: "角色分页列表", ...okBody(rolePageResultSchema) },
@@ -110,7 +111,7 @@ export function roleRoutes(jwtSecret: string): OpenAPIHono {
     createRoute({
       method: "get",
       path: "/api/roles/list",
-      middleware: [authenticate(jwtSecret), requirePermission("system:role:query")],
+      middleware: [authenticate(cfg), requirePermission("system:role:query")],
       responses: {
         200: { description: "角色全量列表（下拉/分配用，无分页）", ...okBody(z.array(roleListItemSchema)) },
         401: { description: "未登录", content: { "application/json": { schema: errorBodySchema } } },
@@ -127,7 +128,7 @@ export function roleRoutes(jwtSecret: string): OpenAPIHono {
     createRoute({
       method: "post",
       path: "/api/roles",
-      middleware: [authenticate(jwtSecret), requirePermission("system:role:create")],
+      middleware: [authenticate(cfg), requirePermission("system:role:create")],
       request: { body: { content: { "application/json": { schema: roleCreateSchema } } } },
       responses: {
         200: { description: "创建成功（返回详情）", ...okBody(roleDetailSchema) },
@@ -158,7 +159,7 @@ export function roleRoutes(jwtSecret: string): OpenAPIHono {
     createRoute({
       method: "get",
       path: "/api/roles/{id}",
-      middleware: [authenticate(jwtSecret), requirePermission("system:role:query")],
+      middleware: [authenticate(cfg), requirePermission("system:role:query")],
       request: { params: idParamSchema },
       responses: {
         200: { description: "角色详情", ...okBody(roleDetailSchema) },
@@ -177,7 +178,7 @@ export function roleRoutes(jwtSecret: string): OpenAPIHono {
     createRoute({
       method: "patch",
       path: "/api/roles/{id}",
-      middleware: [authenticate(jwtSecret), requirePermission("system:role:update")],
+      middleware: [authenticate(cfg), requirePermission("system:role:update")],
       request: { params: idParamSchema, body: { content: { "application/json": { schema: roleUpdateSchema } } } },
       responses: {
         200: { description: "更新成功（返回详情）", ...okBody(roleDetailSchema) },
@@ -213,7 +214,7 @@ export function roleRoutes(jwtSecret: string): OpenAPIHono {
     createRoute({
       method: "delete",
       path: "/api/roles/{id}",
-      middleware: [authenticate(jwtSecret), requirePermission("system:role:delete")],
+      middleware: [authenticate(cfg), requirePermission("system:role:delete")],
       request: { params: idParamSchema },
       responses: {
         200: { description: "删除成功", ...okBody(z.null()) },
@@ -236,7 +237,7 @@ export function roleRoutes(jwtSecret: string): OpenAPIHono {
     createRoute({
       method: "get",
       path: "/api/roles/{id}/menus",
-      middleware: [authenticate(jwtSecret), requirePermission("system:role:query")],
+      middleware: [authenticate(cfg), requirePermission("system:role:query")],
       request: { params: idParamSchema },
       responses: {
         200: { description: "已授权菜单 id 数组（树形勾选回显，含按钮节点）", ...okBody(menuIdsSchema) },
@@ -263,7 +264,7 @@ export function roleRoutes(jwtSecret: string): OpenAPIHono {
     createRoute({
       method: "put",
       path: "/api/roles/{id}/menus",
-      middleware: [authenticate(jwtSecret), requirePermission("system:role:assign")],
+      middleware: [authenticate(cfg), requirePermission("system:role:assign")],
       request: { params: idParamSchema, body: { content: { "application/json": { schema: menuIdsSchema } } } },
       responses: {
         200: { description: "授权成功（全量替换，允许含按钮节点）", ...okBody(z.null()) },

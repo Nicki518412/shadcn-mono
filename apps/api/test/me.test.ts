@@ -130,13 +130,13 @@ describe("auth me", () => {
     const app = createApp()
     app.get(
       "/api/test-perm-allowed",
-      authenticate(loadConfig().jwtSecret),
+      authenticate(loadConfig()),
       requirePermission("system:user:query"),
       (c) => c.json({ ok: true }),
     )
     app.get(
       "/api/test-perm-denied",
-      authenticate(loadConfig().jwtSecret),
+      authenticate(loadConfig()),
       requirePermission("system:user:add"),
       (c) => c.json({ ok: true }),
     )
