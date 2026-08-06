@@ -7,6 +7,7 @@ import { loadConfig, type AppConfig } from "./config.js"
 import { HttpError } from "./lib/http-error.js"
 import { validationHook } from "./lib/validation-hook.js"
 import { authRoutes } from "./routes/auth.js"
+import { otpRoutes } from "./routes/otp.js"
 
 export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
   const app = new OpenAPIHono<Env>({
@@ -25,6 +26,7 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
   )
 
   app.route("/", authRoutes(cfg.jwtSecret))
+  app.route("/", otpRoutes(cfg.jwtSecret))
 
   app.notFound((c) =>
     c.json({ code: "NOT_FOUND", message: "接口不存在", data: null }, 404),
