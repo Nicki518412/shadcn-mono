@@ -22,7 +22,7 @@ model User {
   passwordHash  String
   /// 显示昵称
   nickname      String
-  /// 邮箱（可空，邮箱动态码登录用）
+  /// 邮箱（可空，邮箱动态码登录用；统一小写存储）
   email         String?        @unique
   /// 手机号（可空）
   telephone     String?        @unique
@@ -82,7 +82,7 @@ model Menu {
   component  String?
   /// lucide 图标名（DIR/MENU 用）
   icon       String?
-  /// 权限码（MENU/BUTTON 用，如 system:user:add；应用层校验唯一）
+  /// 权限码（MENU/BUTTON 用，如 system:user:add；DB 唯一索引强制，P2002 冲突转 409 + 应用层语义校验）
   permission String?    @unique
   /// 同层排序值
   sort       Int        @default(0)
@@ -172,4 +172,7 @@ model OtpCode {
   userId       String?
   /// 关联用户
   user         User?     @relation(fields: [userId], references: [id])
+
+  /// 复合索引（每次 send/login 按 channel+target 查询最新记录，避免全表扫描）
+  @@index([channel, target, createdAt])
 }
