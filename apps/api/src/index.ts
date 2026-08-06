@@ -2,11 +2,22 @@ import { pathToFileURL } from "node:url"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { swaggerUI } from "@hono/swagger-ui"
 import { HTTPException } from "hono/http-exception"
-import type { ContentfulStatusCode } from "hono/utils/http-status"
+import { loadConfig, type AppConfig } from "./config.js"
 import { HttpError } from "./lib/http-error.js"
 
-export function createApp(): OpenAPIHono {
-  const app = new OpenAPIHono()
+export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
+  void cfg // 预留：Task 9 注入 jwtSecret 等配置
+  const app = new OpenAPIHono({
+    // zod 校验失败统一 400 契约体（校验失败不 throw，onError 捕获不到）
+    defaultHook: (result, c) => {
+      if (!result.success) {
+        return c.json(
+          { code: "BAD_REQUEST", message: result.error.issues[0]?.message ?? "请求参数错误", data: null },
+          400,
+        )
+      }
+    },
+  })
 
   app.doc("/api/openapi.json", {
     openapi: "3.0.0",
@@ -24,13 +35,14 @@ export function createApp(): OpenAPIHono {
 
   app.onError((err, c) => {
     if (err instanceof HttpError) {
-      return c.json(
-        { code: err.code, message: err.message, data: null },
-        err.status as ContentfulStatusCode,
-      )
+      return c.json({ code: err.code, message: err.message, data: null }, err.status)
     }
     if (err instanceof HTTPException) {
       return c.json({ code: "HTTP_ERROR", message: err.message, data: null }, err.status)
+    }
+    // 兜底：Prisma P2002（唯一约束冲突）走统一 409 契约体；路由层仍做字段级转换
+    if (typeof err === "object" && (err as { code?: string }).code === "P2002") {
+      return c.json({ code: "CONFLICT", message: "数据冲突", data: null }, 409)
     }
     console.error("[api] unhandled error:", err)
     return c.json({ code: "INTERNAL", message: "服务器内部错误", data: null }, 500)
@@ -44,9 +56,8 @@ export function createApp(): OpenAPIHono {
 const entry = process.argv[1]
 if (entry !== undefined && import.meta.url === pathToFileURL(entry).href) {
   const { serve } = await import("@hono/node-server")
-  const { loadConfig } = await import("./config.js")
   const cfg = loadConfig()
-  serve({ fetch: createApp().fetch, port: cfg.port }, (info) => {
+  serve({ fetch: createApp(cfg).fetch, port: cfg.port }, (info) => {
     console.log(`api listening on http://localhost:${String(info.port)}`)
   })
 }
