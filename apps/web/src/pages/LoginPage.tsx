@@ -73,9 +73,15 @@ function OtpLoginForm({
           </FieldContent>
         </Field>
         <Field>
-          <FieldLabel>动态码</FieldLabel>
+          <FieldLabel htmlFor={`login-otp-${channel}-code`}>动态码</FieldLabel>
           <FieldContent>
-            <InputOTP maxLength={6} value={code} onChange={setCode} inputMode="numeric">
+            <InputOTP
+              id={`login-otp-${channel}-code`}
+              maxLength={6}
+              value={code}
+              onChange={setCode}
+              inputMode="numeric"
+            >
               <InputOTPGroup>
                 {[0, 1, 2, 3, 4, 5].map((slotIndex) => (
                   <InputOTPSlot key={slotIndex} index={slotIndex} />
@@ -93,7 +99,15 @@ function OtpLoginForm({
           onSend(target)
         }}
       >
-        {cooldown > 0 ? `重新发送（${String(cooldown)}s）` : "发送验证码"}
+        {cooldown > 0 ? (
+          `重新发送（${String(cooldown)}s）`
+        ) : sending ? (
+          <>
+            <Spinner /> 发送中…
+          </>
+        ) : (
+          "发送验证码"
+        )}
       </Button>
       <Button type="submit" disabled={pending}>
         {pending ? (
