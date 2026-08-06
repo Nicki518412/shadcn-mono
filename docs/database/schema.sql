@@ -1,0 +1,106 @@
+-- ============================================================
+-- shadcn-mono 数据库结构文档（MySQL 方言）
+-- 运行时权威为 packages/db/prisma/schema.prisma，本文件仅作开发速查
+-- 改动 schema.prisma 时必须同步本文件（见 README.md）
+-- ============================================================
+
+-- 用户账号（统一认证主体：账号密码 / Clerk / 动态码三种登录方式共用）
+CREATE TABLE `User` (
+  `id`           VARCHAR(32)  NOT NULL COMMENT '主键（cuid 全局唯一）',
+  `username`     VARCHAR(255) NOT NULL COMMENT '登录用户名（统一小写存储）',
+  `passwordHash` VARCHAR(255) NOT NULL COMMENT '密码哈希（scrypt 算法；Clerk 用户可为空字符串）',
+  `nickname`     VARCHAR(255) NOT NULL COMMENT '显示昵称',
+  `email`        VARCHAR(255) NULL COMMENT '邮箱（可空，邮箱动态码登录用；统一小写存储）',
+  `telephone`    VARCHAR(255) NULL COMMENT '手机号（可空）',
+  `clerkId`      VARCHAR(255) NULL COMMENT 'Clerk 用户 ID 映射（Clerk 登录时关联）',
+  `status`       BOOLEAN      NOT NULL DEFAULT TRUE COMMENT '启用状态（false=禁用）',
+  `createdAt`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
+  `updatedAt`    DATETIME     NOT NULL COMMENT '更新时间（UTC）',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `User_username_key` (`username`),
+  UNIQUE KEY `User_email_key` (`email`),
+  UNIQUE KEY `User_telephone_key` (`telephone`),
+  UNIQUE KEY `User_clerkId_key` (`clerkId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户账号（统一认证主体：账号密码 / Clerk / 动态码三种登录方式共用）';
+
+-- 角色（权限分组，通过 UserRole 关联用户、RoleMenu 关联菜单权限）
+CREATE TABLE `Role` (
+  `id`          VARCHAR(32)  NOT NULL COMMENT '主键（cuid 全局唯一）',
+  `name`        VARCHAR(255) NOT NULL COMMENT '角色名称（展示用）',
+  `code`        VARCHAR(255) NOT NULL COMMENT '角色编码（如 ADMIN，程序判断用）',
+  `description` VARCHAR(255) NULL COMMENT '角色描述',
+  `sort`        INT          NOT NULL DEFAULT 0 COMMENT '排序值（列表展示顺序）',
+  `status`      BOOLEAN      NOT NULL DEFAULT TRUE COMMENT '启用状态（false=禁用）',
+  `createdAt`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
+  `updatedAt`   DATETIME     NOT NULL COMMENT '更新时间（UTC）',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `Role_code_key` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色（权限分组，通过 UserRole 关联用户、RoleMenu 关联菜单权限）';
+
+-- 菜单/按钮权限（自关联树；类型约束见 parentId 注释）
+CREATE TABLE `Menu` (
+  `id`         VARCHAR(32)  NOT NULL COMMENT '主键（cuid 全局唯一）',
+  `parentId`   VARCHAR(32)  NULL COMMENT '父节点 ID（null=根；类型约束: DIR→DIR/MENU, MENU→BUTTON, BUTTON→无子级）',
+  `name`       VARCHAR(255) NOT NULL COMMENT '菜单名称',
+  `type`       VARCHAR(16)  NOT NULL COMMENT '类型（DIR 目录 / MENU 菜单 / BUTTON 按钮，字符串 + zod 校验，兼容三方言）',
+  `path`       VARCHAR(255) NULL COMMENT '路由路径（MENU 必填，如 /system/user）',
+  `component`  VARCHAR(255) NULL COMMENT '前端组件注册 key（MENU 必填）',
+  `icon`       VARCHAR(64)  NULL COMMENT 'lucide 图标名（DIR/MENU 用）',
+  `permission` VARCHAR(255) NULL COMMENT '权限码（MENU/BUTTON 用，如 system:user:add；DB 唯一索引强制，P2002 冲突转 409 + 应用层语义校验）',
+  `sort`       INT          NOT NULL DEFAULT 0 COMMENT '同层排序值',
+  `status`     BOOLEAN      NOT NULL DEFAULT TRUE COMMENT '启用状态（false=禁用）',
+  `createdAt`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
+  `updatedAt`  DATETIME     NOT NULL COMMENT '更新时间（UTC）',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `Menu_permission_key` (`permission`),
+  KEY `Menu_parentId_fkey` (`parentId`),
+  CONSTRAINT `Menu_parentId_fkey` FOREIGN KEY (`parentId`) REFERENCES `Menu` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='菜单/按钮权限（自关联树；类型约束见 parentId 注释）';
+
+-- 用户-角色关联（联合主键防重复）
+CREATE TABLE `UserRole` (
+  `userId` VARCHAR(32) NOT NULL COMMENT '用户 ID',
+  `roleId` VARCHAR(32) NOT NULL COMMENT '角色 ID',
+  PRIMARY KEY (`userId`, `roleId`),
+  CONSTRAINT `UserRole_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `UserRole_roleId_fkey` FOREIGN KEY (`roleId`) REFERENCES `Role` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户-角色关联（联合主键防重复）';
+
+-- 角色-菜单权限关联（含 BUTTON 节点）
+CREATE TABLE `RoleMenu` (
+  `roleId` VARCHAR(32) NOT NULL COMMENT '角色 ID',
+  `menuId` VARCHAR(32) NOT NULL COMMENT '菜单 ID（含 BUTTON 节点）',
+  PRIMARY KEY (`roleId`, `menuId`),
+  CONSTRAINT `RoleMenu_roleId_fkey` FOREIGN KEY (`roleId`) REFERENCES `Role` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `RoleMenu_menuId_fkey` FOREIGN KEY (`menuId`) REFERENCES `Menu` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色-菜单权限关联（含 BUTTON 节点）';
+
+-- 刷新令牌（登录后签发，轮换时旧令牌吊销）
+CREATE TABLE `RefreshToken` (
+  `id`        VARCHAR(32) NOT NULL COMMENT '主键（cuid 全局唯一）',
+  `userId`    VARCHAR(32) NOT NULL COMMENT '所属用户',
+  `tokenHash` VARCHAR(64) NOT NULL COMMENT '令牌哈希（sha256，不存明文）',
+  `expiresAt` DATETIME    NOT NULL COMMENT '过期时间（签发后 7 天）',
+  `revokedAt` DATETIME    NULL COMMENT '吊销时间（null=有效）',
+  `createdAt` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `RefreshToken_tokenHash_key` (`tokenHash`),
+  CONSTRAINT `RefreshToken_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='刷新令牌（登录后签发，轮换时旧令牌吊销）';
+
+-- 动态码（邮箱/手机号一次性验证码，OTP 登录用）
+CREATE TABLE `OtpCode` (
+  `id`           VARCHAR(32)  NOT NULL COMMENT '主键（cuid 全局唯一）',
+  `channel`      VARCHAR(16)  NOT NULL COMMENT '渠道（EMAIL 邮箱 / TELEPHONE 手机号）',
+  `target`       VARCHAR(255) NOT NULL COMMENT '目标地址（邮箱地址或手机号）',
+  `codeHash`     VARCHAR(64)  NOT NULL COMMENT '验证码哈希（sha256，不存明文）',
+  `expiresAt`    DATETIME     NOT NULL COMMENT '过期时间（5 分钟）',
+  `attempts`     INT          NOT NULL DEFAULT 0 COMMENT '已尝试次数（上限 5 次）',
+  `consumedAt`   DATETIME     NULL COMMENT '消费时间（null=未消费）',
+  `devPlainCode` VARCHAR(16)  NULL COMMENT '明文验证码（测试专用：DevOtpSender 明文回写，仅开发环境；真实发送实现不写入）',
+  `createdAt`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
+  `userId`       VARCHAR(32)  NULL COMMENT '关联用户 ID（可空，未登录场景无关联）',
+  PRIMARY KEY (`id`),
+  KEY `idx_channel_target_created` (`channel`, `target`, `createdAt`),
+  CONSTRAINT `OtpCode_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='动态码（邮箱/手机号一次性验证码，OTP 登录用）';
