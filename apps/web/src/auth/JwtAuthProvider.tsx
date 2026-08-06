@@ -68,6 +68,7 @@ export class JwtAuthProvider implements AuthProvider {
   /** refresh 响应是 TokenPair（无 user）：优先用 lastUser 补全；冷启动无缓存时回源 /auth/me */
   async refresh(): Promise<AuthSession> {
     await doRefresh()
+    // accessToken 为信息性字段：token 权威状态在 session.ts 模块态（api() 自行读取），消费方不应依赖该返回值做鉴权
     const accessToken = getAccessToken() ?? ""
     if (this.lastUser) return { user: this.lastUser, accessToken }
     const session = await this.getSession()
@@ -80,6 +81,7 @@ export class JwtAuthProvider implements AuthProvider {
     try {
       const data = await api<components["schemas"]["MeResponse"]>("/auth/me")
       this.lastUser = data.user
+      // accessToken 同上：信息性字段，api() 调用时从 session.ts 读取权威 token
       return { user: data.user, accessToken: getAccessToken() ?? "" }
     } catch {
       return null
