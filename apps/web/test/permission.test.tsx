@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+import type { components } from "../src/api/schema"
 import { AuthProviderView } from "../src/auth/AuthProvider"
 import type { AuthProvider } from "../src/auth/types"
 import { Permission } from "../src/components/business/Permission"
@@ -19,10 +20,16 @@ function createMockProvider(): AuthProvider {
   }
 }
 
-/** 预填充 me 缓存（setQueryData 直写，不依赖 fetch）：permissionCodes 即按钮级权限码集合 */
+/**
+ * 预填充 me 缓存（setQueryData 直写，不依赖 fetch）：permissionCodes 即按钮级权限码集合。
+ * staleTime: Infinity：预填充后缓存永不过期，阻止 refetchOnMount 的后台 refetch 以 queryFn
+ * 结果覆盖缓存（无会话时 queryFn 返回 null）——默认 staleTime:0 下测试仅靠同步断言蒙混过关
+ */
 function createQueryClient(permissionCodes: string[]) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  queryClient.setQueryData(ME_QUERY_KEY, {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+  })
+  queryClient.setQueryData<components["schemas"]["MeResponse"]>(ME_QUERY_KEY, {
     user: { id: "u1", username: "admin", nickname: "管理员", email: null, telephone: null },
     roles: [],
     navTree: [],
@@ -41,7 +48,6 @@ function renderWithPermissions(queryClient: QueryClient, ui: ReactNode) {
 
 afterEach(() => {
   cleanup()
-  vi.unstubAllGlobals()
 })
 
 describe("Permission", () => {
@@ -88,5 +94,21 @@ describe("Permission", () => {
     renderWithPermissions(createQueryClient(["system:role:list", "system:user:add"]), <Harness />)
 
     expect(screen.getByTestId("codes")).toHaveTextContent("system:role:list,system:user:add")
+  })
+
+  it("未预填充 me 缓存（守卫 pending 期）：视为无权限，渲染 fallback", async () => {
+    // 无缓存时 useMeQuery 处于 pending，data 为 undefined —— ?? [] 兜底返回空集
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    renderWithPermissions(
+      queryClient,
+      <Permission code="system:user:add" fallback={<span>无权限</span>}>
+        <button>新增用户</button>
+      </Permission>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("无权限")).toBeInTheDocument()
+    })
+    expect(screen.queryByRole("button", { name: "新增用户" })).not.toBeInTheDocument()
   })
 })
