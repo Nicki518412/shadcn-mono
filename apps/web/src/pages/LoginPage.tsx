@@ -148,6 +148,8 @@ export default function LoginPage() {
     setPending(true)
     try {
       await auth.login({ kind: "password", username, password })
+      // from 恢复未做（简单方案）：RequireAuth 已在 state.from 携带原地址，后续如需可改为
+      // const from = (location.state as { from?: Location } | null)?.from?.pathname ?? "/" 后 navigate(from, { replace: true })
       void navigate("/")
     } catch (err) {
       setError(errorMessage(err))
