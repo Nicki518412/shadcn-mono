@@ -4,9 +4,9 @@ import { swaggerUI } from "@hono/swagger-ui"
 import { HTTPException } from "hono/http-exception"
 import { loadConfig, type AppConfig } from "./config.js"
 import { HttpError } from "./lib/http-error.js"
+import { authRoutes } from "./routes/auth.js"
 
 export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
-  void cfg // 预留：Task 9 注入 jwtSecret 等配置
   const app = new OpenAPIHono({
     // zod 校验失败统一 400 契约体（校验失败不 throw，onError 捕获不到）
     defaultHook: (result, c) => {
@@ -28,6 +28,8 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
   app.get("/api/health", (c) =>
     c.json({ code: 0, data: { ok: true }, message: "ok" }),
   )
+
+  app.route("/", authRoutes(cfg.jwtSecret))
 
   app.notFound((c) =>
     c.json({ code: "NOT_FOUND", message: "接口不存在", data: null }, 404),
