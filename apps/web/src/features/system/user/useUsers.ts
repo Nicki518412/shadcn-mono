@@ -7,9 +7,6 @@ import type { components, paths } from "@/api/schema"
 type UserPageResult = components["schemas"]["UserPageResult"]
 export type UserListItem = components["schemas"]["UserListItem"]
 type UserDetail = components["schemas"]["UserDetail"]
-type RoleListItem = components["schemas"]["RoleListItem"]
-
-/** POST /api/users 请求体（openapi-typescript 生成类型，随 schema.d.ts 自动同步） */
 export type UserCreateInput = NonNullable<
   paths["/api/users"]["post"]["requestBody"]
 >["content"]["application/json"]
@@ -20,8 +17,6 @@ export type UserUpdateInput = NonNullable<
 
 /** users 查询 key 前缀：mutation 成功后 invalidate 前缀即所有分页/搜索变体失效重取 */
 export const USERS_QUERY_KEY = ["users"] as const
-/** roles 查询 key 前缀（Task 21 角色页复用；列表类查询挂 "list" 等子键） */
-export const ROLES_QUERY_KEY = ["roles"] as const
 
 /** 用户分页列表查询（queryKey ["users", page, pageSize, keyword]） */
 export function useUsersQuery(page: number, pageSize: number, keyword: string) {
@@ -30,14 +25,6 @@ export function useUsersQuery(page: number, pageSize: number, keyword: string) {
   return useQuery({
     queryKey: [...USERS_QUERY_KEY, page, pageSize, keyword],
     queryFn: () => api<UserPageResult>(`/users?${params.toString()}`),
-  })
-}
-
-/** 角色全量列表（表单/分配角色的选项源，GET /api/roles/list 无分页） */
-export function useRolesListQuery() {
-  return useQuery({
-    queryKey: [...ROLES_QUERY_KEY, "list"],
-    queryFn: () => api<RoleListItem[]>("/roles/list"),
   })
 }
 

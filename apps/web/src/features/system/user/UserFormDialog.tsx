@@ -21,7 +21,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { useCreateUserMutation, useRolesListQuery, useUpdateUserMutation } from "./useUsers"
+import { useRolesListQuery } from "../role/useRoles"
+import { useCreateUserMutation, useUpdateUserMutation } from "./useUsers"
 import type { UserCreateInput, UserListItem, UserUpdateInput } from "./useUsers"
 
 /**
