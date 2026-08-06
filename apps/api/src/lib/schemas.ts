@@ -27,7 +27,9 @@ export const errorBodySchema = z
   .object({
     code: z.string(),
     message: z.string(),
-    data: z.null(),
+    // z.null() 默认序列化为 {nullable:true}（OAS 3.0 无 null 类型）→ openapi-typescript 生成 unknown；
+    // enum:[null] 是 OAS 3.0 合法的 null 表达 → 生成精确的 null 类型（实证见 Task 14 实验）
+    data: z.null().openapi({ enum: [null] }),
   })
   .openapi("ErrorBody")
 

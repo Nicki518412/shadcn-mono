@@ -17,7 +17,15 @@ export const config = tseslint.config(
       "@typescript-eslint/no-floating-promises": "error",
     },
   },
-  { ignores: ["dist/**", "node_modules/**", "**/eslint.config.ts"] },
+  {
+    ignores: [
+      "dist/**",
+      "node_modules/**",
+      "**/eslint.config.ts",
+      // 生成物（openapi-typescript 输出；web 包 tsconfig 尚未存在，projectService 无法定位）
+      "apps/web/src/api/schema.d.ts",
+    ],
+  },
 )
 
 export default config
