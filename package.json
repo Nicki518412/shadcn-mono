@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@9.12.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=20.11"
   },
   "scripts": {
     "dev": "turbo run dev",
@@ -22,6 +22,7 @@
     "husky": "^9.1.0",
     "lint-staged": "^15.2.0",
     "turbo": "^2.3.0",
-    "typescript-eslint": "^8.11.0"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "8.66.0"
   }
 }
