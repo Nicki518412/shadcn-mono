@@ -28,6 +28,13 @@ export function useMenuTreeQuery() {
   })
 }
 
+/** 菜单变更的联动失效：菜单树 + 角色授权树的菜单数据 + me 的导航树/权限码 */
+function invalidateMenuDependents(queryClient: ReturnType<typeof useQueryClient>): void {
+  void queryClient.invalidateQueries({ queryKey: MENUS_QUERY_KEY })
+  void queryClient.invalidateQueries({ queryKey: ["roles"] })
+  void queryClient.invalidateQueries({ queryKey: ["me"] })
+}
+
 /** 创建菜单（POST /api/menus，后端校验类型约束与权限码唯一 409——错误 message 直接展示） */
 export function useCreateMenuMutation() {
   const queryClient = useQueryClient()
@@ -35,7 +42,7 @@ export function useCreateMenuMutation() {
     mutationFn: (input: MenuCreateInput) =>
       api<MenuNode>("/menus", { method: "POST", body: JSON.stringify(input) }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: MENUS_QUERY_KEY })
+      invalidateMenuDependents(queryClient)
       toast.success("菜单创建成功")
     },
     onError: (error) => {
@@ -51,7 +58,7 @@ export function useUpdateMenuMutation() {
     mutationFn: (input: { id: string; body: MenuUpdateInput }) =>
       api<MenuNode>(`/menus/${input.id}`, { method: "PATCH", body: JSON.stringify(input.body) }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: MENUS_QUERY_KEY })
+      invalidateMenuDependents(queryClient)
       toast.success("菜单更新成功")
     },
     onError: (error) => {
@@ -66,7 +73,7 @@ export function useDeleteMenuMutation() {
   return useMutation({
     mutationFn: (id: string) => api<null>(`/menus/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: MENUS_QUERY_KEY })
+      invalidateMenuDependents(queryClient)
       toast.success("菜单已删除")
     },
     onError: (error) => {
