@@ -1,22 +1,17 @@
 import { pathToFileURL } from "node:url"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { swaggerUI } from "@hono/swagger-ui"
+import type { Env } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { loadConfig, type AppConfig } from "./config.js"
 import { HttpError } from "./lib/http-error.js"
+import { validationHook } from "./lib/validation-hook.js"
 import { authRoutes } from "./routes/auth.js"
 
 export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
-  const app = new OpenAPIHono({
+  const app = new OpenAPIHono<Env>({
     // zod 校验失败统一 400 契约体（校验失败不 throw，onError 捕获不到）
-    defaultHook: (result, c) => {
-      if (!result.success) {
-        return c.json(
-          { code: "BAD_REQUEST", message: result.error.issues[0]?.message ?? "请求参数错误", data: null },
-          400,
-        )
-      }
-    },
+    defaultHook: validationHook,
   })
 
   app.doc("/api/openapi.json", {

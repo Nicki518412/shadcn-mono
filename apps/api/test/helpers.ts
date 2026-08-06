@@ -9,7 +9,7 @@ export async function createTestUser(opts: {
   await prisma.user.create({
     data: {
       username: opts.username,
-      passwordHash: hashPassword(opts.password),
+      passwordHash: await hashPassword(opts.password),
       nickname: opts.username,
       // exactOptionalPropertyTypes：undefined 不可赋给 string|null，显式置空
       email: opts.email ?? null,

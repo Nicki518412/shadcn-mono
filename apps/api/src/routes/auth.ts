@@ -1,9 +1,12 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi"
+import type { Env } from "hono"
 import { prisma } from "@repo/db"
 import { HttpError, forbidden, unauthorized } from "../lib/http-error.js"
 import { verifyPassword } from "../lib/password.js"
 import { hashToken, issueTokenPair } from "../lib/tokens.js"
-import { checkThrottle, recordFailure } from "../lib/login-throttle.js"
+import { checkThrottle, recordFailure, resetThrottle } from "../lib/login-throttle.js"
+import { errorBodySchema, loginResponseSchema, toPublicUser, tokenPairSchema } from "../lib/schemas.js"
+import { validationHook } from "../lib/validation-hook.js"
 
 const loginSchema = z.object({
   username: z.string().min(1).max(64),
@@ -13,35 +16,14 @@ const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 })
 
-export interface PublicUser {
-  id: string
-  username: string
-  nickname: string
-  email: string | null
-  telephone: string | null
-}
-
-export function publicUser(user: {
-  id: string
-  username: string
-  nickname: string
-  email: string | null
-  telephone: string | null
-}): PublicUser {
-  return { id: user.id, username: user.username, nickname: user.nickname, email: user.email, telephone: user.telephone }
-}
+// 统一成功响应包装（契约体 { code, data, message }，data 随路由不同）
+const okBody = (dataSchema: z.ZodType) =>
+  z.object({ code: z.number(), data: dataSchema, message: z.string() })
 
 export function authRoutes(jwtSecret: string): OpenAPIHono {
-  const app = new OpenAPIHono({
+  const app = new OpenAPIHono<Env>({
     // 子应用不继承根应用 defaultHook，校验失败契约体保持一致
-    defaultHook: (result, c) => {
-      if (!result.success) {
-        return c.json(
-          { code: "BAD_REQUEST", message: result.error.issues[0]?.message ?? "请求参数错误", data: null },
-          400,
-        )
-      }
-    },
+    defaultHook: validationHook,
   })
 
   app.openapi(
@@ -50,10 +32,10 @@ export function authRoutes(jwtSecret: string): OpenAPIHono {
       path: "/api/auth/login",
       request: { body: { content: { "application/json": { schema: loginSchema } } } },
       responses: {
-        200: { description: "登录成功" },
-        401: { description: "用户名或密码错误" },
-        403: { description: "账号已被禁用" },
-        423: { description: "账号锁定" },
+        200: { description: "登录成功", content: { "application/json": { schema: okBody(loginResponseSchema) } } },
+        401: { description: "用户名或密码错误", content: { "application/json": { schema: errorBodySchema } } },
+        403: { description: "账号已被禁用", content: { "application/json": { schema: errorBodySchema } } },
+        423: { description: "账号锁定", content: { "application/json": { schema: errorBodySchema } } },
       },
     }),
     async (c) => {
@@ -67,14 +49,15 @@ export function authRoutes(jwtSecret: string): OpenAPIHono {
         recordFailure(key)
         throw unauthorized("用户名或密码错误")
       }
-      if (!user.passwordHash || !verifyPassword(password, user.passwordHash)) {
+      if (!user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
         recordFailure(key)
         throw unauthorized("用户名或密码错误")
       }
       if (!user.status) throw forbidden("账号已被禁用")
 
+      resetThrottle(key) // 登录成功清除失败计数
       const pair = await issueTokenPair(user.id, jwtSecret)
-      return c.json({ code: 0, data: { ...pair, user: publicUser(user) }, message: "ok" }, 200)
+      return c.json({ code: 0, data: { ...pair, user: toPublicUser(user) }, message: "ok" }, 200)
     },
   )
 
@@ -83,7 +66,10 @@ export function authRoutes(jwtSecret: string): OpenAPIHono {
       method: "post",
       path: "/api/auth/refresh",
       request: { body: { content: { "application/json": { schema: refreshSchema } } } },
-      responses: { 200: { description: "轮换成功" }, 401: { description: "无效" } },
+      responses: {
+        200: { description: "轮换成功", content: { "application/json": { schema: okBody(tokenPairSchema) } } },
+        401: { description: "无效", content: { "application/json": { schema: errorBodySchema } } },
+      },
     }),
     async (c) => {
       const { refreshToken } = c.req.valid("json")
@@ -108,7 +94,9 @@ export function authRoutes(jwtSecret: string): OpenAPIHono {
       method: "post",
       path: "/api/auth/logout",
       request: { body: { content: { "application/json": { schema: refreshSchema } } } },
-      responses: { 200: { description: "已吊销" } },
+      responses: {
+        200: { description: "已吊销", content: { "application/json": { schema: okBody(z.null()) } } },
+      },
     }),
     async (c) => {
       const { refreshToken } = c.req.valid("json")

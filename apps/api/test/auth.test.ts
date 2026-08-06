@@ -1,13 +1,14 @@
 import { beforeAll, describe, expect, it } from "vitest"
+import type { z } from "@hono/zod-openapi"
+import type { loginResponseSchema, tokenPairSchema } from "../src/lib/schemas.js"
 import { createApp } from "../src/index.js"
 import { createTestUser } from "./helpers.js"
 
-interface LoginData {
-  data: {
-    accessToken: string
-    refreshToken: string
-    user: { id: string; username: string; nickname: string; email: string | null; telephone: string | null }
-  }
+interface LoginBody {
+  data: z.infer<typeof loginResponseSchema>
+}
+interface RefreshBody {
+  data: z.infer<typeof tokenPairSchema>
 }
 
 function loginRequest(app: ReturnType<typeof createApp>, username: string, password: string) {
@@ -35,7 +36,7 @@ describe("auth", () => {
     const app = createApp()
     const res = await loginRequest(app, "auth_test", "Passw0rd!")
     expect(res.status).toBe(200)
-    const body = (await res.json()) as LoginData
+    const body = (await res.json()) as LoginBody
     expect(typeof body.data.accessToken).toBe("string")
     expect(typeof body.data.refreshToken).toBe("string")
     expect(typeof body.data.user.id).toBe("string")
@@ -63,10 +64,10 @@ describe("auth", () => {
   it("refresh 轮换：旧 token 二次使用 401，新 token 有效", async () => {
     const app = createApp()
     const login = await loginRequest(app, "auth_test", "Passw0rd!")
-    const { refreshToken } = ((await login.json()) as LoginData).data
+    const { refreshToken } = ((await login.json()) as LoginBody).data
     const r1 = await refreshRequest(app, refreshToken)
     expect(r1.status).toBe(200)
-    const newToken = ((await r1.json()) as { data: { refreshToken: string } }).data.refreshToken
+    const newToken = ((await r1.json()) as RefreshBody).data.refreshToken
     const r2 = await refreshRequest(app, refreshToken)
     expect(r2.status).toBe(401)
     const r3 = await refreshRequest(app, newToken)
@@ -76,7 +77,7 @@ describe("auth", () => {
   it("refresh 并发重放：同一旧 token 并发仅一次成功", async () => {
     const app = createApp()
     const login = await loginRequest(app, "auth_test", "Passw0rd!")
-    const { refreshToken } = ((await login.json()) as LoginData).data
+    const { refreshToken } = ((await login.json()) as LoginBody).data
     const [r1, r2] = await Promise.all([refreshRequest(app, refreshToken), refreshRequest(app, refreshToken)])
     expect([r1.status, r2.status].sort()).toEqual([200, 401])
   })
@@ -84,7 +85,7 @@ describe("auth", () => {
   it("logout 吊销 refresh", async () => {
     const app = createApp()
     const login = await loginRequest(app, "auth_test", "Passw0rd!")
-    const { refreshToken } = ((await login.json()) as LoginData).data
+    const { refreshToken } = ((await login.json()) as LoginBody).data
     const logout = await app.request("/api/auth/logout", {
       method: "POST",
       headers: { "content-type": "application/json" },
