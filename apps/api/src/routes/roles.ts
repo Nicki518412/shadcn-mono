@@ -22,9 +22,13 @@ const roleCreateSchema = z.object({
   status: z.boolean().optional(),
 })
 
-const roleUpdateSchema = roleCreateSchema.partial()
+// 全部字段可选（改谁传谁）；description 显式传 null 表示清空（undefined 不修改），与 users email 清空语义对称
+const roleUpdateSchema = roleCreateSchema.partial().extend({
+  description: z.string().nullable().optional(),
+})
 
-const menuIdsSchema = z.object({ menuIds: z.array(z.string()) })
+// 授权全量提交的菜单 id 数组；上限 500 防超大 payload（菜单树规模远小于此）
+const menuIdsSchema = z.object({ menuIds: z.array(z.string()).max(500) })
 
 const idParam = z.object({ id: z.string() })
 
@@ -247,7 +251,12 @@ export function roleRoutes(jwtSecret: string): OpenAPIHono {
       const { id } = c.req.valid("param")
       const role = await prisma.role.findUnique({ where: { id }, select: { id: true } })
       if (!role) throw notFound("角色不存在")
-      const rows = await prisma.roleMenu.findMany({ where: { roleId: id }, select: { menuId: true } })
+      // orderBy menuId 保证回显顺序确定（树形勾选回显需要稳定顺序）
+      const rows = await prisma.roleMenu.findMany({
+        where: { roleId: id },
+        select: { menuId: true },
+        orderBy: { menuId: "asc" },
+      })
       return c.json({ code: 0, data: { menuIds: rows.map((r) => r.menuId) }, message: "ok" }, 200)
     },
   )

@@ -204,6 +204,102 @@ describe("roles CRUD", () => {
     expect(delMissing.status).toBe(404)
   })
 
+  it("更新角色：PATCH 改名/禁用/清空描述/改 code（小写输入转大写存储）；code 撞已存在角色 409 不落库", async () => {
+    const app = createApp()
+    const token = await loginAdmin()
+    const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
+    const role = await prisma.role.create({
+      data: { name: "旧名", code: "ROLE_CRUD_PATCH1", description: "原始描述", sort: 1 },
+    })
+    const res = await app.request(`/api/roles/${role.id}`, {
+      method: "PATCH",
+      headers: auth,
+      body: JSON.stringify({ name: "新名", status: false, description: null, code: "role_crud_patch2" }),
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { data: RoleItem }
+    expect(body.data.name).toBe("新名")
+    expect(body.data.code).toBe("ROLE_CRUD_PATCH2")
+    expect(body.data.status).toBe(false)
+    expect(body.data.description).toBeNull()
+    const stored = await prisma.role.findUnique({ where: { id: role.id } })
+    expect(stored?.name).toBe("新名")
+    expect(stored?.code).toBe("ROLE_CRUD_PATCH2")
+    expect(stored?.status).toBe(false)
+    expect(stored?.description).toBeNull()
+
+    // PATCH code 撞已存在角色（大小写变体同约束）→ 409，且目标角色编码不落库
+    const other = await prisma.role.create({ data: { name: "冲突目标", code: "ROLE_CRUD_PATCH3" } })
+    const dup = await app.request(`/api/roles/${other.id}`, {
+      method: "PATCH",
+      headers: auth,
+      body: JSON.stringify({ code: "role_crud_patch2" }),
+    })
+    expect(dup.status).toBe(409)
+    expect(((await dup.json()) as { message: string }).message).toContain("角色编码")
+    expect((await prisma.role.findUnique({ where: { id: other.id } }))?.code).toBe("ROLE_CRUD_PATCH3")
+  })
+
+  it("菜单授权边界：重复 menuId 去重、空数组清空、超大数组 400、不存在角色 GET/PUT 404", async () => {
+    const app = createApp()
+    const token = await loginAdmin()
+    const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
+    const role = await prisma.role.create({ data: { name: "边界角色", code: "ROLE_CRUD_EDGE" } })
+    // 重复 menuId：Set 去重后落库（回显仅 1 个）
+    const put = await app.request(`/api/roles/${role.id}/menus`, {
+      method: "PUT",
+      headers: auth,
+      body: JSON.stringify({ menuIds: [roleMenuId, roleMenuId, bCreateId] }),
+    })
+    expect(put.status).toBe(200)
+    const echo = await app.request(`/api/roles/${role.id}/menus`, {
+      headers: { authorization: `Bearer ${token}` },
+    })
+    expect(echo.status).toBe(200)
+    expect(((await echo.json()) as { data: { menuIds: string[] } }).data.menuIds.sort()).toEqual(
+      [bCreateId, roleMenuId].sort(),
+    )
+    // 空数组：清空全部授权
+    const clear = await app.request(`/api/roles/${role.id}/menus`, {
+      method: "PUT",
+      headers: auth,
+      body: JSON.stringify({ menuIds: [] }),
+    })
+    expect(clear.status).toBe(200)
+    const after = await app.request(`/api/roles/${role.id}/menus`, {
+      headers: { authorization: `Bearer ${token}` },
+    })
+    expect(((await after.json()) as { data: { menuIds: string[] } }).data.menuIds).toHaveLength(0)
+    // 超大 payload：menuIds 超过 500 上限 → 400（zod max 分支）
+    const overflow = await app.request(`/api/roles/${role.id}/menus`, {
+      method: "PUT",
+      headers: auth,
+      body: JSON.stringify({ menuIds: Array.from({ length: 501 }, (_, i) => `m${String(i)}`) }),
+    })
+    expect(overflow.status).toBe(400)
+    // 不存在的角色：menus GET/PUT 404
+    const missing = "no_such_role_id"
+    const get = await app.request(`/api/roles/${missing}/menus`, {
+      headers: { authorization: `Bearer ${token}` },
+    })
+    expect(get.status).toBe(404)
+    const putMissing = await app.request(`/api/roles/${missing}/menus`, {
+      method: "PUT",
+      headers: auth,
+      body: JSON.stringify({ menuIds: [] }),
+    })
+    expect(putMissing.status).toBe(404)
+  })
+
+  it("pageSize 超过上限 100 返回 400", async () => {
+    const app = createApp()
+    const token = await loginAdmin()
+    const res = await app.request("/api/roles?page=1&pageSize=101", {
+      headers: { authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(400)
+  })
+
   it("分页列表：page/pageSize 生效、total 正确；keyword 匹配 name 与 code", async () => {
     const app = createApp()
     const token = await loginAdmin()
