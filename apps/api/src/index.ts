@@ -5,6 +5,7 @@ import type { Env } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { loadConfig, type AppConfig } from "./config.js"
 import { HttpError } from "./lib/http-error.js"
+import { API_INFO } from "./lib/schemas.js"
 import { validationHook } from "./lib/validation-hook.js"
 import { authRoutes } from "./routes/auth.js"
 import { meRoutes } from "./routes/me.js"
@@ -21,7 +22,7 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
 
   app.doc("/api/openapi.json", {
     openapi: "3.0.0",
-    info: { title: "shadcn-mono API", version: "0.1.0" },
+    info: API_INFO,
   })
   app.get("/api/docs", swaggerUI({ url: "/api/openapi.json" }))
 

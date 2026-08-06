@@ -90,4 +90,25 @@ describe("schemas", () => {
     const menuNode = schemas.MenuNode as { properties?: { children?: { items?: Record<string, unknown> } } } | undefined
     expect(menuNode?.properties?.children?.items).toEqual({ $ref: "#/components/schemas/MenuNode" })
   })
+
+  it("openapi 文档 data 字段不存在裸 {nullable:true}（防 z.null() 半套修复回归）", () => {
+    const app = createApp()
+    const doc = app.getOpenAPIDocument({ openapi: "3.0.0", info: { title: "t", version: "1" } })
+    const violations: string[] = []
+    const walk = (o: unknown, path: string): void => {
+      if (!o || typeof o !== "object") return
+      for (const [k, v] of Object.entries(o)) {
+        if (k === "data" && v !== null && typeof v === "object") {
+          const d = v as Record<string, unknown>
+          // $ref 旁的 nullable 兄弟键是 menuNodeRefSchema 的已知序列化产物（openapi-typescript 忽略之），豁免
+          if (d.nullable === true && !("enum" in d) && !("$ref" in d)) {
+            violations.push(`${path}.data -> ${JSON.stringify(d)}`)
+          }
+        }
+        walk(v, `${path}.${k}`)
+      }
+    }
+    walk(doc, "doc")
+    expect(violations).toEqual([])
+  })
 })

@@ -543,7 +543,10 @@
                       "type": "number"
                     },
                     "data": {
-                      "nullable": true
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -1235,7 +1238,10 @@
                       "type": "number"
                     },
                     "data": {
-                      "nullable": true
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -1410,7 +1416,10 @@
                       "type": "number"
                     },
                     "data": {
-                      "nullable": true
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -1893,7 +1902,10 @@
                       "type": "number"
                     },
                     "data": {
-                      "nullable": true
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -2382,7 +2394,10 @@
                       "type": "number"
                     },
                     "data": {
-                      "nullable": true
+                      "nullable": true,
+                      "enum": [
+                        null
+                      ]
                     },
                     "message": {
                       "type": "string"

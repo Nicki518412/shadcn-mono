@@ -22,7 +22,7 @@ export const config = tseslint.config(
       "dist/**",
       "node_modules/**",
       "**/eslint.config.ts",
-      // 生成物（openapi-typescript 输出；web 包 tsconfig 尚未存在，projectService 无法定位）
+      // 生成物（openapi-typescript 输出，永久 ignore——Task 15 web 包建 tsconfig 后仍需保留）
       "apps/web/src/api/schema.d.ts",
     ],
   },

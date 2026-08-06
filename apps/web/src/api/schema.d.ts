@@ -163,7 +163,8 @@ export interface paths {
                     content: {
                         "application/json": {
                             code: number;
-                            data: unknown;
+                            /** @enum {unknown|null} */
+                            data: null;
                             message: string;
                         };
                     };
@@ -626,7 +627,8 @@ export interface paths {
                     content: {
                         "application/json": {
                             code: number;
-                            data: unknown;
+                            /** @enum {unknown|null} */
+                            data: null;
                             message: string;
                         };
                     };
@@ -833,7 +835,8 @@ export interface paths {
                     content: {
                         "application/json": {
                             code: number;
-                            data: unknown;
+                            /** @enum {unknown|null} */
+                            data: null;
                             message: string;
                         };
                     };
@@ -1112,7 +1115,8 @@ export interface paths {
                     content: {
                         "application/json": {
                             code: number;
-                            data: unknown;
+                            /** @enum {unknown|null} */
+                            data: null;
                             message: string;
                         };
                     };
@@ -1458,7 +1462,8 @@ export interface paths {
                     content: {
                         "application/json": {
                             code: number;
-                            data: unknown;
+                            /** @enum {unknown|null} */
+                            data: null;
                             message: string;
                         };
                     };
