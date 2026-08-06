@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { computeVisibleMenus } from "../src/permissions.js"
+import { buildTree, computeVisibleMenus } from "../src/permissions.js"
 import type { MenuNode } from "../src/types.js"
 
 function menu(partial: Partial<MenuNode> & { id: string }): MenuNode {
@@ -43,6 +43,7 @@ describe("computeVisibleMenus", () => {
     expect(r.navTree.map((n) => n.id)).toEqual(["d1"])
     expect(r.navTree[0]?.children.map((n) => n.id)).toEqual(["m1"])
     expect(r.permissionCodes).toEqual(new Set(["system:user:query", "system:user:add"]))
+    expect(allMenus[0]?.children).toEqual([])
   })
 
   it("多角色取严格交集（菜单与按钮）", () => {
@@ -75,8 +76,25 @@ describe("computeVisibleMenus", () => {
     expect(r.navTree[0]?.children.map((n) => n.id)).toEqual(["m1"])
   })
 
+  it("嵌套空目录折叠：中间目录变空壳后也应移除", () => {
+    const a = menu({ id: "a", name: "A", type: "DIR", sort: 1 })
+    const b = menu({ id: "b", parentId: "a", name: "B", type: "DIR", sort: 1 })
+    const r = computeVisibleMenus([["a", "b"]], [a, b])
+    expect(r.navTree).toEqual([])
+  })
+
+  it("嵌套非空目录保留整条链", () => {
+    const a = menu({ id: "a", name: "A", type: "DIR", sort: 1 })
+    const b = menu({ id: "b", parentId: "a", name: "B", type: "DIR", sort: 1 })
+    const m = menu({ id: "m", parentId: "b", name: "M", sort: 1 })
+    const r = computeVisibleMenus([["a", "b", "m"]], [a, b, m])
+    expect(r.navTree.map((n) => n.id)).toEqual(["a"])
+    expect(r.navTree[0]?.children.map((n) => n.id)).toEqual(["b"])
+    expect(r.navTree[0]?.children[0]?.children.map((n) => n.id)).toEqual(["m"])
+  })
+
   it("按 sort 排序", () => {
-    const r = computeVisibleMenus([["d1", "m1", "m2"]], allMenus)
+    const r = computeVisibleMenus([["d1", "m2", "m1"]], allMenus)
     expect(r.navTree[0]?.children.map((n) => n.id)).toEqual(["m1", "m2"])
   })
 
@@ -84,5 +102,18 @@ describe("computeVisibleMenus", () => {
     const r = computeVisibleMenus([["b1"]], allMenus)
     expect(r.navTree).toEqual([])
     expect(r.permissionCodes).toEqual(new Set(["system:user:add"]))
+  })
+})
+
+describe("buildTree", () => {
+  it("乱序节点构建排序后的树", () => {
+    const a = menu({ id: "a", name: "A", type: "DIR", sort: 2 })
+    const b = menu({ id: "b", parentId: "a", name: "B", sort: 1 })
+    const c = menu({ id: "c", parentId: "a", name: "C", sort: 2 })
+    const m = menu({ id: "m", parentId: "b", name: "M", sort: 1 })
+    const tree = buildTree([m, a, c, b])
+    expect(tree.map((n) => n.id)).toEqual(["a"])
+    expect(tree[0]?.children.map((n) => n.id)).toEqual(["b", "c"])
+    expect(tree[0]?.children[0]?.children.map((n) => n.id)).toEqual(["m"])
   })
 })

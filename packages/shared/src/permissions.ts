@@ -18,11 +18,11 @@ function collectAncestorIds(id: string, byId: Map<string, MenuNode>, acc: Set<st
   }
 }
 
-/** 空目录折叠：递归移除无可见子孙的目录（含祖先补全拉入的目录）。 */
+/** 空目录折叠：递归移除无可见子孙的目录（含祖先补全拉入的目录）。先折叠子层再过滤，保证中间目录变空壳后也被移除。 */
 function pruneEmptyDirs(nodes: MenuNode[]): MenuNode[] {
   return nodes
-    .filter((n) => n.type !== "DIR" || n.children.length > 0)
     .map((n) => ({ ...n, children: pruneEmptyDirs(n.children) }))
+    .filter((n) => n.type !== "DIR" || n.children.length > 0)
 }
 
 /**
