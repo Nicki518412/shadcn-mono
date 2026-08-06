@@ -1,0 +1,150 @@
+import { beforeAll, describe, expect, it } from "vitest"
+import type { z } from "@hono/zod-openapi"
+import { prisma } from "@repo/db"
+import { loadConfig } from "../src/config.js"
+import { createApp } from "../src/index.js"
+import { authenticate, requirePermission } from "../src/middleware/auth.js"
+import type { meResponseSchema } from "../src/lib/schemas.js"
+import { createTestUser } from "./helpers.js"
+
+interface MeBody {
+  data: z.infer<typeof meResponseSchema>
+}
+
+const USERNAME = "me_test"
+const PASSWORD = "Passw0rd!"
+
+async function loginAs(username: string): Promise<string> {
+  const app = createApp()
+  const res = await app.request("/api/auth/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ username, password: PASSWORD }),
+  })
+  if (res.status !== 200) throw new Error(`登录失败: ${String(res.status)}`)
+  const body = (await res.json()) as { data: { accessToken: string } }
+  return body.data.accessToken
+}
+
+describe("auth me", () => {
+  beforeAll(async () => {
+    await createTestUser({ username: USERNAME, password: PASSWORD })
+    const user = await prisma.user.findUnique({ where: { username: USERNAME } })
+    if (!user) throw new Error("测试用户未创建")
+    const userId = user.id
+
+    const [roleA, roleB] = await Promise.all([
+      prisma.role.create({ data: { name: "角色A", code: "ROLE_A" } }),
+      prisma.role.create({ data: { name: "角色B", code: "ROLE_B" } }),
+    ])
+    // 菜单树：DIR d1 → MENU m1 + BUTTON b1 + MENU m2
+    const d1 = await prisma.menu.create({ data: { name: "系统管理", type: "DIR", icon: "Settings", sort: 1 } })
+    const m1 = await prisma.menu.create({
+      data: {
+        name: "用户管理",
+        type: "MENU",
+        path: "/system/user",
+        component: "system/user",
+        icon: "Users",
+        permission: "system:user:query",
+        parentId: d1.id,
+        sort: 1,
+      },
+    })
+    const m2 = await prisma.menu.create({
+      data: {
+        name: "角色管理",
+        type: "MENU",
+        path: "/system/role",
+        component: "system/role",
+        permission: "system:role:query",
+        parentId: d1.id,
+        sort: 2,
+      },
+    })
+    const b1 = await prisma.menu.create({
+      data: { name: "新增用户", type: "BUTTON", permission: "system:user:add", parentId: m1.id, sort: 1 },
+    })
+
+    await prisma.userRole.createMany({
+      data: [
+        { userId, roleId: roleA.id },
+        { userId, roleId: roleB.id },
+      ],
+    })
+    // roleA 全量授权；roleB 仅 d1+m1 → 交集 = {d1, m1}（m2、b1 被交掉）
+    await prisma.roleMenu.createMany({
+      data: [
+        { roleId: roleA.id, menuId: d1.id },
+        { roleId: roleA.id, menuId: m1.id },
+        { roleId: roleA.id, menuId: m2.id },
+        { roleId: roleA.id, menuId: b1.id },
+        { roleId: roleB.id, menuId: d1.id },
+        { roleId: roleB.id, menuId: m1.id },
+      ],
+    })
+  })
+
+  it("me 返回交集后的 navTree 与权限码、全部角色", async () => {
+    const app = createApp()
+    const token = await loginAs(USERNAME)
+    const res = await app.request("/api/auth/me", { headers: { authorization: `Bearer ${token}` } })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as MeBody
+    expect(body.data.user.username).toBe(USERNAME)
+    expect(body.data.roles).toHaveLength(2)
+    // b1（system:user:add）被交掉，仅剩 m1 的码
+    expect(body.data.permissionCodes).toEqual(["system:user:query"])
+    // navTree：d1 → [m1]，b1/m2 不出现
+    expect(body.data.navTree).toHaveLength(1)
+    const root = body.data.navTree[0]
+    if (!root) throw new Error("navTree 根节点缺失")
+    expect(root.type).toBe("DIR")
+    expect(root.name).toBe("系统管理")
+    expect(root.children.map((n) => n.name)).toEqual(["用户管理"])
+    const userMenu = root.children[0]
+    if (!userMenu) throw new Error("m1 节点缺失")
+    expect(userMenu.children).toHaveLength(0)
+  })
+
+  it("无 token 访问 me 返回 401", async () => {
+    const app = createApp()
+    const res = await app.request("/api/auth/me")
+    expect(res.status).toBe(401)
+    const body = (await res.json()) as { code: string }
+    expect(body.code).toBe("UNAUTHORIZED")
+  })
+
+  it("requirePermission 中间件：有权限 200 / 无权限 403 / 未认证 401", async () => {
+    // 测试路由挂在本文件内（不污染生产 openapi）
+    const app = createApp()
+    app.get(
+      "/api/test-perm-allowed",
+      authenticate(loadConfig().jwtSecret),
+      requirePermission("system:user:query"),
+      (c) => c.json({ ok: true }),
+    )
+    app.get(
+      "/api/test-perm-denied",
+      authenticate(loadConfig().jwtSecret),
+      requirePermission("system:user:add"),
+      (c) => c.json({ ok: true }),
+    )
+    app.get("/api/test-perm-no-auth", requirePermission("system:user:query"), (c) => c.json({ ok: true }))
+
+    const token = await loginAs(USERNAME)
+    const authHeader = { authorization: `Bearer ${token}` }
+
+    const allowed = await app.request("/api/test-perm-allowed", { headers: authHeader })
+    expect(allowed.status).toBe(200)
+
+    const denied = await app.request("/api/test-perm-denied", { headers: authHeader })
+    expect(denied.status).toBe(403)
+    const deniedBody = (await denied.json()) as { code: string; message: string }
+    expect(deniedBody.code).toBe("FORBIDDEN")
+    expect(deniedBody.message).toContain("system:user:add")
+
+    const noAuth = await app.request("/api/test-perm-no-auth")
+    expect(noAuth.status).toBe(401)
+  })
+})

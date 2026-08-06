@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi"
 import type { User } from "@repo/db"
+import type { MenuNode } from "@repo/shared"
 
 // 注：zod-to-openapi v7 的 refId 走位置参数 openapi("RefId")（v6 的 { refId } 对象形式已不再支持）
 /** 公开用户信息（登录/me 等响应共用，Task 14 openapi-typescript 生成类型） */
@@ -40,3 +41,41 @@ export type TokenPair = z.infer<typeof tokenPairSchema>
 export function toPublicUser(user: Pick<User, "id" | "username" | "nickname" | "email" | "telephone">): PublicUser {
   return { id: user.id, username: user.username, nickname: user.nickname, email: user.email, telephone: user.telephone }
 }
+
+/**
+ * 递归 MenuNode schema（运行时校验 + 类型推断）。
+ * 实证：zod-to-openapi v7（7.3.4）不支持 z.lazy —— 文档生成时抛 UnknownZodTypeError（typeName: ZodLazy）。
+ * openapi.json 中的 MenuNode 组件由 index.ts 手工注册（见 createApp），me 响应用 menuNodeRefSchema 以 $ref 引用。
+ */
+const menuNodeSchema: z.ZodType<MenuNode> = z.lazy(() =>
+  z.object({
+    id: z.string(),
+    parentId: z.string().nullable(),
+    name: z.string(),
+    type: z.enum(["DIR", "MENU", "BUTTON"]),
+    path: z.string().nullable(),
+    component: z.string().nullable(),
+    icon: z.string().nullable(),
+    permission: z.string().nullable(),
+    sort: z.number(),
+    status: z.boolean(),
+    children: z.array(menuNodeSchema),
+  }),
+)
+
+/**
+ * MenuNode 引用 schema（类型保持 MenuNode；文档中渲染为 $ref → 手工注册的 MenuNode 组件）。
+ * 不能用 refId（z.any().openapi("MenuNode")）：v7 的 generateComponents 会把 schemaRefs 合并覆盖同名组件（实证：MenuNode 被污染为 {"nullable":true}）。
+ * metadata.$ref 无 refId 不进 schemaRefs；类型层面 zod-openapi 的 metadata 类型不含 $ref 键，故 as never 绕过（运行时仅附加 $ref 键）。
+ */
+const menuNodeRefSchema: z.ZodType<MenuNode> = z.any().openapi({ $ref: "#/components/schemas/MenuNode" } as never)
+
+/** me 响应：user + roles + 交集 navTree + permissionCodes */
+export const meResponseSchema = z
+  .object({
+    user: publicUserSchema,
+    roles: z.array(z.object({ id: z.string(), name: z.string(), code: z.string() })),
+    navTree: z.array(menuNodeRefSchema),
+    permissionCodes: z.array(z.string()),
+  })
+  .openapi("MeResponse")

@@ -7,6 +7,7 @@ import { loadConfig, type AppConfig } from "./config.js"
 import { HttpError } from "./lib/http-error.js"
 import { validationHook } from "./lib/validation-hook.js"
 import { authRoutes } from "./routes/auth.js"
+import { meRoutes } from "./routes/me.js"
 import { otpRoutes } from "./routes/otp.js"
 
 export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
@@ -25,8 +26,28 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
     c.json({ code: 0, data: { ok: true }, message: "ok" }),
   )
 
+  // MenuNode 递归组件手工注册（实证：zod-to-openapi v7 不支持 z.lazy，schemas.ts menuNodeSchema 仅运行时用）
+  app.openAPIRegistry.registerComponent("schemas", "MenuNode", {
+    type: "object",
+    properties: {
+      id: { type: "string" },
+      parentId: { type: "string", nullable: true },
+      name: { type: "string" },
+      type: { type: "string", enum: ["DIR", "MENU", "BUTTON"] },
+      path: { type: "string", nullable: true },
+      component: { type: "string", nullable: true },
+      icon: { type: "string", nullable: true },
+      permission: { type: "string", nullable: true },
+      sort: { type: "number" },
+      status: { type: "boolean" },
+      children: { type: "array", items: { $ref: "#/components/schemas/MenuNode" } },
+    },
+    required: ["id", "parentId", "name", "type", "path", "component", "icon", "permission", "sort", "status", "children"],
+  })
+
   app.route("/", authRoutes(cfg.jwtSecret))
   app.route("/", otpRoutes(cfg.jwtSecret))
+  app.route("/", meRoutes(cfg.jwtSecret))
 
   app.notFound((c) =>
     c.json({ code: "NOT_FOUND", message: "接口不存在", data: null }, 404),
