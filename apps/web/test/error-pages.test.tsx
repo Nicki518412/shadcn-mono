@@ -47,7 +47,9 @@ describe("ErrorBoundary", () => {
   // 抛错用例会静音 console.error 并替换 window.location——若断言失败泄漏到后续用例难以排查，
   // 统一在 afterEach 恢复（originalLocation 在用例执行前捕获）
   const originalLocation = window.location
-  let consoleError: ReturnType<typeof vi.spyOn> | undefined
+  // vitest 4 的 vi.spyOn ReturnType 含 any（lint no-redundant-type-constituents/no-unsafe-* 报错），
+  // 按实际用法取最小结构类型
+  let consoleError: { mockRestore(): void } | undefined
 
   afterEach(() => {
     consoleError?.mockRestore()
