@@ -100,6 +100,7 @@ export const userListItemSchema = z
   .openapi("UserListItem")
 
 /** 用户详情（含已挂角色；结构同列表项） */
+// v7 下对同一 schema 重复 .openapi 会覆盖 refId 元数据 → extend({}) 派生新实例再命名，保留 UserListItem/UserDetail 两个组件
 export const userDetailSchema = userListItemSchema.extend({}).openapi("UserDetail")
 
 /** 用户分页结果 */

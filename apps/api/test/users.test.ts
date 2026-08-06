@@ -214,4 +214,146 @@ describe("users CRUD", () => {
     const body = (await detail.json()) as DetailBody
     expect(body.data.roles.map((r) => r.id)).toContain(adminRoleId)
   })
+
+  it("keyword 搜索：username 与 nickname 模糊匹配，total 正确", async () => {
+    const app = createApp()
+    const token = await loginAdmin()
+    const auth = { authorization: `Bearer ${token}` }
+    const passwordHash = await hashPassword("Passw0rd!")
+    await Promise.all([
+      prisma.user.create({ data: { username: "crud_kw1", passwordHash, nickname: "关键词一号" } }),
+      prisma.user.create({ data: { username: "crud_kw2", passwordHash, nickname: "关键词二号" } }),
+      prisma.user.create({ data: { username: "crud_kw3", passwordHash, nickname: "唯一昵称" } }),
+    ])
+    // username 命中
+    const byName = await app.request(`/api/users?page=1&pageSize=10&keyword=${encodeURIComponent("crud_kw2")}`, {
+      headers: auth,
+    })
+    expect(byName.status).toBe(200)
+    const nameBody = (await byName.json()) as PageBody
+    expect(nameBody.data.total).toBe(1)
+    expect(nameBody.data.list.map((u) => u.username)).toEqual(["crud_kw2"])
+    // nickname 命中（keyword 也搜索 nickname）
+    const byNick = await app.request(`/api/users?page=1&pageSize=10&keyword=${encodeURIComponent("唯一昵称")}`, {
+      headers: auth,
+    })
+    expect(byNick.status).toBe(200)
+    const nickBody = (await byNick.json()) as PageBody
+    expect(nickBody.data.total).toBe(1)
+    expect(nickBody.data.list.map((u) => u.nickname)).toEqual(["唯一昵称"])
+  })
+
+  it("重复 email / telephone 创建返回 409（字段级 message）", async () => {
+    const app = createApp()
+    const token = await loginAdmin()
+    const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
+    const base = { password: "Passw0rd!", nickname: "字段冲突" }
+    const first = await app.request("/api/users", {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({ ...base, username: "crud_dup1", email: "crud_dup@example.com", telephone: "13800001111" }),
+    })
+    expect(first.status).toBe(200)
+    // 大写 email 输入：小写化后仍与库中记录冲突（验证统一小写 + 唯一约束）
+    const dupEmail = await app.request("/api/users", {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({ ...base, username: "crud_dup2", email: "CRUD_DUP@example.com" }),
+    })
+    expect(dupEmail.status).toBe(409)
+    expect(((await dupEmail.json()) as { message: string }).message).toContain("邮箱")
+    const dupPhone = await app.request("/api/users", {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({ ...base, username: "crud_dup3", telephone: "13800001111" }),
+    })
+    expect(dupPhone.status).toBe(409)
+    expect(((await dupPhone.json()) as { message: string }).message).toContain("手机号")
+  })
+
+  it("不存在的用户 id：GET/PATCH/DELETE 返回 404", async () => {
+    const app = createApp()
+    const token = await loginAdmin()
+    const auth = { authorization: `Bearer ${token}` }
+    const missing = "no_such_user_id"
+    const get = await app.request(`/api/users/${missing}`, { headers: auth })
+    expect(get.status).toBe(404)
+    const patch = await app.request(`/api/users/${missing}`, {
+      method: "PATCH",
+      headers: { ...auth, "content-type": "application/json" },
+      body: JSON.stringify({ nickname: "不存在" }),
+    })
+    expect(patch.status).toBe(404)
+    const del = await app.request(`/api/users/${missing}`, { method: "DELETE", headers: auth })
+    expect(del.status).toBe(404)
+  })
+
+  it("PUT roles 传入不存在的角色 id 返回 400", async () => {
+    const app = createApp()
+    const token = await loginAdmin()
+    const user = await prisma.user.create({
+      data: { username: "crud_badrole", passwordHash: await hashPassword("Passw0rd!"), nickname: "坏角色" },
+    })
+    const res = await app.request(`/api/users/${user.id}/roles`, {
+      method: "PUT",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ roleIds: ["no_such_role"] }),
+    })
+    expect(res.status).toBe(400)
+    expect(((await res.json()) as { message: string }).message).toContain("角色")
+  })
+
+  it("pageSize 超过上限 100 返回 400", async () => {
+    const app = createApp()
+    const token = await loginAdmin()
+    const res = await app.request("/api/users?page=1&pageSize=101", {
+      headers: { authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it("PUT roleIds 为空数组清空全部角色", async () => {
+    const app = createApp()
+    const token = await loginAdmin()
+    const user = await prisma.user.create({
+      data: { username: "crud_clearrows", passwordHash: await hashPassword("Passw0rd!"), nickname: "清空角色" },
+    })
+    const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
+    const assign = await app.request(`/api/users/${user.id}/roles`, {
+      method: "PUT",
+      headers: auth,
+      body: JSON.stringify({ roleIds: [adminRoleId] }),
+    })
+    expect(assign.status).toBe(200)
+    const clear = await app.request(`/api/users/${user.id}/roles`, {
+      method: "PUT",
+      headers: auth,
+      body: JSON.stringify({ roleIds: [] }),
+    })
+    expect(clear.status).toBe(200)
+    const detail = await app.request(`/api/users/${user.id}`, { headers: { authorization: `Bearer ${token}` } })
+    const body = (await detail.json()) as DetailBody
+    expect(body.data.roles).toHaveLength(0)
+  })
+
+  it("PATCH email 传 null 清空邮箱（DB 值置空）", async () => {
+    const app = createApp()
+    const token = await loginAdmin()
+    const user = await prisma.user.create({
+      data: {
+        username: "crud_clear",
+        passwordHash: await hashPassword("Passw0rd!"),
+        nickname: "清空邮箱",
+        email: "crud_clear@example.com",
+      },
+    })
+    const res = await app.request(`/api/users/${user.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ email: null }),
+    })
+    expect(res.status).toBe(200)
+    const updated = await prisma.user.findUnique({ where: { id: user.id } })
+    expect(updated?.email).toBeNull()
+  })
 })

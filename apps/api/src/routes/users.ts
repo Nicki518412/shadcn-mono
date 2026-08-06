@@ -5,6 +5,7 @@ import { prisma } from "@repo/db"
 import { badRequest, conflict, notFound } from "../lib/http-error.js"
 import { createSubApp, okBody } from "../lib/openapi.js"
 import { hashPassword } from "../lib/password.js"
+import { p2002FieldMessage } from "../lib/prisma-error.js"
 import { errorBodySchema, userDetailSchema, userPageResultSchema } from "../lib/schemas.js"
 import { authenticate, requirePermission } from "../middleware/auth.js"
 
@@ -23,28 +24,31 @@ const userCreateSchema = z.object({
   roleIds: z.array(z.string()).optional(),
 })
 
-// 全部字段可选（改谁传谁）；status 仅更新时可用
-const userUpdateSchema = userCreateSchema.partial().extend({ status: z.boolean().optional() })
+// 全部字段可选（改谁传谁）；status 仅更新时可用；email/telephone 显式传 null 表示清空（undefined 不修改）
+const userUpdateSchema = userCreateSchema
+  .partial()
+  .extend({
+    status: z.boolean().optional(),
+    email: z.string().email().nullable().optional(),
+    telephone: z.string().min(5).max(32).nullable().optional(),
+  })
 
 const roleIdsSchema = z.object({ roleIds: z.array(z.string()) })
 
 const idParam = z.object({ id: z.string() })
 
-/** P2002（唯一约束冲突）→ 字段级 409 message；非唯一冲突返回 null（SQLite/MySQL 错误消息格式不同，按包含匹配） */
-function uniqueConflictMessage(err: unknown): string | null {
-  if (typeof err !== "object" || err === null || (err as { code?: string }).code !== "P2002") return null
-  const message = err instanceof Error ? err.message : ""
-  if (message.includes("username")) return "用户名已存在"
-  if (message.includes("email")) return "邮箱已被使用"
-  if (message.includes("telephone")) return "手机号已被使用"
-  return "数据冲突"
-}
+/** P2002 字段 → 409 message 映射（create/PATCH 共用） */
+const USER_UNIQUE_FIELDS = {
+  username: "用户名已存在",
+  email: "邮箱已被使用",
+  telephone: "手机号已被使用",
+} as const
 
-/** 角色存在性校验 + 去重（不存在 → 400）；返回去重后的 roleIds */
-async function validateRoleIds(roleIds: string[]): Promise<string[]> {
+/** 角色存在性校验 + 去重（不存在 → 400）；事务内调用，保证校验与写入原子（须在 $transaction 回调中使用 tx） */
+async function resolveRoleIds(tx: Prisma.TransactionClient, roleIds: string[]): Promise<string[]> {
   const unique = Array.from(new Set(roleIds))
   if (unique.length === 0) return unique
-  const count = await prisma.role.count({ where: { id: { in: unique } } })
+  const count = await tx.role.count({ where: { id: { in: unique } } })
   if (count !== unique.length) throw badRequest("角色不存在")
   return unique
 }
@@ -92,6 +96,8 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
     }),
     async (c) => {
       const { page, pageSize, keyword } = c.req.valid("query")
+      // keyword contains 三方言决策：SQLite/MySQL 转 LIKE（ASCII 大小写不敏感），PG 下大小写敏感
+      // （Prisma mode:insensitive 仅 PG 可用）；LIKE 通配符 %/_ 不转义——管理端模糊搜索接受此行为，不做额外归一
       const where = keyword
         ? {
             OR: [
@@ -132,7 +138,6 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
     }),
     async (c) => {
       const { username, password, nickname, email, telephone, roleIds } = c.req.valid("json")
-      const roles = roleIds ? await validateRoleIds(roleIds) : []
       const passwordHash = await hashPassword(password)
       const data: Prisma.UserCreateInput = { username: username.toLowerCase(), passwordHash, nickname }
       // exactOptionalPropertyTypes：undefined 不传；username/email 统一小写存储
@@ -140,6 +145,7 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
       if (telephone) data.telephone = telephone
       try {
         const user = await prisma.$transaction(async (tx) => {
+          const roles = roleIds ? await resolveRoleIds(tx, roleIds) : []
           const created = await tx.user.create({ data })
           if (roles.length > 0) {
             await tx.userRole.createMany({ data: roles.map((roleId) => ({ userId: created.id, roleId })) })
@@ -148,8 +154,8 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
         })
         return c.json({ code: 0, data: toUserDetail(await fetchUserDetail(user.id)), message: "ok" }, 200)
       } catch (err) {
-        const message = uniqueConflictMessage(err)
-        if (message) throw conflict(message)
+        const message = p2002FieldMessage(err, USER_UNIQUE_FIELDS)
+        if (message !== null) throw conflict(message)
         throw err
       }
     },
@@ -196,14 +202,15 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
       const data: Prisma.UserUpdateInput = {}
       if (fields.username !== undefined) data.username = fields.username.toLowerCase()
       if (fields.nickname !== undefined) data.nickname = fields.nickname
-      if (fields.email !== undefined) data.email = fields.email.toLowerCase()
+      // exactOptionalPropertyTypes 分派：undefined 不修改、null 显式清空、string 小写写入
+      if (fields.email !== undefined) data.email = fields.email === null ? null : fields.email.toLowerCase()
       if (fields.telephone !== undefined) data.telephone = fields.telephone
       if (fields.status !== undefined) data.status = fields.status
       if (password !== undefined) data.passwordHash = await hashPassword(password)
       try {
         if (roleIds !== undefined) {
-          const roles = await validateRoleIds(roleIds)
           await prisma.$transaction(async (tx) => {
+            const roles = await resolveRoleIds(tx, roleIds)
             await tx.user.update({ where: { id }, data })
             await tx.userRole.deleteMany({ where: { userId: id } })
             if (roles.length > 0) {
@@ -215,8 +222,8 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
         }
         return c.json({ code: 0, data: toUserDetail(await fetchUserDetail(id)), message: "ok" }, 200)
       } catch (err) {
-        const message = uniqueConflictMessage(err)
-        if (message) throw conflict(message)
+        const message = p2002FieldMessage(err, USER_UNIQUE_FIELDS)
+        if (message !== null) throw conflict(message)
         throw err
       }
     },
@@ -238,7 +245,9 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
     }),
     async (c) => {
       const { id } = c.req.valid("param")
-      await fetchUserDetail(id)
+      // 存在性检查只需主键（select id），不需要 roles include
+      const target = await prisma.user.findUnique({ where: { id }, select: { id: true } })
+      if (!target) throw notFound("用户不存在")
       if (id === c.get("userId")) throw badRequest("不能删除自己")
       await prisma.user.delete({ where: { id } })
       return c.json({ code: 0, data: null, message: "ok" }, 200)
@@ -263,11 +272,14 @@ export function userRoutes(jwtSecret: string): OpenAPIHono {
       const { id } = c.req.valid("param")
       const { roleIds } = c.req.valid("json")
       await fetchUserDetail(id)
-      const roles = await validateRoleIds(roleIds)
-      await prisma.$transaction([
-        prisma.userRole.deleteMany({ where: { userId: id } }),
-        prisma.userRole.createMany({ data: roles.map((roleId) => ({ userId: id, roleId })) }),
-      ])
+      // 统一交互式事务风格：校验（tx.role.count）+ 全量替换同一事务内
+      await prisma.$transaction(async (tx) => {
+        const roles = await resolveRoleIds(tx, roleIds)
+        await tx.userRole.deleteMany({ where: { userId: id } })
+        if (roles.length > 0) {
+          await tx.userRole.createMany({ data: roles.map((roleId) => ({ userId: id, roleId })) })
+        }
+      })
       return c.json({ code: 0, data: toUserDetail(await fetchUserDetail(id)), message: "ok" }, 200)
     },
   )
