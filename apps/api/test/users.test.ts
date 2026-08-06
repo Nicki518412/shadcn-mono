@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 import type { z } from "@hono/zod-openapi"
 import { prisma } from "@repo/db"
 import { createApp } from "../src/index.js"
-import { hashPassword } from "../src/lib/password.js"
+import { hashPassword } from "@repo/db"
 import type { userDetailSchema, userPageResultSchema } from "../src/lib/schemas.js"
 
 const ADMIN_USERNAME = "perm_admin"

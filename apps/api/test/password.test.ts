@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { hashPassword, verifyPassword } from "../src/lib/password.js"
+import { hashPassword, verifyPassword } from "@repo/db"
 
 describe("password", () => {
   it("hash 后可验证，格式为 scrypt$salt$hash", async () => {

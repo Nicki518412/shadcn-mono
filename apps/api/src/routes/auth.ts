@@ -4,7 +4,7 @@ import { prisma } from "@repo/db"
 import { HttpError, forbidden, unauthorized } from "../lib/http-error.js"
 import { checkThrottle, recordFailure, resetThrottle } from "../lib/login-throttle.js"
 import { createSubApp, okBody } from "../lib/openapi.js"
-import { verifyPassword } from "../lib/password.js"
+import { verifyPassword } from "@repo/db"
 import { errorBodySchema, loginResponseSchema, toPublicUser, tokenPairSchema } from "../lib/schemas.js"
 import { hashToken, issueTokenPair } from "../lib/tokens.js"
 

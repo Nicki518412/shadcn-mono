@@ -1,5 +1,5 @@
 import { prisma } from "@repo/db"
-import { hashPassword } from "../src/lib/password.js"
+import { hashPassword } from "@repo/db"
 
 export async function createTestUser(opts: {
   username: string

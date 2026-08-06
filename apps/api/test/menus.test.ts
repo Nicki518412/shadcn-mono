@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { prisma } from "@repo/db"
 import type { MenuNode } from "@repo/shared"
 import { createApp } from "../src/index.js"
-import { hashPassword } from "../src/lib/password.js"
+import { hashPassword } from "@repo/db"
 
 const ADMIN_USERNAME = "menus_admin"
 const ADMIN_PASSWORD = "Passw0rd!"
