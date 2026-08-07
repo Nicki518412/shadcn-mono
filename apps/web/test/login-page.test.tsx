@@ -54,9 +54,9 @@ describe("LoginPage", () => {
   it("渲染三个登录 Tab", () => {
     renderLoginPage(createMockProvider())
 
-    expect(screen.getByRole("tab", { name: "账号密码" })).toBeInTheDocument()
-    expect(screen.getByRole("tab", { name: "邮箱动态码" })).toBeInTheDocument()
-    expect(screen.getByRole("tab", { name: "手机动态码" })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "账号" })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "邮箱" })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "手机" })).toBeInTheDocument()
   })
 
   it("动态码输入框可通过 label 关联访问", () => {
@@ -65,8 +65,9 @@ describe("LoginPage", () => {
     vi.useFakeTimers()
     renderLoginPage(createMockProvider())
 
-    fireEvent.click(screen.getByRole("tab", { name: "邮箱动态码" }))
-    expect(screen.getByLabelText("邮箱")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("tab", { name: "邮箱" }))
+    // textbox 精确匹配：Tab 按钮文案与输入框 label 同名为"邮箱"，getByLabelText 会命中多个
+    expect(screen.getByRole("textbox", { name: "邮箱" })).toBeInTheDocument()
     expect(screen.getByLabelText("动态码")).toBeInTheDocument()
   })
 
@@ -109,7 +110,7 @@ describe("LoginPage", () => {
     const sendOtp = vi.fn<AuthProvider["sendOtp"]>().mockResolvedValue(undefined)
     renderLoginPage(createMockProvider({ sendOtp }))
 
-    fireEvent.click(screen.getByRole("tab", { name: "邮箱动态码" }))
+    fireEvent.click(screen.getByRole("tab", { name: "邮箱" }))
     fireEvent.change(screen.getByPlaceholderText("name@example.com"), {
       target: { value: "admin@example.com" },
     })
@@ -140,7 +141,7 @@ describe("LoginPage", () => {
     )
     renderLoginPage(createMockProvider({ sendOtp }))
 
-    fireEvent.click(screen.getByRole("tab", { name: "邮箱动态码" }))
+    fireEvent.click(screen.getByRole("tab", { name: "邮箱" }))
     fireEvent.change(screen.getByPlaceholderText("name@example.com"), {
       target: { value: "admin@example.com" },
     })
@@ -165,7 +166,7 @@ describe("LoginPage", () => {
       .mockRejectedValue(new Error("发送过于频繁，请稍后再试"))
     renderLoginPage(createMockProvider({ sendOtp }))
 
-    fireEvent.click(screen.getByRole("tab", { name: "邮箱动态码" }))
+    fireEvent.click(screen.getByRole("tab", { name: "邮箱" }))
     fireEvent.change(screen.getByPlaceholderText("name@example.com"), {
       target: { value: "admin@example.com" },
     })
@@ -182,7 +183,7 @@ describe("LoginPage", () => {
     const sendOtp = vi.fn<AuthProvider["sendOtp"]>()
     renderLoginPage(createMockProvider({ sendOtp }))
 
-    fireEvent.click(screen.getByRole("tab", { name: "邮箱动态码" }))
+    fireEvent.click(screen.getByRole("tab", { name: "邮箱" }))
     fireEvent.click(screen.getByRole("button", { name: "发送验证码" }))
 
     expect(screen.getByRole("alert")).toHaveTextContent("请输入邮箱地址")

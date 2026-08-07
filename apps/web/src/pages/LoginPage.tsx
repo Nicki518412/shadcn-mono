@@ -98,10 +98,12 @@ function OtpLoginForm({
               value={code}
               onChange={setCode}
               inputMode="numeric"
+              containerClassName="w-full"
             >
-              <InputOTPGroup>
+              {/* 六格均分容器宽度（flex-1 + h-10），与上方输入框行宽高一致，不留空隙 */}
+              <InputOTPGroup className="w-full">
                 {[0, 1, 2, 3, 4, 5].map((slotIndex) => (
-                  <InputOTPSlot key={slotIndex} index={slotIndex} className="size-10" />
+                  <InputOTPSlot key={slotIndex} index={slotIndex} className="h-10 flex-1" />
                 ))}
               </InputOTPGroup>
             </InputOTP>
@@ -259,9 +261,9 @@ export default function LoginPage() {
           )}
           <Tabs defaultValue="password">
             <TabsList className="w-full">
-              <TabsTrigger value="password">账号密码</TabsTrigger>
-              <TabsTrigger value="email">邮箱动态码</TabsTrigger>
-              <TabsTrigger value="telephone">手机动态码</TabsTrigger>
+              <TabsTrigger value="password">账号</TabsTrigger>
+              <TabsTrigger value="email">邮箱</TabsTrigger>
+              <TabsTrigger value="telephone">手机</TabsTrigger>
             </TabsList>
             <TabsContent value="password" className="py-5">
               <form
