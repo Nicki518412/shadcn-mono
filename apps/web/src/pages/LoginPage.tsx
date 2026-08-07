@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react"
 import { SignIn } from "@clerk/clerk-react"
-import { ShieldIcon } from "lucide-react"
 import { useNavigate } from "react-router"
 
 import { useAuth } from "@/auth/AuthProvider"
 import type { OtpChannel } from "@/auth/types"
+import { ThemeToggle } from "@/components/business/ThemeToggle"
 import { Button } from "@/components/ui/button"
 import { Field, FieldContent, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -200,7 +200,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-svh lg:grid-cols-2">
+    <div className="relative grid min-h-svh lg:grid-cols-2">
+      {/* 主题切换（登录页独立路由，无布局顶栏——右上角常驻切换入口） */}
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle />
+      </div>
       {/* 品牌面板（lg 起显示）：固定深色不随主题——登录页品牌锚点惯例（参考 shadcn split-brand blocks）。
           氛围用纯 CSS：径向光晕 + 32px 网格线，aria-hidden 装饰层 */}
       <aside className="relative hidden flex-col justify-between overflow-hidden bg-zinc-950 p-12 text-zinc-50 lg:flex">
@@ -209,8 +213,9 @@ export default function LoginPage() {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_15%,rgba(255,255,255,0.09),transparent_55%),linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-size-[auto,32px_32px,32px_32px]"
         />
         <div className="relative flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-zinc-50 text-zinc-950">
-            <ShieldIcon className="size-4" />
+          {/* 字母 mark：深色面板上用亮渐变方块 + P */}
+          <div className="flex size-9 items-center justify-center rounded-lg bg-linear-to-br from-zinc-50 to-zinc-400 text-zinc-950">
+            <span className="text-sm font-bold leading-none">P</span>
           </div>
           <div>
             <p className="text-sm font-semibold">Panel</p>
@@ -244,8 +249,8 @@ export default function LoginPage() {
       <main className="flex items-center justify-center bg-background p-6">
         <div className="w-full max-w-sm">
           <div className="mb-6 flex items-center justify-center gap-2 lg:hidden">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-              <ShieldIcon className="size-4" />
+            <div className="flex size-8 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary/70 text-primary-foreground">
+              <span className="text-sm font-bold leading-none">P</span>
             </div>
             <span className="text-sm font-semibold">Panel</span>
           </div>

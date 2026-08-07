@@ -1,7 +1,6 @@
 import { Fragment, useMemo } from "react"
 import type { JSX } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { useTheme } from "next-themes"
 import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router"
 import {
   Collapsible,
@@ -14,9 +13,6 @@ import {
   ChevronsUpDownIcon,
   FolderIcon,
   LogOutIcon,
-  MoonIcon,
-  ShieldIcon,
-  SunIcon,
 } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -24,6 +20,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import type { components } from "@/api/schema"
 import { useAuth } from "@/auth/AuthProvider"
 import ErrorBoundary from "@/components/business/ErrorBoundary"
+import { ThemeToggle } from "@/components/business/ThemeToggle"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -222,38 +219,6 @@ function Breadcrumb({ trail }: { trail: MenuNode[] | null }): JSX.Element {
   )
 }
 
-/** 主题切换按钮：按 resolvedTheme 在 Sun/Moon 间十字旋转渐变切换；点击在亮/暗间切换 */
-function ThemeToggle(): JSX.Element {
-  const { resolvedTheme, setTheme } = useTheme()
-  const isDark = resolvedTheme === "dark"
-  const label = isDark ? "切换到亮色主题" : "切换到暗色主题"
-  return (
-    <Button
-      variant="ghost"
-      size="icon-sm"
-      className="relative"
-      aria-label={label}
-      title={label}
-      onClick={() => {
-        setTheme(isDark ? "light" : "dark")
-      }}
-    >
-      <SunIcon
-        className={cn(
-          "size-4 transition-all duration-300",
-          isDark ? "rotate-0 scale-100" : "-rotate-90 scale-0",
-        )}
-      />
-      <MoonIcon
-        className={cn(
-          "absolute inset-0 m-auto size-4 transition-all duration-300",
-          isDark ? "rotate-90 scale-0" : "rotate-0 scale-100",
-        )}
-      />
-    </Button>
-  )
-}
-
 export default function AppLayout(): JSX.Element {
   const auth = useAuth()
   const navigate = useNavigate()
@@ -279,11 +244,11 @@ export default function AppLayout(): JSX.Element {
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
-        {/* 品牌区：logo 标记 + 字标 + 副标题；折叠为 icon 模式时仅保留居中的 logo */}
+        {/* 品牌区：字母 mark（渐变方块 + P）+ 字标；折叠为 icon 模式时仅保留居中的 mark */}
         <SidebarHeader className="h-14 justify-center px-3 group-data-[collapsible=icon]:px-0">
           <div className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-              <ShieldIcon className="size-4" />
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary/70 text-primary-foreground">
+              <span className="text-sm font-bold leading-none">P</span>
             </div>
             <div className="min-w-0 group-data-[collapsible=icon]:hidden">
               <p className="truncate text-sm font-semibold leading-tight">Panel</p>
