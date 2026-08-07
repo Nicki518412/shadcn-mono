@@ -214,7 +214,6 @@ export default function LoginPage() {
           </div>
           <div>
             <p className="text-sm font-semibold">Panel</p>
-            <p className="text-xs text-zinc-400">RBAC 管理后台</p>
           </div>
         </div>
         <div className="relative flex flex-col gap-8">
