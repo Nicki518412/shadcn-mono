@@ -290,6 +290,8 @@ export function MenuFormDialog({
                 </Field>
               </>
             )}
+            {/* BUTTON 无图标（不进入导航树，图标无意义）——仅 DIR/MENU 显示图标选择器 */}
+            {type !== "BUTTON" && (
             <Field>
               <FieldLabel>图标</FieldLabel>
               <FieldContent>
@@ -354,6 +356,7 @@ export function MenuFormDialog({
                 <FieldDescription>图标显示在侧边栏与菜单列表（可选）</FieldDescription>
               </FieldContent>
             </Field>
+            )}
             <Field>
               <FieldLabel htmlFor="menu-form-permission">权限码</FieldLabel>
               <FieldContent>
