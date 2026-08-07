@@ -11,6 +11,7 @@ import {
   BellIcon,
   ChevronRightIcon,
   ChevronsUpDownIcon,
+  FileIcon,
   FolderIcon,
   LogOutIcon,
 } from "lucide-react"
@@ -190,7 +191,8 @@ function findMenuTrail(
   return null
 }
 
-/** 顶栏面包屑：祖先后缀链（如 系统管理 / 用户管理）；无匹配路径显示 "控制台" 兜底 */
+/** 顶栏面包屑：祖先后缀链（如 系统管理 / 用户管理）；无匹配路径显示 "控制台" 兜底。
+ * 每段显示菜单配置的图标（iconByName），未配置时按类型默认（DIR→文件夹、MENU→文件） */
 function Breadcrumb({ trail }: { trail: MenuNode[] | null }): JSX.Element {
   if (!trail || trail.length === 0) {
     return <span className="text-sm font-medium">控制台</span>
@@ -199,11 +201,13 @@ function Breadcrumb({ trail }: { trail: MenuNode[] | null }): JSX.Element {
     <nav aria-label="面包屑导航" className="flex min-w-0 items-center gap-1.5 text-sm">
       {trail.map((node, index) => {
         const isLast = index === trail.length - 1
+        const Icon = iconByName(node.icon) ?? (node.type === "DIR" ? FolderIcon : FileIcon)
         return (
           <Fragment key={node.id}>
             {index > 0 && (
               <ChevronRightIcon className="size-3.5 shrink-0 text-muted-foreground/60" />
             )}
+            <Icon className="size-3.5 shrink-0 text-muted-foreground/60" />
             <span
               className={cn(
                 "truncate",
@@ -319,19 +323,18 @@ export default function AppLayout(): JSX.Element {
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-1.5 border-b px-4">
           <SidebarTrigger className="-ml-1" />
-          {/* 消息通知：暂无功能，占位按钮（后续接入通知中心） */}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="消息通知（即将上线）"
-            title="消息通知（即将上线）"
-            disabled
-          >
-            <BellIcon className="size-4" />
-          </Button>
           <Breadcrumb trail={trail} />
-          {/* 主题切换固定在顶栏右上角 */}
-          <div className="ml-auto">
+          {/* 消息中心 + 主题切换：固定在顶栏右上角 */}
+          <div className="ml-auto flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="消息中心（即将上线）"
+              title="消息中心（即将上线）"
+              disabled
+            >
+              <BellIcon className="size-4" />
+            </Button>
             <ThemeToggle />
           </div>
         </header>
