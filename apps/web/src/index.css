@@ -135,3 +135,16 @@
     display: none;
   }
 }
+
+/* 主题切换动画：ThemeToggle 切换瞬间挂载 html.theme-transition，
+   颜色/边框在 300ms 内平滑过渡（仅切换时有动画，不影响日常 hover） */
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition:
+    background-color 300ms ease,
+    border-color 300ms ease,
+    color 300ms ease,
+    fill 300ms ease,
+    stroke 300ms ease !important;
+}

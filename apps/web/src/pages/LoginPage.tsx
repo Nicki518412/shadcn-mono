@@ -205,30 +205,30 @@ export default function LoginPage() {
       <div className="absolute top-4 right-4 z-10">
         <ThemeToggle />
       </div>
-      {/* 品牌面板（lg 起显示）：固定深色不随主题——登录页品牌锚点惯例（参考 shadcn split-brand blocks）。
-          氛围用纯 CSS：径向光晕 + 32px 网格线，aria-hidden 装饰层 */}
-      <aside className="relative hidden flex-col justify-between overflow-hidden bg-zinc-950 p-12 text-zinc-50 lg:flex">
+      {/* 品牌面板（lg 起显示）：与表单区同底色（整体随主题明暗一致），
+          左右区分靠氛围装饰（前景低透明度光晕 + 网格线，均随主题） */}
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-background p-12 text-foreground lg:flex">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_15%,rgba(255,255,255,0.09),transparent_55%),linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-size-[auto,32px_32px,32px_32px]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_15%,color-mix(in_oklch,var(--foreground)_8%,transparent),transparent_55%),linear-gradient(to_right,color-mix(in_oklch,var(--foreground)_4%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklch,var(--foreground)_4%,transparent)_1px,transparent_1px)] bg-size-[auto,32px_32px,32px_32px]"
         />
         <div className="relative flex items-center gap-3">
-          {/* 字母 mark：深色面板上用亮渐变方块 + P */}
-          <div className="flex size-9 items-center justify-center rounded-lg bg-linear-to-br from-zinc-50 to-zinc-400 text-zinc-950">
+          {/* 字母 mark：与侧边栏一致的品牌渐变方块 + P（随主题） */}
+          <div className="flex size-9 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary/70 text-primary-foreground">
             <span className="text-sm font-bold leading-none">P</span>
           </div>
           <div>
             <p className="text-sm font-semibold">Panel</p>
           </div>
         </div>
-        {/* 中央品牌水印（装饰性大字母，不参与语义） */}
+        {/* 中央品牌水印（装饰性大字母，前景低透明度，随主题） */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 flex select-none items-center justify-center"
         >
-          <span className="text-[12rem] font-bold leading-none text-white/5">P</span>
+          <span className="text-[12rem] font-bold leading-none text-foreground/5">P</span>
         </div>
-        <p className="relative text-xs text-zinc-600">© 2026 Panel</p>
+        <p className="relative text-xs text-muted-foreground/60">© 2026 Panel</p>
       </aside>
 
       {/* 表单区：小屏隐藏品牌面板，顶部补品牌 mark；lg 起为独立列 */}

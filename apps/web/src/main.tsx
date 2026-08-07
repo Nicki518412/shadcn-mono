@@ -29,8 +29,9 @@ const authProvider: AuthProvider = isClerk ? new ClerkAuthProvider() : new JwtAu
 function AppShell(): JSX.Element {
   return (
     // 主题 Provider 挂最外层（QueryClientProvider 之内）：attribute="class" 与 index.css 的
-    // @custom-variant dark 匹配；defaultTheme=system 跟随系统偏好，enableSystem 允许后续切换
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    // @custom-variant dark 匹配；defaultTheme=system 跟随系统偏好，enableSystem 允许后续切换。
+    // 不设 disableTransitionOnChange：允许主题切换过渡动画（ThemeToggle 切换时临时挂 theme-transition class）
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProviderView provider={authProvider}>
         <BrowserRouter>
           <Routes>
