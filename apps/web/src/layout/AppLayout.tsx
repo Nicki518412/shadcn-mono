@@ -14,7 +14,9 @@ import {
   FileIcon,
   FolderIcon,
   LogOutIcon,
+  SettingsIcon,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
@@ -291,20 +293,33 @@ export default function AppLayout(): JSX.Element {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="top" align="start" className="min-w-48">
                   {/* Label 必须包在 Group 内：Base UI 1.7 的 GroupLabel 无 Group 上下文会抛
-                      MenuGroupContext is missing → 渲染错误卸载整树（曾导致点击用户菜单白屏） */}
+                      MenuGroupContext is missing → 渲染错误卸载整树（曾导致点击用户菜单白屏）。
+                      信息区：昵称 + 邮箱 + 手机号（不展示 username 登录字段） */}
                   <DropdownMenuGroup>
                     <DropdownMenuLabel>
-                      <div className="flex flex-col gap-0.5">
+                      <div className="flex flex-col gap-1 py-0.5">
                         <span className="text-sm font-medium text-foreground">
                           {me?.user.nickname ?? "…"}
                         </span>
                         <span className="text-xs font-normal text-muted-foreground">
-                          {me?.user.username ?? ""}
+                          邮箱：{me?.user.email ?? "未设置"}
+                        </span>
+                        <span className="text-xs font-normal text-muted-foreground">
+                          手机：{me?.user.telephone ?? "未设置"}
                         </span>
                       </div>
                     </DropdownMenuLabel>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
+                  {/* 用户设置：功能开发中（占位入口） */}
+                  <DropdownMenuItem
+                    onClick={() => {
+                      toast.info("用户设置功能开发中")
+                    }}
+                  >
+                    <SettingsIcon className="size-4" />
+                    用户设置
+                  </DropdownMenuItem>
                   {/* 退出登录用主题默认配色（不用 destructive 红色——跟随明暗主题） */}
                   <DropdownMenuItem
                     onClick={() => {
