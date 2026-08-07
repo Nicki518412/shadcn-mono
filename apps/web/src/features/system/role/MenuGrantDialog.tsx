@@ -92,7 +92,8 @@ export function MenuGrantDialog({
         if (!open) onClose()
       }}
     >
-      <DialogContent className="sm:max-w-lg">
+      {/* p-6 加宽左右内边距（树形授权内容较宽）；滚动容器与 Footer 用 -mx-6 匹配 */}
+      <DialogContent className="p-6 sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>分配权限</DialogTitle>
           <DialogDescription>
@@ -100,7 +101,7 @@ export function MenuGrantDialog({
             级联取消并清理空授权目录），保存后将覆盖原有权限
           </DialogDescription>
         </DialogHeader>
-        <div className="-mx-4 max-h-[50vh] overflow-y-auto px-4 no-scrollbar">
+        <div className="-mx-6 max-h-[50vh] overflow-y-auto px-6 no-scrollbar">
         {assignMutation.error && (
           <p role="alert" className="text-sm text-destructive">
             {assignMutation.error.message}
@@ -123,7 +124,8 @@ export function MenuGrantDialog({
           </FieldContent>
         </Field>
         </div>
-        <DialogFooter>
+        {/* -mx-6/-mb-6 覆盖默认 -mx-4/-mb-4，与 DialogContent 的 p-6 对齐（tailwind-merge） */}
+        <DialogFooter className="-mx-6 -mb-6">
           <Button
             type="button"
             variant="outline"
