@@ -254,8 +254,19 @@ export default function LoginPage() {
             </div>
             <span className="text-sm font-semibold">Panel</span>
           </div>
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold">欢迎回来</h1>
+          {/* 标题区：品牌色渐变装饰条 + 渐变文字 + 渐入动效（克制但有设计感） */}
+          <div className="mb-8 animate-in fade-in-0 slide-in-from-top-2 duration-500">
+            <div
+              aria-hidden
+              className="mb-4 h-1 w-10 rounded-full bg-linear-to-r from-primary to-primary/30"
+            />
+            <h1 className="text-3xl font-semibold tracking-tight">
+              欢迎
+              <span className="bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                回来
+              </span>
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">登录以继续</p>
           </div>
           {error && (
             <p role="alert" className="mb-4 text-sm text-destructive">
