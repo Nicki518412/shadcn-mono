@@ -221,26 +221,12 @@ export default function LoginPage() {
             <p className="text-sm font-semibold">Panel</p>
           </div>
         </div>
-        <div className="relative flex flex-col gap-8">
-          <h1 className="text-3xl font-semibold leading-snug">
-            权限清晰，
-            <br />
-            从登录开始。
-          </h1>
-          <ul className="flex flex-col gap-3 text-sm text-zinc-400">
-            <li className="flex items-center gap-2">
-              <span className="size-1 rounded-full bg-zinc-600" aria-hidden />
-              多角色权限取交集，所见即权限所得
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="size-1 rounded-full bg-zinc-600" aria-hidden />
-              账号密码 · 邮箱动态码 · 手机动态码
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="size-1 rounded-full bg-zinc-600" aria-hidden />
-              明暗主题自由切换
-            </li>
-          </ul>
+        {/* 中央品牌水印（装饰性大字母，不参与语义） */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 flex select-none items-center justify-center"
+        >
+          <span className="text-[12rem] font-bold leading-none text-white/5">P</span>
         </div>
         <p className="relative text-xs text-zinc-600">© 2026 Panel</p>
       </aside>
