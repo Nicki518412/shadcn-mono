@@ -246,11 +246,9 @@ export default function LoginPage() {
               aria-hidden
               className="mb-4 h-1 w-10 rounded-full bg-linear-to-r from-primary to-primary/30"
             />
-            <h1 className="text-3xl font-semibold tracking-tight">
-              欢迎
-              <span className="bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                回来
-              </span>
+            {/* 渐变应用整段（不拆分 span——拆分会让测试/文本查询无法匹配完整标题） */}
+            <h1 className="bg-linear-to-r from-foreground via-foreground to-primary bg-clip-text text-3xl font-semibold tracking-tight text-transparent">
+              欢迎回来
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">登录以继续</p>
           </div>
