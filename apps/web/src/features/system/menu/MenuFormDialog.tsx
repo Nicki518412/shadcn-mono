@@ -224,7 +224,14 @@ export function MenuFormDialog({
                   }}
                 >
                   <SelectTrigger id="menu-form-parent" className="w-full">
-                    <SelectValue placeholder="无（根目录）" />
+                    {/* children 函数自控映射 value → 名称：Base UI 对 span 结构（缩进）的
+                        item label 提取不可靠，显示会回退到 value（菜单 id）——显式映射最可靠 */}
+                    <SelectValue>
+                      {(value) =>
+                        parentOptions.find((option) => option.id === value)?.name ??
+                        "无（根目录）"
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {type !== "BUTTON" && <SelectItem value="">无（根目录）</SelectItem>}
