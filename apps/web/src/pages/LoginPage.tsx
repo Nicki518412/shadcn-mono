@@ -90,7 +90,7 @@ function OtpLoginForm({
           </FieldContent>
         </Field>
         <Field>
-          <FieldLabel htmlFor={`login-otp-${channel}-code`}>动态码</FieldLabel>
+          <FieldLabel htmlFor={`login-otp-${channel}-code`}>验证码</FieldLabel>
           <FieldContent>
             <InputOTP
               id={`login-otp-${channel}-code`}
@@ -100,10 +100,10 @@ function OtpLoginForm({
               inputMode="numeric"
               containerClassName="w-full"
             >
-              {/* 六格均分容器宽度（flex-1 + h-10），与上方输入框行宽高一致，不留空隙 */}
-              <InputOTPGroup className="w-full">
+              {/* 六格均分容器宽度（flex-1 + h-10）与上方输入框行宽高一致；gap 让格子间留间隔 */}
+              <InputOTPGroup className="w-full gap-1.5">
                 {[0, 1, 2, 3, 4, 5].map((slotIndex) => (
-                  <InputOTPSlot key={slotIndex} index={slotIndex} className="h-10 flex-1" />
+                  <InputOTPSlot key={slotIndex} index={slotIndex} className="h-10 flex-1 rounded-md" />
                 ))}
               </InputOTPGroup>
             </InputOTP>

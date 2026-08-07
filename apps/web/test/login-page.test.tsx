@@ -68,7 +68,7 @@ describe("LoginPage", () => {
     fireEvent.click(screen.getByRole("tab", { name: "邮箱" }))
     // textbox 精确匹配：Tab 按钮文案与输入框 label 同名为"邮箱"，getByLabelText 会命中多个
     expect(screen.getByRole("textbox", { name: "邮箱" })).toBeInTheDocument()
-    expect(screen.getByLabelText("动态码")).toBeInTheDocument()
+    expect(screen.getByLabelText("验证码")).toBeInTheDocument()
   })
 
   it("账号密码登录：调用 auth.login 并跳转 /", async () => {
