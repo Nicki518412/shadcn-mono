@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import type { JSX, SyntheticEvent } from "react"
+import { ChevronsUpDownIcon, ImageIcon } from "lucide-react"
 
 import { collectSelfAndDescendantIds } from "@/components/business/TreeCheckbox"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -27,6 +29,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { cn } from "@/lib/utils"
+import { ICON_CHOICES, iconByName } from "@/lib/icons"
 import { useCreateMenuMutation, useMenuTreeQuery, useUpdateMenuMutation } from "./useMenus"
 import type { MenuCreateInput, MenuNode } from "./useMenus"
 
@@ -93,6 +97,7 @@ export function MenuFormDialog({
   const [path, setPath] = useState(menu?.path ?? "")
   const [component, setComponent] = useState(menu?.component ?? "")
   const [icon, setIcon] = useState(menu?.icon ?? "")
+  const [iconPickerOpen, setIconPickerOpen] = useState(false)
   const [permission, setPermission] = useState(menu?.permission ?? "")
   const [sort, setSort] = useState(menu?.sort ?? 0)
   const [status, setStatus] = useState(menu?.status ?? true)
@@ -286,16 +291,67 @@ export function MenuFormDialog({
               </>
             )}
             <Field>
-              <FieldLabel htmlFor="menu-form-icon">图标</FieldLabel>
+              <FieldLabel>图标</FieldLabel>
               <FieldContent>
-                <Input
-                  id="menu-form-icon"
-                  value={icon}
-                  onChange={(event) => {
-                    setIcon(event.target.value)
-                  }}
-                  placeholder="lucide 图标名（可选）"
-                />
+                {/* 图标选择器：Popover + lucide 常用图标网格（icon 字段存图标名，DIR/MENU 用） */}
+                <Popover
+                  open={iconPickerOpen}
+                  onOpenChange={setIconPickerOpen}
+                >
+                  <PopoverTrigger
+                    render={
+                      <Button variant="outline" className="w-full justify-start gap-2" />
+                    }
+                  >
+                    {iconByName(icon) ? (
+                      (() => {
+                        const Icon = iconByName(icon)
+                        return Icon ? <Icon className="size-4 shrink-0" /> : null
+                      })()
+                    ) : (
+                      <ImageIcon className="size-4 shrink-0 text-muted-foreground" />
+                    )}
+                    <span className="truncate text-muted-foreground">
+                      {icon || "选择图标"}
+                    </span>
+                    <ChevronsUpDownIcon className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72" align="start">
+                    <div className="grid grid-cols-6 gap-1">
+                      <button
+                        type="button"
+                        aria-label="清除图标"
+                        title="清除图标"
+                        onClick={() => {
+                          setIcon("")
+                          setIconPickerOpen(false)
+                        }}
+                        className="flex aspect-square items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <ImageIcon className="size-4" />
+                      </button>
+                      {ICON_CHOICES.map(({ name, icon: Icon }) => (
+                        <button
+                          key={name}
+                          type="button"
+                          aria-label={name}
+                          title={name}
+                          onClick={() => {
+                            setIcon(name)
+                            setIconPickerOpen(false)
+                          }}
+                          className={cn(
+                            "flex aspect-square items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-accent-foreground",
+                            icon === name && "bg-accent text-accent-foreground",
+                          )}
+                        >
+                          <Icon className="size-4" />
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <FieldDescription>图标显示在侧边栏与菜单列表（可选）</FieldDescription>
               </FieldContent>
             </Field>
             <Field>

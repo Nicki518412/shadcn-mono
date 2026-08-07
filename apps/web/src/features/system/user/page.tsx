@@ -348,7 +348,7 @@ export default function UserPage(): JSX.Element {
             if (!open) setDeleteUser(null)
           }}
         >
-          <AlertDialogContent>
+          <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
             <AlertDialogHeader>
               <AlertDialogTitle>删除用户</AlertDialogTitle>
               <AlertDialogDescription>

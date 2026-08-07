@@ -328,7 +328,7 @@ export default function RolePage(): JSX.Element {
             if (!open) setDeleteRole(null)
           }}
         >
-          <AlertDialogContent>
+          <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
             <AlertDialogHeader>
               <AlertDialogTitle>删除角色</AlertDialogTitle>
               <AlertDialogDescription>

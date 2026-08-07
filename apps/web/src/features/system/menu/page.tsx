@@ -164,7 +164,7 @@ export default function MenuPage(): JSX.Element {
             if (!open) setDeleteMenu(null)
           }}
         >
-          <AlertDialogContent>
+          <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
             <AlertDialogHeader>
               <AlertDialogTitle>删除菜单</AlertDialogTitle>
               <AlertDialogDescription>

@@ -12,6 +12,7 @@ import {
   BellIcon,
   ChevronRightIcon,
   ChevronsUpDownIcon,
+  FolderIcon,
   LogOutIcon,
   MoonIcon,
   ShieldIcon,
@@ -50,6 +51,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { iconByName } from "@/lib/icons"
 import { cn } from "@/lib/utils"
 import ForbiddenPage from "@/pages/ForbiddenPage"
 import NotFoundPage from "@/pages/NotFoundPage"
@@ -67,6 +69,7 @@ function MenuLink({ node }: { node: MenuNode }): JSX.Element | null {
   const location = useLocation()
   const isActive = location.pathname === node.path
   if (!node.path) return null
+  const Icon = iconByName(node.icon)
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
@@ -74,6 +77,7 @@ function MenuLink({ node }: { node: MenuNode }): JSX.Element | null {
         isActive={isActive}
         className="relative after:absolute after:inset-y-1.5 after:left-0 after:w-0.5 after:rounded-full after:bg-sidebar-primary after:opacity-0 data-active:after:opacity-100"
       >
+        {Icon ? <Icon className="size-4 shrink-0" /> : null}
         <span>{node.name}</span>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -84,11 +88,13 @@ function MenuLink({ node }: { node: MenuNode }): JSX.Element | null {
 function SubMenuLink({ node }: { node: MenuNode }): JSX.Element | null {
   const location = useLocation()
   if (!node.path) return null
+  const Icon = iconByName(node.icon)
   return (
     <SidebarMenuSubButton
       render={<NavLink to={node.path} end />}
       isActive={location.pathname === node.path}
     >
+      {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
       <span>{node.name}</span>
     </SidebarMenuSubButton>
   )
@@ -96,10 +102,12 @@ function SubMenuLink({ node }: { node: MenuNode }): JSX.Element | null {
 
 /** DIR：Collapsible 分组（可折叠，shadcn 官方组件），trigger 为 SidebarMenuButton，面板为 SidebarMenuSub */
 function DirGroup({ node }: { node: MenuNode }): JSX.Element {
+  const Icon = iconByName(node.icon) ?? FolderIcon
   return (
     <Collapsible className="group/collapsible" defaultOpen>
       <SidebarMenuItem>
         <CollapsibleTrigger render={<SidebarMenuButton />}>
+          <Icon className="size-4 shrink-0" />
           <span>{node.name}</span>
           <ChevronRightIcon className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
         </CollapsibleTrigger>
