@@ -255,8 +255,7 @@ export default function LoginPage() {
             <span className="text-sm font-semibold">Panel</span>
           </div>
           <div className="mb-6">
-            <h1 className="text-2xl font-semibold">管理后台登录</h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">登录管理后台，管理用户、角色与菜单权限</p>
+            <h1 className="text-2xl font-semibold">欢迎回来</h1>
           </div>
           {error && (
             <p role="alert" className="mb-4 text-sm text-destructive">

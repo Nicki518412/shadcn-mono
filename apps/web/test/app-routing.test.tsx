@@ -29,19 +29,19 @@ describe("app routing", () => {
   it("访问 /（未登录）→ 守卫重定向，最终渲染登录页", async () => {
     window.history.pushState({}, "", "/")
     render(<App />)
-    expect(await screen.findByText("管理后台登录")).toBeInTheDocument()
+    expect(await screen.findByText("欢迎回来")).toBeInTheDocument()
   })
 
   it("访问 /login 直接渲染登录页（不经守卫）", async () => {
     window.history.pushState({}, "", "/login")
     render(<App />)
-    expect(await screen.findByText("管理后台登录")).toBeInTheDocument()
+    expect(await screen.findByText("欢迎回来")).toBeInTheDocument()
   })
 
   it("访问未知路径（未登录）→ 守卫重定向登录页", async () => {
     window.history.pushState({}, "", "/no/such/page")
     render(<App />)
-    expect(await screen.findByText("管理后台登录")).toBeInTheDocument()
+    expect(await screen.findByText("欢迎回来")).toBeInTheDocument()
   })
 
   it("已登录访问 / → 渲染 AppLayout（侧边栏）与 Dashboard", async () => {
