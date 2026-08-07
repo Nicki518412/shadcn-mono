@@ -1,12 +1,10 @@
-import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox"
-import { CheckIcon, MinusIcon } from "lucide-react"
 import { useId } from "react"
 import type { JSX } from "react"
 
 import type { components } from "@/api/schema"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { cn } from "@/lib/utils"
 
 export type MenuNode = components["schemas"]["MenuNode"]
 
@@ -75,8 +73,9 @@ function badgeVariant(type: MenuNode["type"]): "default" | "outline" | "secondar
  *   （回显数据可能不是祖先闭包——如后端直存了子节点——此时祖先呈现半选态而非误标全选）
  * - onToggle(node, checked) 由父组件按对称联动规则改写 Set（勾选带祖先+全子项、
  *   取消级联后代并清理孤儿祖先；半选态仅在回显非闭包数据时可达）
- * 复选框为手写渲染（Base UI Root + 半选 MinusIcon）：ui/checkbox.tsx 属 shadcn CLI 管理
- * 产物禁止手写修改，且其 Indicator 恒渲染 CheckIcon，无法表达半选态。
+ * 使用 shadcn 官方 Checkbox 组件（透传 indeterminate prop）；半选视觉经 data-indeterminate
+ * 样式区分（shadcn 的 Indicator 恒渲染对勾——半选时对勾半透明以示区别，真实交互中半选态
+ * 不可达，仅回显非闭包数据时出现，透明度区分足够）。
  * checkbox id 以 useId() 做前缀，多实例（如 Task 22 树表格）复用互不碰撞。
  */
 export function TreeCheckbox({
@@ -103,21 +102,13 @@ export function TreeCheckbox({
               className="flex items-center gap-2"
               style={{ paddingLeft: `${String(depth * 24)}px` }}
             >
-              <CheckboxPrimitive.Root
+              <Checkbox
                 id={checkboxId}
                 checked={checked}
                 indeterminate={indeterminate}
                 onCheckedChange={(next) => { onToggle(node, next) }}
-                className={cn(
-                  "peer relative flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-input transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
-                  "data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground",
-                  "data-indeterminate:border-primary data-indeterminate:bg-primary data-indeterminate:text-primary-foreground",
-                )}
-              >
-                <CheckboxPrimitive.Indicator className="grid place-content-center text-current transition-none [&>svg]:size-3.5">
-                  {indeterminate ? <MinusIcon /> : <CheckIcon />}
-                </CheckboxPrimitive.Indicator>
-              </CheckboxPrimitive.Root>
+                className="data-indeterminate:[&>svg]:opacity-40"
+              />
               <Label htmlFor={checkboxId} className="text-sm font-normal">
                 {node.name}
               </Label>
