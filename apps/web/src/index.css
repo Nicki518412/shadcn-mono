@@ -128,3 +128,10 @@
     @apply font-sans;
     }
 }
+/* no-scrollbar：隐藏滚动条（shadcn DialogStickyFooter 模式——内容区滚动但无滚动条视觉） */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

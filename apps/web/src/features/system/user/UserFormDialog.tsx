@@ -111,7 +111,9 @@ export function UserFormDialog({
         if (!open) onClose()
       }}
     >
-      <DialogContent className="p-6 sm:max-w-md">
+      {/* StickyFooter 模式（参考 shadcn dialog-sticky-footer）：Header/Footer 固定，
+          内容区独立滚动（max-h-[50vh] + no-scrollbar 隐藏滚动条），弹窗不再整窗滚动 */}
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? "编辑用户" : "新增用户"}</DialogTitle>
           <DialogDescription>
@@ -119,6 +121,7 @@ export function UserFormDialog({
           </DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+          <div className="-mx-4 max-h-[50vh] overflow-y-auto px-4 no-scrollbar">
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}
@@ -237,6 +240,7 @@ export function UserFormDialog({
               </FieldContent>
             </Field>
           </FieldGroup>
+          </div>
           <DialogFooter>
             <Button
               type="button"

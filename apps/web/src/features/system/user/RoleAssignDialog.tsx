@@ -54,13 +54,14 @@ export function RoleAssignDialog({
         if (!open) onClose()
       }}
     >
-      <DialogContent className="p-6 sm:max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>分配角色</DialogTitle>
           <DialogDescription>
             为用户「{user.nickname}」配置角色（可多选），保存后将覆盖原有角色
           </DialogDescription>
         </DialogHeader>
+        <div className="-mx-4 max-h-[50vh] overflow-y-auto px-4 no-scrollbar">
         {assignMutation.error && (
           <p role="alert" className="text-sm text-destructive">
             {assignMutation.error.message}
@@ -94,6 +95,7 @@ export function RoleAssignDialog({
             )}
           </FieldContent>
         </Field>
+        </div>
         <DialogFooter>
           <Button
             type="button"

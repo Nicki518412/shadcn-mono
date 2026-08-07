@@ -156,7 +156,7 @@ export function MenuFormDialog({
         if (!open) onClose()
       }}
     >
-      <DialogContent className="p-6 sm:max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? "编辑菜单" : "新增菜单"}</DialogTitle>
           <DialogDescription>
@@ -166,6 +166,7 @@ export function MenuFormDialog({
           </DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+          <div className="-mx-4 max-h-[50vh] overflow-y-auto px-4 no-scrollbar">
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}
@@ -324,6 +325,7 @@ export function MenuFormDialog({
               <FieldLabel htmlFor="menu-form-status">启用</FieldLabel>
             </Field>
           </FieldGroup>
+          </div>
           <DialogFooter>
             <Button
               type="button"

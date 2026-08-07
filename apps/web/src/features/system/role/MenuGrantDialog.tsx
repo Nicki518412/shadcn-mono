@@ -92,7 +92,7 @@ export function MenuGrantDialog({
         if (!open) onClose()
       }}
     >
-      <DialogContent className="p-6 sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>分配权限</DialogTitle>
           <DialogDescription>
@@ -100,6 +100,7 @@ export function MenuGrantDialog({
             级联取消并清理空授权目录），保存后将覆盖原有权限
           </DialogDescription>
         </DialogHeader>
+        <div className="-mx-4 max-h-[50vh] overflow-y-auto px-4 no-scrollbar">
         {assignMutation.error && (
           <p role="alert" className="text-sm text-destructive">
             {assignMutation.error.message}
@@ -115,12 +116,13 @@ export function MenuGrantDialog({
                 {(menuTreeQuery.error ?? roleMenusQuery.error)?.message ?? "菜单加载失败"}
               </span>
             ) : (
-              <div className="max-h-80 overflow-y-auto pr-1">
+              <div className="pr-1">
                 <TreeCheckbox nodes={tree ?? []} selected={selected} onToggle={handleToggle} />
               </div>
             )}
           </FieldContent>
         </Field>
+        </div>
         <DialogFooter>
           <Button
             type="button"
