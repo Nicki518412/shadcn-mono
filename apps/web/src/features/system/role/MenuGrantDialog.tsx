@@ -92,8 +92,8 @@ export function MenuGrantDialog({
         if (!open) onClose()
       }}
     >
-      {/* p-6 加宽左右内边距（树形授权内容较宽）；滚动容器与 Footer 用 -mx-6 匹配 */}
-      <DialogContent className="p-6 sm:max-w-lg">
+      {/* p-6 加宽左右内边距 + max-w-xl 加宽弹窗（树形授权内容较宽，右缘留足空间）；滚动容器与 Footer 用 -mx-6 匹配 */}
+      <DialogContent className="p-6 sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>分配权限</DialogTitle>
           <DialogDescription>
