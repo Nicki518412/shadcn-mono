@@ -31,7 +31,9 @@ function AppShell(): JSX.Element {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route element={<RequireAuth />}>
+          {/* path="*" 必须：守卫分支要能匹配根路径 "/" 与全部业务路径（含动态菜单路由）。
+              曾缺失导致 React Router 对 "/" 无匹配 → 白屏（真实浏览器才暴露，组件测试测不到）。 */}
+          <Route path="*" element={<RequireAuth />}>
             <Route element={<AppLayout />} />
           </Route>
         </Routes>
@@ -42,7 +44,8 @@ function AppShell(): JSX.Element {
   )
 }
 
-function App(): JSX.Element {
+/** 根组件（导出供 app-routing 集成测试渲染；main.tsx 入口挂载） */
+export function App(): JSX.Element {
   return (
     <QueryClientProvider client={queryClient}>
       {isClerk ? (
@@ -56,11 +59,12 @@ function App(): JSX.Element {
   )
 }
 
+// 挂载只在浏览器入口执行：jsdom 测试 import App 时无 #root，跳过挂载（路由表测试依赖此行为）
 const rootElement = document.getElementById("root")
-if (!rootElement) throw new Error("Root element not found")
-
-createRoot(rootElement).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+if (rootElement) {
+  createRoot(rootElement).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+}

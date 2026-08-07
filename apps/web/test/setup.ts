@@ -9,6 +9,20 @@ class ResizeObserverStub {
 
 globalThis.ResizeObserver = ResizeObserverStub
 
+// jsdom 未实现 matchMedia（sidebar 的 use-mobile hook 依赖），注入最小实现
+if (typeof window.matchMedia === "undefined") {
+  window.matchMedia = ((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => undefined,
+    removeListener: () => undefined,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    dispatchEvent: () => false,
+  }))
+}
+
 // jsdom 未实现 PointerEvent（Base UI checkbox 的 dispatchClickWithModifiers
 // 内部构造 new PointerEvent("click") 分发到隐藏 input），注入 MouseEvent 子类兜底
 if (typeof window.PointerEvent === "undefined") {
