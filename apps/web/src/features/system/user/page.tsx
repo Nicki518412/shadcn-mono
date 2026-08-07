@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react"
 import type { JSX } from "react"
 
+import { UsersIcon } from "lucide-react"
+
+import { PageHeader } from "@/components/business/PageHeader"
 import { Permission } from "@/components/business/Permission"
 import {
   AlertDialog,
@@ -18,6 +21,7 @@ import {
   Empty,
   EmptyContent,
   EmptyDescription,
+  EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Input } from "@/components/ui/input"
@@ -93,8 +97,10 @@ export default function UserPage(): JSX.Element {
 
   return (
     <div className="flex flex-col gap-4">
+      <PageHeader title="用户管理" description="管理系统用户账号、状态与角色分配" />
+
+      {/* 工具栏：搜索居左、操作按钮居右 */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-heading text-lg font-medium">用户管理</h1>
         <div className="flex items-center gap-2">
           <Input
             value={keywordInput}
@@ -105,23 +111,24 @@ export default function UserPage(): JSX.Element {
               if (event.key === "Enter") applyKeyword()
             }}
             placeholder="搜索用户名/昵称/邮箱/手机号"
-            className="w-64"
+            className="h-9 w-64"
           />
-          <Button variant="outline" type="button" onClick={applyKeyword}>
+          <Button variant="outline" type="button" onClick={applyKeyword} className="h-9">
             搜索
           </Button>
-          <Permission code="system:user:create">
-            <Button
-              type="button"
-              onClick={() => {
-                setEditingUser(null)
-                setFormOpen(true)
-              }}
-            >
-              新增用户
-            </Button>
-          </Permission>
         </div>
+        <Permission code="system:user:create">
+          <Button
+            type="button"
+            onClick={() => {
+              setEditingUser(null)
+              setFormOpen(true)
+            }}
+            className="h-9"
+          >
+            新增用户
+          </Button>
+        </Permission>
       </div>
 
       {isError ? (
@@ -130,6 +137,9 @@ export default function UserPage(): JSX.Element {
         </p>
       ) : !isLoading && users.length === 0 ? (
         <Empty className="py-16">
+          <EmptyMedia variant="icon">
+            <UsersIcon />
+          </EmptyMedia>
           <EmptyContent>
             <EmptyTitle>暂无用户</EmptyTitle>
             <EmptyDescription>
@@ -140,7 +150,7 @@ export default function UserPage(): JSX.Element {
           </EmptyContent>
         </Empty>
       ) : (
-        <Table>
+        <Table className="[&_th]:h-11 [&_th]:px-4 [&_th]:text-muted-foreground [&_tr]:h-12 [&_td]:px-4">
           <TableHeader>
             <TableRow>
               <TableHead>用户名</TableHead>

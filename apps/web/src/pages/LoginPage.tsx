@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { SignIn } from "@clerk/clerk-react"
+import { ShieldIcon } from "lucide-react"
 import { useNavigate } from "react-router"
 
 import { useAuth } from "@/auth/AuthProvider"
@@ -63,14 +64,36 @@ function OtpLoginForm({
         <Field>
           <FieldLabel htmlFor={`login-otp-${channel}-target`}>{targetLabel}</FieldLabel>
           <FieldContent>
-            <Input
-              id={`login-otp-${channel}-target`}
-              value={target}
-              onChange={(event) => {
-                setTarget(event.target.value)
-              }}
-              placeholder={targetPlaceholder}
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                id={`login-otp-${channel}-target`}
+                value={target}
+                onChange={(event) => {
+                  setTarget(event.target.value)
+                }}
+                placeholder={targetPlaceholder}
+                className="h-10"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={cooldown > 0 || sending}
+                onClick={() => {
+                  onSend(target)
+                }}
+                className="h-10 w-28 shrink-0"
+              >
+                {cooldown > 0 ? (
+                  `重新发送（${String(cooldown)}s）`
+                ) : sending ? (
+                  <>
+                    <Spinner /> 发送中…
+                  </>
+                ) : (
+                  "发送验证码"
+                )}
+              </Button>
+            </div>
           </FieldContent>
         </Field>
         <Field>
@@ -85,32 +108,14 @@ function OtpLoginForm({
             >
               <InputOTPGroup>
                 {[0, 1, 2, 3, 4, 5].map((slotIndex) => (
-                  <InputOTPSlot key={slotIndex} index={slotIndex} />
+                  <InputOTPSlot key={slotIndex} index={slotIndex} className="size-10" />
                 ))}
               </InputOTPGroup>
             </InputOTP>
           </FieldContent>
         </Field>
       </FieldGroup>
-      <Button
-        type="button"
-        variant="outline"
-        disabled={cooldown > 0 || sending}
-        onClick={() => {
-          onSend(target)
-        }}
-      >
-        {cooldown > 0 ? (
-          `重新发送（${String(cooldown)}s）`
-        ) : sending ? (
-          <>
-            <Spinner /> 发送中…
-          </>
-        ) : (
-          "发送验证码"
-        )}
-      </Button>
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending} className="h-10 w-full">
         {pending ? (
           <>
             <Spinner /> 登录中…
@@ -201,108 +206,121 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>管理后台登录</CardTitle>
-          <CardDescription>开发模式：验证码打印在 api 控制台（DevOtpSender）</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
+      <div className="w-full max-w-md">
+        {/* 品牌标记：与 AppLayout 侧边栏品牌区一致（盾牌 + 方形底色），登录页独立成品牌锚点 */}
+        <div className="mb-5 flex justify-center">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+            <ShieldIcon className="size-4" />
+          </div>
+        </div>
+        <Card className="shadow-sm [--card-spacing:--spacing(6)]">
+          <CardHeader className="justify-items-center gap-1.5 text-center">
+            <CardTitle className="text-xl font-semibold">管理后台登录</CardTitle>
+            <CardDescription>登录管理后台，管理用户、角色与菜单权限</CardDescription>
+            <p className="text-xs text-muted-foreground/70">
+              开发模式：验证码打印在 api 控制台（DevOtpSender）
             </p>
-          )}
-          <Tabs defaultValue="password">
-            <TabsList className="w-full">
-              <TabsTrigger value="password">账号密码</TabsTrigger>
-              <TabsTrigger value="email">邮箱动态码</TabsTrigger>
-              <TabsTrigger value="telephone">手机动态码</TabsTrigger>
-            </TabsList>
-            <TabsContent value="password" className="pt-4">
-              <form
-                className="flex flex-col gap-4"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  void handlePasswordSubmit()
-                }}
-              >
-                <FieldGroup>
-                  <Field>
-                    <FieldLabel htmlFor="login-username">用户名</FieldLabel>
-                    <FieldContent>
-                      <Input
-                        id="login-username"
-                        value={username}
-                        onChange={(event) => {
-                          setUsername(event.target.value)
-                        }}
-                        placeholder="用户名"
-                        autoComplete="username"
-                      />
-                    </FieldContent>
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="login-password">密码</FieldLabel>
-                    <FieldContent>
-                      <Input
-                        id="login-password"
-                        type="password"
-                        value={password}
-                        onChange={(event) => {
-                          setPassword(event.target.value)
-                        }}
-                        placeholder="密码"
-                        autoComplete="current-password"
-                      />
-                    </FieldContent>
-                  </Field>
-                </FieldGroup>
-                <Button type="submit" disabled={pending}>
-                  {pending ? (
-                    <>
-                      <Spinner /> 登录中…
-                    </>
-                  ) : (
-                    "登录"
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
-            <TabsContent value="email" className="pt-4">
-              <OtpLoginForm
-                channel="email"
-                targetLabel="邮箱"
-                targetPlaceholder="name@example.com"
-                cooldown={otpCooldown}
-                sending={sendingChannel === "email"}
-                pending={pending}
-                onSend={(target) => {
-                  void handleSendOtp("email", target)
-                }}
-                onLogin={(target, code) => {
-                  void handleOtpLogin("email", target, code)
-                }}
-              />
-            </TabsContent>
-            <TabsContent value="telephone" className="pt-4">
-              <OtpLoginForm
-                channel="telephone"
-                targetLabel="手机号"
-                targetPlaceholder="13800138000"
-                cooldown={otpCooldown}
-                sending={sendingChannel === "telephone"}
-                pending={pending}
-                onSend={(target) => {
-                  void handleSendOtp("telephone", target)
-                }}
-                onLogin={(target, code) => {
-                  void handleOtpLogin("telephone", target, code)
-                }}
-              />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {error && (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            )}
+            <Tabs defaultValue="password">
+              <TabsList className="w-full">
+                <TabsTrigger value="password">账号密码</TabsTrigger>
+                <TabsTrigger value="email">邮箱动态码</TabsTrigger>
+                <TabsTrigger value="telephone">手机动态码</TabsTrigger>
+              </TabsList>
+              <TabsContent value="password" className="py-5">
+                <form
+                  className="flex flex-col gap-4"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    void handlePasswordSubmit()
+                  }}
+                >
+                  <FieldGroup>
+                    <Field>
+                      <FieldLabel htmlFor="login-username">用户名</FieldLabel>
+                      <FieldContent>
+                        <Input
+                          id="login-username"
+                          value={username}
+                          onChange={(event) => {
+                            setUsername(event.target.value)
+                          }}
+                          placeholder="用户名"
+                          autoComplete="username"
+                          className="h-10"
+                        />
+                      </FieldContent>
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="login-password">密码</FieldLabel>
+                      <FieldContent>
+                        <Input
+                          id="login-password"
+                          type="password"
+                          value={password}
+                          onChange={(event) => {
+                            setPassword(event.target.value)
+                          }}
+                          placeholder="密码"
+                          autoComplete="current-password"
+                          className="h-10"
+                        />
+                      </FieldContent>
+                    </Field>
+                  </FieldGroup>
+                  <Button type="submit" disabled={pending} className="h-10 w-full">
+                    {pending ? (
+                      <>
+                        <Spinner /> 登录中…
+                      </>
+                    ) : (
+                      "登录"
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+              <TabsContent value="email" className="py-5">
+                <OtpLoginForm
+                  channel="email"
+                  targetLabel="邮箱"
+                  targetPlaceholder="name@example.com"
+                  cooldown={otpCooldown}
+                  sending={sendingChannel === "email"}
+                  pending={pending}
+                  onSend={(target) => {
+                    void handleSendOtp("email", target)
+                  }}
+                  onLogin={(target, code) => {
+                    void handleOtpLogin("email", target, code)
+                  }}
+                />
+              </TabsContent>
+              <TabsContent value="telephone" className="py-5">
+                <OtpLoginForm
+                  channel="telephone"
+                  targetLabel="手机号"
+                  targetPlaceholder="13800138000"
+                  cooldown={otpCooldown}
+                  sending={sendingChannel === "telephone"}
+                  pending={pending}
+                  onSend={(target) => {
+                    void handleSendOtp("telephone", target)
+                  }}
+                  onLogin={(target, code) => {
+                    void handleOtpLogin("telephone", target, code)
+                  }}
+                />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
     </main>
   )
 }

@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react"
 import type { JSX } from "react"
 
+import { ShieldIcon } from "lucide-react"
+
+import { PageHeader } from "@/components/business/PageHeader"
 import { Permission } from "@/components/business/Permission"
 import {
   AlertDialog,
@@ -18,6 +21,7 @@ import {
   Empty,
   EmptyContent,
   EmptyDescription,
+  EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Input } from "@/components/ui/input"
@@ -87,8 +91,10 @@ export default function RolePage(): JSX.Element {
 
   return (
     <div className="flex flex-col gap-4">
+      <PageHeader title="角色管理" description="管理角色及其菜单权限分配" />
+
+      {/* 工具栏：搜索居左、操作按钮居右 */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-heading text-lg font-medium">角色管理</h1>
         <div className="flex items-center gap-2">
           <Input
             value={keywordInput}
@@ -99,23 +105,24 @@ export default function RolePage(): JSX.Element {
               if (event.key === "Enter") applyKeyword()
             }}
             placeholder="搜索角色名称/编码"
-            className="w-64"
+            className="h-9 w-64"
           />
-          <Button variant="outline" type="button" onClick={applyKeyword}>
+          <Button variant="outline" type="button" onClick={applyKeyword} className="h-9">
             搜索
           </Button>
-          <Permission code="system:role:create">
-            <Button
-              type="button"
-              onClick={() => {
-                setEditingRole(null)
-                setFormOpen(true)
-              }}
-            >
-              新增角色
-            </Button>
-          </Permission>
         </div>
+        <Permission code="system:role:create">
+          <Button
+            type="button"
+            onClick={() => {
+              setEditingRole(null)
+              setFormOpen(true)
+            }}
+            className="h-9"
+          >
+            新增角色
+          </Button>
+        </Permission>
       </div>
 
       {isError ? (
@@ -124,6 +131,9 @@ export default function RolePage(): JSX.Element {
         </p>
       ) : !isLoading && roles.length === 0 ? (
         <Empty className="py-16">
+          <EmptyMedia variant="icon">
+            <ShieldIcon />
+          </EmptyMedia>
           <EmptyContent>
             <EmptyTitle>暂无角色</EmptyTitle>
             <EmptyDescription>
@@ -134,7 +144,7 @@ export default function RolePage(): JSX.Element {
           </EmptyContent>
         </Empty>
       ) : (
-        <Table>
+        <Table className="[&_th]:h-11 [&_th]:px-4 [&_th]:text-muted-foreground [&_tr]:h-12 [&_td]:px-4">
           <TableHeader>
             <TableRow>
               <TableHead>名称</TableHead>

@@ -92,7 +92,7 @@ export function MenuGrantDialog({
         if (!open) onClose()
       }}
     >
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="p-6 sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>分配权限</DialogTitle>
           <DialogDescription>
@@ -127,6 +127,7 @@ export function MenuGrantDialog({
             variant="outline"
             onClick={onClose}
             disabled={assignMutation.isPending}
+            className="h-9"
           >
             取消
           </Button>
@@ -136,6 +137,7 @@ export function MenuGrantDialog({
             // 树/回显任一未就绪（pending 或 error，以 data 有无判定）即禁用保存——
             // 防止数据未到齐时误存空集、清空角色全部权限
             disabled={assignMutation.isPending || !menuTreeQuery.data || !roleMenusQuery.data}
+            className="h-9"
           >
             {assignMutation.isPending ? "保存中…" : "保存"}
           </Button>

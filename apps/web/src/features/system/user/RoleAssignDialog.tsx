@@ -54,7 +54,7 @@ export function RoleAssignDialog({
         if (!open) onClose()
       }}
     >
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="p-6 sm:max-w-md">
         <DialogHeader>
           <DialogTitle>分配角色</DialogTitle>
           <DialogDescription>
@@ -100,10 +100,16 @@ export function RoleAssignDialog({
             variant="outline"
             onClick={onClose}
             disabled={assignMutation.isPending}
+            className="h-9"
           >
             取消
           </Button>
-          <Button type="button" onClick={handleSave} disabled={assignMutation.isPending}>
+          <Button
+            type="button"
+            onClick={handleSave}
+            disabled={assignMutation.isPending}
+            className="h-9"
+          >
             {assignMutation.isPending ? "保存中…" : "保存"}
           </Button>
         </DialogFooter>

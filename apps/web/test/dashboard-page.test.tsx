@@ -110,9 +110,13 @@ describe("DashboardPage", () => {
     render(<DashboardPage />)
 
     expect(screen.getByText("欢迎回来，系统管理员")).toBeInTheDocument()
-    expect(screen.getByText("用户名：admin")).toBeInTheDocument()
-    expect(screen.getByText("邮箱：admin@example.com")).toBeInTheDocument()
-    expect(screen.getByText("手机号：13800138000")).toBeInTheDocument()
+    // 定义列表布局：标签（dt）与值（dd）分离，按 label/value 分别断言
+    expect(screen.getByText("用户名")).toBeInTheDocument()
+    expect(screen.getByText("admin")).toBeInTheDocument()
+    expect(screen.getByText("邮箱")).toBeInTheDocument()
+    expect(screen.getByText("admin@example.com")).toBeInTheDocument()
+    expect(screen.getByText("手机号")).toBeInTheDocument()
+    expect(screen.getByText("13800138000")).toBeInTheDocument()
   })
 
   it("角色以 Badge 展示角色名", () => {
@@ -139,7 +143,7 @@ describe("DashboardPage", () => {
     render(<DashboardPage />)
 
     expect(screen.getByText("欢迎回来，…")).toBeInTheDocument()
-    expect(screen.getByText("用户名：—")).toBeInTheDocument()
+    expect(screen.getAllByText("—")).toHaveLength(3)
     expect(screen.getByText("未分配角色")).toBeInTheDocument()
     expect(screen.getByTestId("stat-permission-count")).toHaveTextContent("0")
     expect(screen.getByTestId("stat-menu-count")).toHaveTextContent("0")

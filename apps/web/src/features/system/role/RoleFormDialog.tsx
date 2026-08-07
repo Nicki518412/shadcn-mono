@@ -86,7 +86,7 @@ export function RoleFormDialog({
         if (!open) onClose()
       }}
     >
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="p-6 sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? "编辑角色" : "新增角色"}</DialogTitle>
           <DialogDescription>
@@ -174,10 +174,11 @@ export function RoleFormDialog({
               variant="outline"
               onClick={onClose}
               disabled={pending}
+              className="h-9"
             >
               取消
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={pending} className="h-9">
               {pending ? "保存中…" : "保存"}
             </Button>
           </DialogFooter>

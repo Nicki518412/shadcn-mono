@@ -3,6 +3,9 @@ import type { JSX } from "react"
 
 import { useQueryClient } from "@tanstack/react-query"
 
+import { ListTreeIcon } from "lucide-react"
+
+import { PageHeader } from "@/components/business/PageHeader"
 import { Permission } from "@/components/business/Permission"
 import {
   AlertDialog,
@@ -19,6 +22,7 @@ import {
   Empty,
   EmptyContent,
   EmptyDescription,
+  EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -64,10 +68,12 @@ export default function MenuPage(): JSX.Element {
 
   return (
     <div className="flex flex-col gap-4">
+      <PageHeader title="菜单管理" description="维护导航菜单树与按钮权限" />
+
+      {/* 工具栏：操作按钮居右（菜单树无搜索，与其余管理页保持同构） */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-heading text-lg font-medium">菜单管理</h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline" type="button" onClick={refresh}>
+          <Button variant="outline" type="button" onClick={refresh} className="h-9">
             刷新
           </Button>
           <Permission code="system:menu:create">
@@ -77,6 +83,7 @@ export default function MenuPage(): JSX.Element {
                 setEditingMenu(null)
                 setFormOpen(true)
               }}
+              className="h-9"
             >
               新增菜单
             </Button>
@@ -90,6 +97,9 @@ export default function MenuPage(): JSX.Element {
         </p>
       ) : !isLoading && nodes.length === 0 ? (
         <Empty className="py-16">
+          <EmptyMedia variant="icon">
+            <ListTreeIcon />
+          </EmptyMedia>
           <EmptyContent>
             <EmptyTitle>暂无菜单</EmptyTitle>
             <EmptyDescription>
@@ -98,7 +108,7 @@ export default function MenuPage(): JSX.Element {
           </EmptyContent>
         </Empty>
       ) : (
-        <Table>
+        <Table className="[&_th]:h-11 [&_th]:px-4 [&_th]:text-muted-foreground [&_tr]:h-12 [&_td]:px-4">
           <TableHeader>
             <TableRow>
               <TableHead>名称</TableHead>
