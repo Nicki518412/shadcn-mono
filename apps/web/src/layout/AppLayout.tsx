@@ -101,7 +101,7 @@ function DirGroup({ node }: { node: MenuNode }): JSX.Element {
       <SidebarMenuItem>
         <CollapsibleTrigger render={<SidebarMenuButton />}>
           <span>{node.name}</span>
-          <ChevronRightIcon className="ml-auto transition-transform group-data-[open]/collapsible:rotate-90" />
+          <ChevronRightIcon className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
         </CollapsibleTrigger>
       </SidebarMenuItem>
       <CollapsibleContent>
