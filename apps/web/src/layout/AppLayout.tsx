@@ -3,7 +3,11 @@ import type { JSX } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTheme } from "next-themes"
 import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router"
-import { Collapsible } from "@base-ui/react/collapsible"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import {
   BellIcon,
   ChevronRightIcon,
@@ -90,24 +94,24 @@ function SubMenuLink({ node }: { node: MenuNode }): JSX.Element | null {
   )
 }
 
-/** DIR：Collapsible 分组（可折叠），trigger 为 SidebarMenuButton，面板为 SidebarMenuSub */
+/** DIR：Collapsible 分组（可折叠，shadcn 官方组件），trigger 为 SidebarMenuButton，面板为 SidebarMenuSub */
 function DirGroup({ node }: { node: MenuNode }): JSX.Element {
   return (
-    <Collapsible.Root className="group/collapsible" defaultOpen>
+    <Collapsible className="group/collapsible" defaultOpen>
       <SidebarMenuItem>
-        <Collapsible.Trigger render={<SidebarMenuButton />}>
+        <CollapsibleTrigger render={<SidebarMenuButton />}>
           <span>{node.name}</span>
           <ChevronRightIcon className="ml-auto transition-transform group-data-[open]/collapsible:rotate-90" />
-        </Collapsible.Trigger>
+        </CollapsibleTrigger>
       </SidebarMenuItem>
-      <Collapsible.Panel>
+      <CollapsibleContent>
         <SidebarMenuSub>
           {node.children.map((child) => (
             <SubMenuEntry key={child.id} node={child} />
           ))}
         </SidebarMenuSub>
-      </Collapsible.Panel>
-    </Collapsible.Root>
+      </CollapsibleContent>
+    </Collapsible>
   )
 }
 
