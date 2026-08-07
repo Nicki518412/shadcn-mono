@@ -123,23 +123,9 @@ function SubMenuEntry({ node }: { node: MenuNode }): JSX.Element | null {
   )
 }
 
-/** 递归渲染导航（组内使用）：MENU → 链接；DIR → 可折叠分组；BUTTON → 跳过 */
-function MenuList({ nodes }: { nodes: MenuNode[] }): JSX.Element {
-  return (
-    <>
-      {nodes.map((node) => {
-        if (node.type === "BUTTON") return null
-        if (node.type === "DIR") return <DirGroup key={node.id} node={node} />
-        return <MenuLink key={node.id} node={node} />
-      })}
-    </>
-  )
-}
-
 /**
- * 侧边栏导航分组（语义分组替代单扁平列表）：
- * 顶层 MENU → 归入固定 "总览" 组；每个顶层 DIR → 以其名为组标签的 SidebarGroup，
- * 子级直接作为组内菜单项（常显，无需可折叠）；嵌套 DIR 保持 Collapsible 递归
+ * 侧边栏导航：顶层 MENU → 固定 "总览" 组；顶层 DIR → 可折叠分组（Collapsible，
+ * 默认展开，点击目录名收起/展开——管理端目录惯例）；嵌套 DIR 同样可折叠递归。
  */
 function Navigation({ navTree }: { navTree: MenuNode[] }): JSX.Element {
   const overview = navTree.filter((node) => node.type === "MENU")
@@ -156,14 +142,15 @@ function Navigation({ navTree }: { navTree: MenuNode[] }): JSX.Element {
           </SidebarMenu>
         </SidebarGroup>
       )}
-      {dirGroups.map((node) => (
-        <SidebarGroup key={node.id}>
-          <SidebarGroupLabel>{node.name}</SidebarGroupLabel>
+      {dirGroups.length > 0 && (
+        <SidebarGroup>
           <SidebarMenu>
-            <MenuList nodes={node.children} />
+            {dirGroups.map((node) => (
+              <DirGroup key={node.id} node={node} />
+            ))}
           </SidebarMenu>
         </SidebarGroup>
-      ))}
+      )}
     </>
   )
 }
