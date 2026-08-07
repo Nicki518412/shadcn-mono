@@ -319,7 +319,6 @@ export default function AppLayout(): JSX.Element {
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-1.5 border-b px-4">
           <SidebarTrigger className="-ml-1" />
-          <ThemeToggle />
           {/* 消息通知：暂无功能，占位按钮（后续接入通知中心） */}
           <Button
             variant="ghost"
@@ -331,6 +330,10 @@ export default function AppLayout(): JSX.Element {
             <BellIcon className="size-4" />
           </Button>
           <Breadcrumb trail={trail} />
+          {/* 主题切换固定在顶栏右上角 */}
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
         </header>
         <main className="flex-1 overflow-auto p-4">
           {/* 内层容器统一页面留白与最大宽度（大屏限宽保持版式比例） */}
