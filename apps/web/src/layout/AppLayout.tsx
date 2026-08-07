@@ -284,28 +284,34 @@ export default function AppLayout(): JSX.Element {
         <SidebarContent>
           <Navigation navTree={navTree} />
         </SidebarContent>
-        {/* 用户区在侧边栏底部（管理端惯例）：用户相关操作置于底部，顶栏留给工具按钮 */}
+        {/* 用户区在侧边栏底部（管理端惯例）：用户相关操作置于底部，顶栏留给工具按钮。
+            样式规格：圆角容器 + 深色表面（bg-card）+ 细微渐变描边（p-px 线性渐变 → 内层圆角）；
+            头像与文本 gap-3；主副文本紧凑堆叠；图标 muted 色作"可点击"视觉锚点 */}
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              <DropdownMenu>
-                {/* 用户区（参考 shadcn sidebar 模式）：圆形头像 + 两行文本（昵称/邮箱）+ ChevronsUpDown 暗示上拉菜单 */}
-                <DropdownMenuTrigger render={<SidebarMenuButton />}>
-                  <Avatar className="size-6 shrink-0">
-                    <AvatarFallback className="text-[10px]">
-                      {me?.user.nickname.slice(0, 1) ?? "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex min-w-0 flex-1 flex-col items-start text-left group-data-[collapsible=icon]:hidden">
-                    <span className="truncate text-sm font-medium leading-tight">
-                      {me?.user.nickname ?? "…"}
-                    </span>
-                    <span className="truncate text-xs leading-tight text-muted-foreground">
-                      {me?.user.email ?? me?.user.username ?? ""}
-                    </span>
-                  </div>
-                  <ChevronsUpDownIcon className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
-                </DropdownMenuTrigger>
+              <div className="rounded-lg bg-linear-to-b from-sidebar-border/60 to-transparent p-px">
+                <div className="rounded-[calc(var(--radius-lg)-1px)] bg-card">
+                  <DropdownMenu>
+                    {/* 用户区（参考 shadcn sidebar 模式）：圆形头像 + 两行文本（昵称/邮箱）+ ChevronsUpDown 暗示上拉菜单 */}
+                    <DropdownMenuTrigger
+                      render={<SidebarMenuButton className="gap-3 px-3" />}
+                    >
+                      <Avatar className="size-8 shrink-0">
+                        <AvatarFallback className="text-xs">
+                          {me?.user.nickname.slice(0, 1) ?? "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left group-data-[collapsible=icon]:hidden">
+                        <span className="truncate text-sm font-semibold leading-tight text-foreground">
+                          {me?.user.nickname ?? "…"}
+                        </span>
+                        <span className="truncate text-xs leading-tight text-muted-foreground">
+                          {me?.user.email ?? me?.user.username ?? ""}
+                        </span>
+                      </div>
+                      <ChevronsUpDownIcon className="ml-auto size-4 shrink-0 text-muted-foreground transition-colors group-data-[collapsible=icon]:hidden" />
+                    </DropdownMenuTrigger>
                 <DropdownMenuContent side="top" align="start" className="min-w-48">
                   {/* Label 必须包在 Group 内：Base UI 1.7 的 GroupLabel 无 Group 上下文会抛
                       MenuGroupContext is missing → 渲染错误卸载整树（曾导致点击用户菜单白屏） */}
@@ -333,6 +339,8 @@ export default function AppLayout(): JSX.Element {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+                </div>
+              </div>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
