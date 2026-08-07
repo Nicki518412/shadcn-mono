@@ -98,10 +98,10 @@ function OtpLoginForm({
               value={code}
               onChange={setCode}
               inputMode="numeric"
-              containerClassName="w-full"
+              containerClassName="w-full justify-center"
             >
-              {/* 适中尺寸格子（size-9）两端对齐（justify-between）：首格贴左、末格贴右，中间均分间隙 */}
-              <InputOTPGroup className="w-full justify-between">
+              {/* 适中尺寸格子（size-9）居中排列，加大间距（gap-3） */}
+              <InputOTPGroup className="gap-3">
                 {[0, 1, 2, 3, 4, 5].map((slotIndex) => (
                   <InputOTPSlot key={slotIndex} index={slotIndex} className="size-9 rounded-md" />
                 ))}
