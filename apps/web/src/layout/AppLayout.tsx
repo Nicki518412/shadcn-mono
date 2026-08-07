@@ -7,7 +7,7 @@ import { Collapsible } from "@base-ui/react/collapsible"
 import {
   BellIcon,
   ChevronRightIcon,
-  ChevronUpIcon,
+  ChevronsUpDownIcon,
   LogOutIcon,
   MoonIcon,
   ShieldIcon,
@@ -289,16 +289,22 @@ export default function AppLayout(): JSX.Element {
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
+                {/* 用户区（参考 shadcn sidebar 模式）：圆形头像 + 两行文本（昵称/邮箱）+ ChevronsUpDown 暗示上拉菜单 */}
                 <DropdownMenuTrigger render={<SidebarMenuButton />}>
                   <Avatar className="size-6 shrink-0">
                     <AvatarFallback className="text-[10px]">
                       {me?.user.nickname.slice(0, 1) ?? "?"}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="truncate group-data-[collapsible=icon]:hidden">
-                    {me?.user.nickname ?? "…"}
-                  </span>
-                  <ChevronUpIcon className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
+                  <div className="flex min-w-0 flex-1 flex-col items-start text-left group-data-[collapsible=icon]:hidden">
+                    <span className="truncate text-sm font-medium leading-tight">
+                      {me?.user.nickname ?? "…"}
+                    </span>
+                    <span className="truncate text-xs leading-tight text-muted-foreground">
+                      {me?.user.email ?? me?.user.username ?? ""}
+                    </span>
+                  </div>
+                  <ChevronsUpDownIcon className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="top" align="start" className="min-w-48">
                   {/* Label 必须包在 Group 内：Base UI 1.7 的 GroupLabel 无 Group 上下文会抛
