@@ -2,6 +2,7 @@ import { StrictMode, useState } from "react"
 import type { JSX } from "react"
 import { createRoot } from "react-dom/client"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { ThemeProvider } from "next-themes"
 import { BrowserRouter, Route, Routes } from "react-router"
 
 import { AuthProviderView } from "./auth/AuthProvider"
@@ -27,19 +28,23 @@ const authProvider: AuthProvider = isClerk ? new ClerkAuthProvider() : new JwtAu
 
 function AppShell(): JSX.Element {
   return (
-    <AuthProviderView provider={authProvider}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          {/* path="*" 必须：守卫分支要能匹配根路径 "/" 与全部业务路径（含动态菜单路由）。
-              曾缺失导致 React Router 对 "/" 无匹配 → 白屏（真实浏览器才暴露，组件测试测不到）。
-              守卫内部直接渲染 AppLayout（AppLayout 自带嵌套 Routes：动态菜单路由 + 404）。 */}
-          <Route path="*" element={<RequireAuth />} />
-        </Routes>
-      </BrowserRouter>
-      {/* toast 全局出口（sonner）；next-themes 未挂 Provider 时 useTheme 回落 system，安全 */}
-      <Toaster />
-    </AuthProviderView>
+    // 主题 Provider 挂最外层（QueryClientProvider 之内）：attribute="class" 与 index.css 的
+    // @custom-variant dark 匹配；defaultTheme=system 跟随系统偏好，enableSystem 允许后续切换
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <AuthProviderView provider={authProvider}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            {/* path="*" 必须：守卫分支要能匹配根路径 "/" 与全部业务路径（含动态菜单路由）。
+                曾缺失导致 React Router 对 "/" 无匹配 → 白屏（真实浏览器才暴露，组件测试测不到）。
+                守卫内部直接渲染 AppLayout（AppLayout 自带嵌套 Routes：动态菜单路由 + 404）。 */}
+            <Route path="*" element={<RequireAuth />} />
+          </Routes>
+        </BrowserRouter>
+        {/* toast 全局出口（sonner）：ThemeProvider 已挂载，useTheme 返回真实主题，随系统/手动切换 */}
+        <Toaster />
+      </AuthProviderView>
+    </ThemeProvider>
   )
 }
 

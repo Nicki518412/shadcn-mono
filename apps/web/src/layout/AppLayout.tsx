@@ -1,16 +1,15 @@
-import { useMemo } from "react"
+import { Fragment, useMemo } from "react"
 import type { JSX } from "react"
 import { useQueryClient } from "@tanstack/react-query"
+import { useTheme } from "next-themes"
 import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router"
 import { Collapsible } from "@base-ui/react/collapsible"
-import { ChevronRightIcon, LogOutIcon } from "lucide-react"
+import { ChevronRightIcon, LogOutIcon, MoonIcon, ShieldIcon, SunIcon } from "lucide-react"
 
 import type { components } from "@/api/schema"
 import { useAuth } from "@/auth/AuthProvider"
 import ErrorBoundary from "@/components/business/ErrorBoundary"
 import { Button } from "@/components/ui/button"
-import { ME_QUERY_KEY, useMeQuery } from "@/router/guards"
-import { menuToRoutes } from "@/router/generateRoutes"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +22,7 @@ import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -34,23 +34,29 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
 import ForbiddenPage from "@/pages/ForbiddenPage"
 import NotFoundPage from "@/pages/NotFoundPage"
+import { ME_QUERY_KEY, useMeQuery } from "@/router/guards"
+import { menuToRoutes } from "@/router/generateRoutes"
 
 type MenuNode = components["schemas"]["MenuNode"]
 
 /**
  * MENU → SidebarMenuButton 渲染为 NavLink（end：对齐 aria-current 与视觉精确匹配，
- * 避免 to="/" 时前缀匹配导致的常驻高亮）；isActive 驱动 data-active 高亮
+ * 避免 to="/" 时前缀匹配导致的常驻高亮）；isActive 驱动 data-active 高亮，
+ * 另加左侧竖向指示条（after 伪元素）强化激活态
  */
 function MenuLink({ node }: { node: MenuNode }): JSX.Element | null {
   const location = useLocation()
+  const isActive = location.pathname === node.path
   if (!node.path) return null
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
         render={<NavLink to={node.path} end />}
-        isActive={location.pathname === node.path}
+        isActive={isActive}
+        className="relative after:absolute after:inset-y-1.5 after:left-0 after:w-0.5 after:rounded-full after:bg-sidebar-primary after:opacity-0 data-active:after:opacity-100"
       >
         <span>{node.name}</span>
       </SidebarMenuButton>
@@ -117,7 +123,7 @@ function SubMenuEntry({ node }: { node: MenuNode }): JSX.Element | null {
   )
 }
 
-/** 递归渲染 navTree：MENU → 链接；DIR → 可折叠分组；BUTTON → 跳过 */
+/** 递归渲染导航（组内使用）：MENU → 链接；DIR → 可折叠分组；BUTTON → 跳过 */
 function MenuList({ nodes }: { nodes: MenuNode[] }): JSX.Element {
   return (
     <>
@@ -130,15 +136,127 @@ function MenuList({ nodes }: { nodes: MenuNode[] }): JSX.Element {
   )
 }
 
+/**
+ * 侧边栏导航分组（语义分组替代单扁平列表）：
+ * 顶层 MENU → 归入固定 "总览" 组；每个顶层 DIR → 以其名为组标签的 SidebarGroup，
+ * 子级直接作为组内菜单项（常显，无需可折叠）；嵌套 DIR 保持 Collapsible 递归
+ */
+function Navigation({ navTree }: { navTree: MenuNode[] }): JSX.Element {
+  const overview = navTree.filter((node) => node.type === "MENU")
+  const dirGroups = navTree.filter((node) => node.type === "DIR")
+  return (
+    <>
+      {overview.length > 0 && (
+        <SidebarGroup>
+          <SidebarGroupLabel>总览</SidebarGroupLabel>
+          <SidebarMenu>
+            {overview.map((node) => (
+              <MenuLink key={node.id} node={node} />
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+      )}
+      {dirGroups.map((node) => (
+        <SidebarGroup key={node.id}>
+          <SidebarGroupLabel>{node.name}</SidebarGroupLabel>
+          <SidebarMenu>
+            <MenuList nodes={node.children} />
+          </SidebarMenu>
+        </SidebarGroup>
+      ))}
+    </>
+  )
+}
+
+/** 沿 navTree 查找 pathname 对应 MENU 的祖先链（含自身）；未命中返回 null */
+function findMenuTrail(
+  nodes: MenuNode[],
+  pathname: string,
+  ancestors: MenuNode[] = [],
+): MenuNode[] | null {
+  for (const node of nodes) {
+    if (node.type === "MENU" && node.path === pathname) return [...ancestors, node]
+    const found = findMenuTrail(node.children, pathname, [...ancestors, node])
+    if (found) return found
+  }
+  return null
+}
+
+/** 顶栏面包屑：祖先后缀链（如 系统管理 / 用户管理）；无匹配路径显示 "控制台" 兜底 */
+function Breadcrumb({ trail }: { trail: MenuNode[] | null }): JSX.Element {
+  if (!trail || trail.length === 0) {
+    return <span className="text-sm font-medium">控制台</span>
+  }
+  return (
+    <nav aria-label="面包屑导航" className="flex min-w-0 items-center gap-1.5 text-sm">
+      {trail.map((node, index) => {
+        const isLast = index === trail.length - 1
+        return (
+          <Fragment key={node.id}>
+            {index > 0 && (
+              <ChevronRightIcon className="size-3.5 shrink-0 text-muted-foreground/60" />
+            )}
+            <span
+              className={cn(
+                "truncate",
+                isLast ? "font-medium text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {node.name}
+            </span>
+          </Fragment>
+        )
+      })}
+    </nav>
+  )
+}
+
+/** 主题切换按钮：按 resolvedTheme 在 Sun/Moon 间十字旋转渐变切换；点击在亮/暗间切换 */
+function ThemeToggle(): JSX.Element {
+  const { resolvedTheme, setTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
+  const label = isDark ? "切换到亮色主题" : "切换到暗色主题"
+  return (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      className="relative"
+      aria-label={label}
+      title={label}
+      onClick={() => {
+        setTheme(isDark ? "light" : "dark")
+      }}
+    >
+      <SunIcon
+        className={cn(
+          "size-4 transition-all duration-300",
+          isDark ? "rotate-0 scale-100" : "-rotate-90 scale-0",
+        )}
+      />
+      <MoonIcon
+        className={cn(
+          "absolute inset-0 m-auto size-4 transition-all duration-300",
+          isDark ? "rotate-90 scale-0" : "rotate-0 scale-100",
+        )}
+      />
+    </Button>
+  )
+}
+
 export default function AppLayout(): JSX.Element {
   const auth = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const location = useLocation()
   const { data: me } = useMeQuery()
 
   // 路由在 me 数据就绪后生成（navTree 变化 → 重建）；RequireAuth 已拉取同 key 查询，共享缓存
   const navTree = me?.navTree ?? []
   const routes = useMemo(() => menuToRoutes(navTree), [navTree])
+  const trail = useMemo(
+    () => findMenuTrail(navTree, location.pathname),
+    [navTree, location.pathname],
+  )
 
   async function handleLogout(): Promise<void> {
     await auth.logout()
@@ -150,21 +268,30 @@ export default function AppLayout(): JSX.Element {
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
-        <SidebarHeader>
-          <div className="px-2 py-1 text-sm font-semibold">Admin Console</div>
+        {/* 品牌区：logo 标记 + 字标 + 副标题；折叠为 icon 模式时仅保留居中的 logo */}
+        <SidebarHeader className="h-14 justify-center px-3 group-data-[collapsible=icon]:px-0">
+          <div className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+              <ShieldIcon className="size-4" />
+            </div>
+            <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+              <p className="truncate text-sm font-semibold leading-tight">Admin Console</p>
+              <p className="truncate text-xs leading-tight text-sidebar-foreground/60">
+                RBAC 管理后台
+              </p>
+            </div>
+          </div>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarMenu>
-              <MenuList nodes={navTree} />
-            </SidebarMenu>
-          </SidebarGroup>
+          <Navigation navTree={navTree} />
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger />
-          <div className="ml-auto">
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Breadcrumb trail={trail} />
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
                 <span className="max-w-40 truncate">{me?.user.nickname ?? "…"}</span>
@@ -186,17 +313,20 @@ export default function AppLayout(): JSX.Element {
           </div>
         </header>
         <main className="flex-1 overflow-auto p-4">
-          {/* 错误边界只包内层 Routes：页面渲染抛错时兜底，侧边栏/顶栏与登录流程不受影响 */}
-          <ErrorBoundary>
-            <Routes>
-              {routes.map((route) => (
-                <Route key={route.path} path={route.path} element={route.element} />
-              ))}
-              {/* 403 兜底：权限交集已过滤导航，此路由供错误边界/未来扩展或手动访问使用 */}
-              <Route path="/403" element={<ForbiddenPage />} />
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-          </ErrorBoundary>
+          {/* 内层容器统一页面留白与最大宽度（大屏限宽保持版式比例） */}
+          <div className="mx-auto w-full max-w-7xl px-6 py-6">
+            {/* 错误边界只包内层 Routes：页面渲染抛错时兜底，侧边栏/顶栏与登录流程不受影响 */}
+            <ErrorBoundary>
+              <Routes>
+                {routes.map((route) => (
+                  <Route key={route.path} path={route.path} element={route.element} />
+                ))}
+                {/* 403 兜底：权限交集已过滤导航，此路由供错误边界/未来扩展或手动访问使用 */}
+                <Route path="/403" element={<ForbiddenPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </ErrorBoundary>
+          </div>
         </main>
       </SidebarInset>
     </SidebarProvider>
