@@ -305,8 +305,8 @@ export default function AppLayout(): JSX.Element {
                     </DropdownMenuLabel>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
+                  {/* 退出登录用主题默认配色（不用 destructive 红色——跟随明暗主题） */}
                   <DropdownMenuItem
-                    variant="destructive"
                     onClick={() => {
                       void handleLogout()
                     }}
