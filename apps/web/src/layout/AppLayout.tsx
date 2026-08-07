@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -284,7 +285,11 @@ export default function AppLayout(): JSX.Element {
                 <span className="max-w-40 truncate">{me?.user.nickname ?? "…"}</span>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{me?.user.nickname ?? "…"}</DropdownMenuLabel>
+                {/* Label 必须包在 Group 内：Base UI 1.7 的 GroupLabel 无 Group 上下文会抛
+                    MenuGroupContext is missing → 渲染错误卸载整树（曾导致点击用户菜单白屏） */}
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>{me?.user.nickname ?? "…"}</DropdownMenuLabel>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   variant="destructive"
