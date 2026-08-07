@@ -4,7 +4,17 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useTheme } from "next-themes"
 import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router"
 import { Collapsible } from "@base-ui/react/collapsible"
-import { ChevronRightIcon, LogOutIcon, MoonIcon, ShieldIcon, SunIcon } from "lucide-react"
+import {
+  BellIcon,
+  ChevronRightIcon,
+  ChevronUpIcon,
+  LogOutIcon,
+  MoonIcon,
+  ShieldIcon,
+  SunIcon,
+} from "lucide-react"
+
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 import type { components } from "@/api/schema"
 import { useAuth } from "@/auth/AuthProvider"
@@ -22,6 +32,7 @@ import {
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarHeader,
@@ -273,36 +284,68 @@ export default function AppLayout(): JSX.Element {
         <SidebarContent>
           <Navigation navTree={navTree} />
         </SidebarContent>
+        {/* 用户区在侧边栏底部（管理端惯例）：用户相关操作置于底部，顶栏留给工具按钮 */}
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<SidebarMenuButton />}>
+                  <Avatar className="size-6 shrink-0">
+                    <AvatarFallback className="text-[10px]">
+                      {me?.user.nickname.slice(0, 1) ?? "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate group-data-[collapsible=icon]:hidden">
+                    {me?.user.nickname ?? "…"}
+                  </span>
+                  <ChevronUpIcon className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" align="start" className="min-w-48">
+                  {/* Label 必须包在 Group 内：Base UI 1.7 的 GroupLabel 无 Group 上下文会抛
+                      MenuGroupContext is missing → 渲染错误卸载整树（曾导致点击用户菜单白屏） */}
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-medium text-foreground">
+                          {me?.user.nickname ?? "…"}
+                        </span>
+                        <span className="text-xs font-normal text-muted-foreground">
+                          {me?.user.username ?? ""}
+                        </span>
+                      </div>
+                    </DropdownMenuLabel>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => {
+                      void handleLogout()
+                    }}
+                  >
+                    <LogOutIcon />
+                    退出登录
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+        <header className="flex h-14 shrink-0 items-center gap-1.5 border-b px-4">
           <SidebarTrigger className="-ml-1" />
+          <ThemeToggle />
+          {/* 消息通知：暂无功能，占位按钮（后续接入通知中心） */}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="消息通知（即将上线）"
+            title="消息通知（即将上线）"
+            disabled
+          >
+            <BellIcon className="size-4" />
+          </Button>
           <Breadcrumb trail={trail} />
-          <div className="ml-auto flex shrink-0 items-center gap-1.5">
-            <ThemeToggle />
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
-                <span className="max-w-40 truncate">{me?.user.nickname ?? "…"}</span>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {/* Label 必须包在 Group 内：Base UI 1.7 的 GroupLabel 无 Group 上下文会抛
-                    MenuGroupContext is missing → 渲染错误卸载整树（曾导致点击用户菜单白屏） */}
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>{me?.user.nickname ?? "…"}</DropdownMenuLabel>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  variant="destructive"
-                  onClick={() => {
-                    void handleLogout()
-                  }}
-                >
-                  <LogOutIcon />
-                  退出登录
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
         </header>
         <main className="flex-1 overflow-auto p-4">
           {/* 内层容器统一页面留白与最大宽度（大屏限宽保持版式比例） */}
