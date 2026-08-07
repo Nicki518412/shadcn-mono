@@ -348,9 +348,6 @@ export default function LoginPage() {
               />
             </TabsContent>
           </Tabs>
-          <p className="mt-4 text-center text-xs text-muted-foreground/70">
-            开发模式：验证码打印在 api 控制台（DevOtpSender）
-          </p>
         </div>
       </main>
     </div>

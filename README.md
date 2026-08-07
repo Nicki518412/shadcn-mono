@@ -66,6 +66,8 @@ export interface OtpSender {
 
 当前导出 `otpSender = new DevOtpSender()`：验证码打印到控制台，并**明文回写** `OtpCode.devPlainCode`（本地测试/演示用）。接入真实通道：实现该接口（调用短信/邮件服务商 API）后替换导出即可。
 
+> **开发模式提示**：使用邮箱/手机动态码登录时，验证码打印在 **api 进程的控制台**（`[DevOtpSender] EMAIL/SMS → 目标: 验证码 xxxxxx`）——登录页不再展示该提示，留意运行 `pnpm dev` 的终端输出。
+
 > **明文回写逻辑只存在于 `DevOtpSender` 内**（`recordPlainCode`，60 秒窗口内回写同 target 最新记录）。真实实现不包含它——**换实现即自动停用明文通道**，无需额外改动。
 >
 > 动态码业务参数（5 分钟有效、60 秒冷却、5 次尝试上限、sha256 存储）见 `apps/api/src/routes/otp.ts`。
