@@ -36,6 +36,13 @@ const userUpdateSchema = userCreateSchema
 
 const roleIdsSchema = z.object({ roleIds: z.array(z.string()) })
 
+// 个人资料更新（/users/me）：昵称/邮箱/手机号；null 清空、undefined 不修改
+const meUpdateSchema = z.object({
+  nickname: z.string().min(1).max(64).optional(),
+  email: z.string().email().nullable().optional(),
+  telephone: z.string().min(5).max(32).nullable().optional(),
+})
+
 /** P2002 字段 → 409 message 映射（create/PATCH 共用） */
 const USER_UNIQUE_FIELDS = {
   username: "用户名已存在",
@@ -176,6 +183,40 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
     async (c) => {
       const { id } = c.req.valid("param")
       return c.json({ code: 0, data: toUserDetail(await fetchUserDetail(id)), message: "ok" }, 200)
+    },
+  )
+
+  // 个人资料（自己改自己）：仅 nickname/email/telephone——username/status/角色等由管理员管理。
+  // 路径字面量 me 必须注册在 /users/{id} 之前（Hono 顺序匹配）
+  app.openapi(
+    createRoute({
+      method: "patch",
+      path: "/api/users/me",
+      middleware: [authenticate(cfg)],
+      request: { body: { content: { "application/json": { schema: meUpdateSchema } } } },
+      responses: {
+        200: { description: "更新成功", ...okBody(userDetailSchema) },
+        400: { description: "参数错误", content: { "application/json": { schema: errorBodySchema } } },
+        401: { description: "未登录", content: { "application/json": { schema: errorBodySchema } } },
+        409: { description: "邮箱/手机号已存在", content: { "application/json": { schema: errorBodySchema } } },
+      },
+    }),
+    async (c) => {
+      const userId = c.get("userId")
+      const { nickname, email, telephone } = c.req.valid("json")
+      const data: Prisma.UserUpdateInput = {}
+      if (nickname !== undefined) data.nickname = nickname
+      // exactOptionalPropertyTypes 分派：undefined 不修改、null 显式清空、string 小写写入
+      if (email !== undefined) data.email = email === null ? null : email.toLowerCase()
+      if (telephone !== undefined) data.telephone = telephone
+      try {
+        await prisma.user.update({ where: { id: userId }, data })
+        return c.json({ code: 0, data: toUserDetail(await fetchUserDetail(userId)), message: "ok" }, 200)
+      } catch (err) {
+        const message = p2002FieldMessage(err, USER_UNIQUE_FIELDS)
+        if (message !== null) throw conflict(message)
+        throw err
+      }
     },
   )
 

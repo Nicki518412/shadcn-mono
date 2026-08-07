@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from "react"
+import { Fragment, useMemo, useState } from "react"
 import type { JSX } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router"
@@ -16,7 +16,6 @@ import {
   LogOutIcon,
   SettingsIcon,
 } from "lucide-react"
-import { toast } from "sonner"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
@@ -51,6 +50,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { ProfileDialog } from "@/features/system/user/ProfileDialog"
 import { iconByName } from "@/lib/icons"
 import { cn } from "@/lib/utils"
 import ForbiddenPage from "@/pages/ForbiddenPage"
@@ -231,6 +231,7 @@ export default function AppLayout(): JSX.Element {
   const queryClient = useQueryClient()
   const location = useLocation()
   const { data: me } = useMeQuery()
+  const [profileOpen, setProfileOpen] = useState(false)
 
   // 路由在 me 数据就绪后生成（navTree 变化 → 重建）；RequireAuth 已拉取同 key 查询，共享缓存
   const navTree = me?.navTree ?? []
@@ -248,6 +249,7 @@ export default function AppLayout(): JSX.Element {
   }
 
   return (
+    <>
     <SidebarProvider>
       <Sidebar collapsible="icon">
         {/* 品牌区：字母 mark（渐变方块 + P）+ 字标；折叠为 icon 模式时仅保留居中的 mark */}
@@ -311,10 +313,10 @@ export default function AppLayout(): JSX.Element {
                     </DropdownMenuLabel>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  {/* 用户设置：功能开发中（占位入口） */}
+                  {/* 用户设置：打开个人资料编辑弹窗（自己改自己的昵称/邮箱/手机号） */}
                   <DropdownMenuItem
                     onClick={() => {
-                      toast.info("用户设置功能开发中")
+                      setProfileOpen(true)
                     }}
                   >
                     <SettingsIcon className="size-4" />
@@ -371,5 +373,15 @@ export default function AppLayout(): JSX.Element {
         </main>
       </SidebarInset>
     </SidebarProvider>
+      {/* 用户设置弹窗（个人资料编辑）：条件挂载，me 就绪后可用 */}
+      {profileOpen && me?.user && (
+        <ProfileDialog
+          user={me.user}
+          onClose={() => {
+            setProfileOpen(false)
+          }}
+        />
+      )}
+    </>
   )
 }

@@ -356,4 +356,47 @@ describe("users CRUD", () => {
     const updated = await prisma.user.findUnique({ where: { id: user.id } })
     expect(updated?.email).toBeNull()
   })
+
+  it("PATCH /users/me：修改个人资料（昵称/邮箱/手机号，无需 system:user:update 权限）", async () => {
+    const app = createApp()
+    const token = await loginAdmin()
+    const res = await app.request("/api/users/me", {
+      method: "PATCH",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ nickname: "管理员改", email: "Me@Example.com", telephone: "13900000000" }),
+    })
+    expect(res.status).toBe(200)
+    const updated = await prisma.user.findUnique({ where: { username: "perm_admin" } })
+    // email 统一小写写入
+    expect(updated?.nickname).toBe("管理员改")
+    expect(updated?.email).toBe("me@example.com")
+    expect(updated?.telephone).toBe("13900000000")
+  })
+
+  it("PATCH /users/me：未登录 401；邮箱冲突 409", async () => {
+    await prisma.user.create({
+      data: {
+        username: "me_holder",
+        passwordHash: await hashPassword("Passw0rd!"),
+        nickname: "占位",
+        email: "me_holder@example.com",
+      },
+    })
+    const app = createApp()
+    const noAuth = await app.request("/api/users/me", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ nickname: "x" }),
+    })
+    expect(noAuth.status).toBe(401)
+
+    const token = await loginAdmin()
+    const conflict = await app.request("/api/users/me", {
+      method: "PATCH",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ email: "me_holder@example.com" }),
+    })
+    expect(conflict.status).toBe(409)
+    expect((await conflict.json()).message).toContain("邮箱")
+  })
 })
