@@ -6,13 +6,6 @@ import { useNavigate } from "react-router"
 import { useAuth } from "@/auth/AuthProvider"
 import type { OtpChannel } from "@/auth/types"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Field, FieldContent, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
@@ -198,129 +191,168 @@ export default function LoginPage() {
   if (import.meta.env.VITE_AUTH_PROVIDER === "clerk") {
     // Clerk 托管登录：hash 路由（SPA 无需宿主路由集成），登录成功跳转 fallbackRedirectUrl
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background p-4">
+      <main className="flex min-h-svh items-center justify-center bg-background p-4">
         <SignIn routing="hash" fallbackRedirectUrl="/" />
       </main>
     )
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        {/* 品牌标记：与 AppLayout 侧边栏品牌区一致（盾牌 + 方形底色），登录页独立成品牌锚点 */}
-        <div className="mb-5 flex justify-center">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+    <div className="grid min-h-svh lg:grid-cols-2">
+      {/* 品牌面板（lg 起显示）：固定深色不随主题——登录页品牌锚点惯例（参考 shadcn split-brand blocks）。
+          氛围用纯 CSS：径向光晕 + 32px 网格线，aria-hidden 装饰层 */}
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-zinc-950 p-12 text-zinc-50 lg:flex">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_15%,rgba(255,255,255,0.09),transparent_55%),linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-size-[auto,32px_32px,32px_32px]"
+        />
+        <div className="relative flex items-center gap-3">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-zinc-50 text-zinc-950">
             <ShieldIcon className="size-4" />
           </div>
+          <div>
+            <p className="text-sm font-semibold">Admin Console</p>
+            <p className="text-xs text-zinc-400">RBAC 管理后台</p>
+          </div>
         </div>
-        <Card className="shadow-sm [--card-spacing:--spacing(6)]">
-          <CardHeader className="justify-items-center gap-1.5 text-center">
-            <CardTitle className="text-xl font-semibold">管理后台登录</CardTitle>
-            <CardDescription>登录管理后台，管理用户、角色与菜单权限</CardDescription>
-            <p className="text-xs text-muted-foreground/70">
-              开发模式：验证码打印在 api 控制台（DevOtpSender）
+        <div className="relative flex flex-col gap-8">
+          <h1 className="text-3xl font-semibold leading-snug">
+            权限清晰，
+            <br />
+            从登录开始。
+          </h1>
+          <ul className="flex flex-col gap-3 text-sm text-zinc-400">
+            <li className="flex items-center gap-2">
+              <span className="size-1 rounded-full bg-zinc-600" aria-hidden />
+              多角色权限取交集，所见即权限所得
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="size-1 rounded-full bg-zinc-600" aria-hidden />
+              账号密码 · 邮箱动态码 · 手机动态码
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="size-1 rounded-full bg-zinc-600" aria-hidden />
+              明暗主题自由切换
+            </li>
+          </ul>
+        </div>
+        <p className="relative text-xs text-zinc-600">© 2026 Admin Console</p>
+      </aside>
+
+      {/* 表单区：小屏隐藏品牌面板，顶部补品牌 mark；lg 起为独立列 */}
+      <main className="flex items-center justify-center bg-background p-6">
+        <div className="w-full max-w-sm">
+          <div className="mb-6 flex items-center justify-center gap-2 lg:hidden">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+              <ShieldIcon className="size-4" />
+            </div>
+            <span className="text-sm font-semibold">Admin Console</span>
+          </div>
+          <div className="mb-6">
+            <h1 className="text-2xl font-semibold">管理后台登录</h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">登录管理后台，管理用户、角色与菜单权限</p>
+          </div>
+          {error && (
+            <p role="alert" className="mb-4 text-sm text-destructive">
+              {error}
             </p>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {error && (
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
-            )}
-            <Tabs defaultValue="password">
-              <TabsList className="w-full">
-                <TabsTrigger value="password">账号密码</TabsTrigger>
-                <TabsTrigger value="email">邮箱动态码</TabsTrigger>
-                <TabsTrigger value="telephone">手机动态码</TabsTrigger>
-              </TabsList>
-              <TabsContent value="password" className="py-5">
-                <form
-                  className="flex flex-col gap-4"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    void handlePasswordSubmit()
-                  }}
-                >
-                  <FieldGroup>
-                    <Field>
-                      <FieldLabel htmlFor="login-username">用户名</FieldLabel>
-                      <FieldContent>
-                        <Input
-                          id="login-username"
-                          value={username}
-                          onChange={(event) => {
-                            setUsername(event.target.value)
-                          }}
-                          placeholder="用户名"
-                          autoComplete="username"
-                          className="h-10"
-                        />
-                      </FieldContent>
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="login-password">密码</FieldLabel>
-                      <FieldContent>
-                        <Input
-                          id="login-password"
-                          type="password"
-                          value={password}
-                          onChange={(event) => {
-                            setPassword(event.target.value)
-                          }}
-                          placeholder="密码"
-                          autoComplete="current-password"
-                          className="h-10"
-                        />
-                      </FieldContent>
-                    </Field>
-                  </FieldGroup>
-                  <Button type="submit" disabled={pending} className="h-10 w-full">
-                    {pending ? (
-                      <>
-                        <Spinner /> 登录中…
-                      </>
-                    ) : (
-                      "登录"
-                    )}
-                  </Button>
-                </form>
-              </TabsContent>
-              <TabsContent value="email" className="py-5">
-                <OtpLoginForm
-                  channel="email"
-                  targetLabel="邮箱"
-                  targetPlaceholder="name@example.com"
-                  cooldown={otpCooldown}
-                  sending={sendingChannel === "email"}
-                  pending={pending}
-                  onSend={(target) => {
-                    void handleSendOtp("email", target)
-                  }}
-                  onLogin={(target, code) => {
-                    void handleOtpLogin("email", target, code)
-                  }}
-                />
-              </TabsContent>
-              <TabsContent value="telephone" className="py-5">
-                <OtpLoginForm
-                  channel="telephone"
-                  targetLabel="手机号"
-                  targetPlaceholder="13800138000"
-                  cooldown={otpCooldown}
-                  sending={sendingChannel === "telephone"}
-                  pending={pending}
-                  onSend={(target) => {
-                    void handleSendOtp("telephone", target)
-                  }}
-                  onLogin={(target, code) => {
-                    void handleOtpLogin("telephone", target, code)
-                  }}
-                />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
-    </main>
+          )}
+          <Tabs defaultValue="password">
+            <TabsList className="w-full">
+              <TabsTrigger value="password">账号密码</TabsTrigger>
+              <TabsTrigger value="email">邮箱动态码</TabsTrigger>
+              <TabsTrigger value="telephone">手机动态码</TabsTrigger>
+            </TabsList>
+            <TabsContent value="password" className="py-5">
+              <form
+                className="flex flex-col gap-4"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  void handlePasswordSubmit()
+                }}
+              >
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="login-username">用户名</FieldLabel>
+                    <FieldContent>
+                      <Input
+                        id="login-username"
+                        value={username}
+                        onChange={(event) => {
+                          setUsername(event.target.value)
+                        }}
+                        placeholder="用户名"
+                        autoComplete="username"
+                        className="h-10"
+                      />
+                    </FieldContent>
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="login-password">密码</FieldLabel>
+                    <FieldContent>
+                      <Input
+                        id="login-password"
+                        type="password"
+                        value={password}
+                        onChange={(event) => {
+                          setPassword(event.target.value)
+                        }}
+                        placeholder="密码"
+                        autoComplete="current-password"
+                        className="h-10"
+                      />
+                    </FieldContent>
+                  </Field>
+                </FieldGroup>
+                <Button type="submit" disabled={pending} className="h-10 w-full">
+                  {pending ? (
+                    <>
+                      <Spinner /> 登录中…
+                    </>
+                  ) : (
+                    "登录"
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+            <TabsContent value="email" className="py-5">
+              <OtpLoginForm
+                channel="email"
+                targetLabel="邮箱"
+                targetPlaceholder="name@example.com"
+                cooldown={otpCooldown}
+                sending={sendingChannel === "email"}
+                pending={pending}
+                onSend={(target) => {
+                  void handleSendOtp("email", target)
+                }}
+                onLogin={(target, code) => {
+                  void handleOtpLogin("email", target, code)
+                }}
+              />
+            </TabsContent>
+            <TabsContent value="telephone" className="py-5">
+              <OtpLoginForm
+                channel="telephone"
+                targetLabel="手机号"
+                targetPlaceholder="13800138000"
+                cooldown={otpCooldown}
+                sending={sendingChannel === "telephone"}
+                pending={pending}
+                onSend={(target) => {
+                  void handleSendOtp("telephone", target)
+                }}
+                onLogin={(target, code) => {
+                  void handleOtpLogin("telephone", target, code)
+                }}
+              />
+            </TabsContent>
+          </Tabs>
+          <p className="mt-4 text-center text-xs text-muted-foreground/70">
+            开发模式：验证码打印在 api 控制台（DevOtpSender）
+          </p>
+        </div>
+      </main>
+    </div>
   )
 }
