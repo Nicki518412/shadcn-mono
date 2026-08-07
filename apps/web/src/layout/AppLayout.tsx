@@ -286,7 +286,7 @@ export default function AppLayout(): JSX.Element {
               <ShieldIcon className="size-4" />
             </div>
             <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-              <p className="truncate text-sm font-semibold leading-tight">Admin Console</p>
+              <p className="truncate text-sm font-semibold leading-tight">Panel</p>
               <p className="truncate text-xs leading-tight text-sidebar-foreground/60">
                 RBAC 管理后台
               </p>

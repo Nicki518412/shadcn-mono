@@ -213,7 +213,7 @@ export default function LoginPage() {
             <ShieldIcon className="size-4" />
           </div>
           <div>
-            <p className="text-sm font-semibold">Admin Console</p>
+            <p className="text-sm font-semibold">Panel</p>
             <p className="text-xs text-zinc-400">RBAC 管理后台</p>
           </div>
         </div>
@@ -238,7 +238,7 @@ export default function LoginPage() {
             </li>
           </ul>
         </div>
-        <p className="relative text-xs text-zinc-600">© 2026 Admin Console</p>
+        <p className="relative text-xs text-zinc-600">© 2026 Panel</p>
       </aside>
 
       {/* 表单区：小屏隐藏品牌面板，顶部补品牌 mark；lg 起为独立列 */}
@@ -248,7 +248,7 @@ export default function LoginPage() {
             <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
               <ShieldIcon className="size-4" />
             </div>
-            <span className="text-sm font-semibold">Admin Console</span>
+            <span className="text-sm font-semibold">Panel</span>
           </div>
           <div className="mb-6">
             <h1 className="text-2xl font-semibold">管理后台登录</h1>

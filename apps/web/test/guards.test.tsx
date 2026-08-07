@@ -97,7 +97,7 @@ describe("RequireAuth", () => {
 
     // AppLayout 侧边栏标题为渲染标志（navTree 空 → 内部路由 * → NotFoundPage）
     await waitFor(() => {
-      expect(screen.getByText("Admin Console")).toBeInTheDocument()
+      expect(screen.getByText("Panel")).toBeInTheDocument()
     })
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
