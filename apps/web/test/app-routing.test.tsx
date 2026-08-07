@@ -43,4 +43,51 @@ describe("app routing", () => {
     render(<App />)
     expect(await screen.findByText("管理后台登录")).toBeInTheDocument()
   })
+
+  it("已登录访问 / → 渲染 AppLayout（侧边栏）与 Dashboard", async () => {
+    window.history.pushState({}, "", "/")
+    // 会话有效：/auth/me 返回完整 MeResponse（user + roles + navTree + permissionCodes）
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : "url" in input ? input.url : input.href
+      if (url.includes("/auth/me")) {
+        return new Response(
+          JSON.stringify({
+            code: 0,
+            data: {
+              user: { id: "u1", username: "admin", nickname: "系统管理员", email: "admin@example.com", telephone: null },
+              roles: [{ id: "r1", name: "管理员", code: "ADMIN" }],
+              navTree: [
+                {
+                  id: "dash", parentId: null, name: "Dashboard", type: "MENU",
+                  path: "/", component: "dashboard", icon: null, permission: null,
+                  sort: 0, status: true, children: [],
+                },
+                {
+                  id: "sys", parentId: null, name: "系统管理", type: "DIR",
+                  path: null, component: null, icon: null, permission: null,
+                  sort: 100, status: true,
+                  children: [
+                    {
+                      id: "m1", parentId: "sys", name: "用户管理", type: "MENU",
+                      path: "/system/user", component: "system/user", icon: null,
+                      permission: "system:user:query", sort: 1, status: true, children: [],
+                    },
+                  ],
+                },
+              ],
+              permissionCodes: ["system:user:query"],
+            },
+            message: "ok",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        )
+      }
+      return new Response(JSON.stringify({ code: 404, message: "not found", data: null }), { status: 404 })
+    }))
+    render(<App />)
+    // 侧边栏标题（AppLayout 渲染标志）
+    expect(await screen.findByText("Admin Console")).toBeInTheDocument()
+    // Dashboard 页面（动态路由 component=dashboard → features/dashboard/page.tsx）
+    expect(await screen.findByText(/欢迎回来/)).toBeInTheDocument()
+  })
 })

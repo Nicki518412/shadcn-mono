@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
-import { Navigate, Outlet, useLocation } from "react-router"
+import { Navigate, useLocation } from "react-router"
 import type { JSX } from "react"
 
 import { api } from "@/api/client"
 import type { components } from "@/api/schema"
 import { useAuth } from "@/auth/AuthProvider"
 import { Spinner } from "@/components/ui/spinner"
+import AppLayout from "@/layout/AppLayout"
 
 type MeResponse = components["schemas"]["MeResponse"]
 
@@ -53,5 +54,7 @@ export function RequireAuth(): JSX.Element {
     return <Navigate to="/login" replace state={{ from: location }} />
   }
 
-  return <Outlet />
+  // 守卫后直接渲染布局（不再用 Outlet + pathless 子路由：React Router v7 下
+  // path="*" 父路由的 pathless 子路由不匹配，Outlet 渲染 null → 登录后白屏的真实根因）
+  return <AppLayout />
 }

@@ -85,7 +85,7 @@ describe("RequireAuth", () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it("有会话：渲染受保护内容", async () => {
+  it("有会话：渲染 AppLayout（守卫直接渲染布局，不再用 Outlet）", async () => {
     // getSession 成功后 queryFn 会继续请求 /auth/me 取 navTree——stub fetch 返回 me 响应
     const fetchMock = vi.fn().mockResolvedValue(
       okResponse({ user: session.user, roles: [], navTree: [], permissionCodes: [] }),
@@ -95,8 +95,9 @@ describe("RequireAuth", () => {
       createMockProvider({ getSession: vi.fn<AuthProvider["getSession"]>().mockResolvedValue(session) }),
     )
 
+    // AppLayout 侧边栏标题为渲染标志（navTree 空 → 内部路由 * → NotFoundPage）
     await waitFor(() => {
-      expect(screen.getByText("受保护内容")).toBeInTheDocument()
+      expect(screen.getByText("Admin Console")).toBeInTheDocument()
     })
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
