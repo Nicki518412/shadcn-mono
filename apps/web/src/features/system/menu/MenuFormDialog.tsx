@@ -229,7 +229,9 @@ export function MenuFormDialog({
                   <SelectContent>
                     {type !== "BUTTON" && <SelectItem value="">无（根目录）</SelectItem>}
                     {parentOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
+                      // label 显式传给 Base UI（ItemText 内是 span 缩进结构，文本提取会失败
+                      // 回退显示 value——显式 label 保证 trigger 显示菜单名称）
+                      <SelectItem key={option.id} value={option.id} label={option.name}>
                         <span style={{ paddingLeft: `${String(option.depth * 12)}px` }}>
                           {option.name}
                         </span>
