@@ -1,28 +1,41 @@
-import { prisma } from "@repo/db"
-
 export interface OtpSender {
   sendEmail(to: string, code: string): Promise<void>
   sendSms(to: string, code: string): Promise<void>
 }
 
-/** 开发实现：打印到控制台，并把明文回写到 devPlainCode（测试明文通道）。接入真实短信/邮件通道时替换此实现（见 README）。 */
+const devCodes = new Map<string, string>()
+
+function codeKey(channel: "email" | "telephone", target: string): string {
+  return `${channel}:${target.toLowerCase()}`
+}
+
+/** 测试辅助：读取 DevOtpSender 最近一次发送的验证码。验证码只留在当前开发进程内，不写数据库。 */
+export function getDevOtpCode(channel: "email" | "telephone", target: string): string | null {
+  return devCodes.get(codeKey(channel, target)) ?? null
+}
+
+/** 开发实现：验证码仅输出到开发控制台并保存在进程内，禁止在生产环境启用。 */
 export class DevOtpSender implements OtpSender {
-  async sendEmail(to: string, code: string): Promise<void> {
+  sendEmail(to: string, code: string): Promise<void> {
     console.log(`[DevOtpSender] EMAIL → ${to}: 验证码 ${code}（5 分钟内有效）`)
-    await recordPlainCode(to, code)
+    devCodes.set(codeKey("email", to), code)
+    return Promise.resolve()
   }
-  async sendSms(to: string, code: string): Promise<void> {
+  sendSms(to: string, code: string): Promise<void> {
     console.log(`[DevOtpSender] SMS → ${to}: 验证码 ${code}（5 分钟内有效）`)
-    await recordPlainCode(to, code)
+    devCodes.set(codeKey("telephone", to), code)
+    return Promise.resolve()
   }
 }
 
-/** 明文回写刚创建的验证码记录（60 秒窗口内同 target 的最新记录；真实发送实现不包含此逻辑） */
-async function recordPlainCode(target: string, code: string): Promise<void> {
-  await prisma.otpCode.updateMany({
-    where: { target, createdAt: { gte: new Date(Date.now() - 60_000) } },
-    data: { devPlainCode: code },
-  })
+class UnconfiguredOtpSender implements OtpSender {
+  sendEmail(): Promise<void> {
+    return Promise.reject(new Error("生产环境尚未配置邮件 OTP Sender"))
+  }
+  sendSms(): Promise<void> {
+    return Promise.reject(new Error("生产环境尚未配置短信 OTP Sender"))
+  }
 }
 
-export const otpSender: OtpSender = new DevOtpSender()
+export const otpSender: OtpSender =
+  process.env.NODE_ENV === "production" ? new UnconfiguredOtpSender() : new DevOtpSender()

@@ -397,6 +397,7 @@ describe("users CRUD", () => {
       body: JSON.stringify({ email: "me_holder@example.com" }),
     })
     expect(conflict.status).toBe(409)
-    expect((await conflict.json()).message).toContain("邮箱")
+    const conflictBody = (await conflict.json()) as { message: string }
+    expect(conflictBody.message).toContain("邮箱")
   })
 })

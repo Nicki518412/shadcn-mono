@@ -24,6 +24,11 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
     openapi: "3.0.0",
     info: API_INFO,
   })
+  app.openAPIRegistry.registerComponent("securitySchemes", "BearerAuth", {
+    type: "http",
+    scheme: "bearer",
+    bearerFormat: "JWT",
+  })
   app.get("/api/docs", swaggerUI({ url: "/api/openapi.json" }))
 
   app.get("/api/health", (c) =>

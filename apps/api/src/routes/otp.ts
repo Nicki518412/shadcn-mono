@@ -13,6 +13,25 @@ const OTP_TTL_MS = 5 * 60 * 1000
 const OTP_COOLDOWN_MS = 60 * 1000
 const OTP_MAX_ATTEMPTS = 5
 
+// 单实例内按 channel+target 串行化 send，关闭“检查冷却后再创建”的并发窗口。
+// 多副本部署仍应在网关或共享存储层配置同维度限流。
+const otpSendTails = new Map<string, Promise<void>>()
+
+async function acquireOtpSendLock(key: string): Promise<() => void> {
+  const previous = otpSendTails.get(key) ?? Promise.resolve()
+  let releaseCurrent = (): void => undefined
+  const gate = new Promise<void>((resolve) => {
+    releaseCurrent = resolve
+  })
+  const tail = previous.then(() => gate)
+  otpSendTails.set(key, tail)
+  await previous
+  return () => {
+    releaseCurrent()
+    if (otpSendTails.get(key) === tail) otpSendTails.delete(key)
+  }
+}
+
 const sendSchema = z.object({
   channel: z.enum(["email", "telephone"]),
   target: z.string().min(3).max(255),
@@ -36,45 +55,46 @@ export function otpRoutes(cfg: AppConfig): OpenAPIHono {
       const { channel, target } = c.req.valid("json")
       const normalized = target.toLowerCase()
       const storedChannel = channel.toUpperCase()
-      // 过期记录按 target 清理（防表无界增长）
-      await prisma.otpCode.deleteMany({
-        where: { channel: storedChannel, target: normalized, expiresAt: { lt: new Date() } },
-      })
-      const latest = await prisma.otpCode.findFirst({
-        where: { channel: storedChannel, target: normalized },
-        orderBy: { createdAt: "desc" },
-      })
-      if (latest && Date.now() - latest.createdAt.getTime() < OTP_COOLDOWN_MS) {
-        throw new HttpError(429, "RATE_LIMITED", "发送过于频繁，请 60 秒后再试")
-      }
-
-      // 已知并发限制（TOCTOU）：冷却检查与 create 之间无原子约束——SQLite 单写者串行掩盖；
-      // MySQL/PG 下并发 send 可能同时通过检查，影响仅多发一条码（login 取最新记录），生产可叠加基础设施限流
-      const code = randomInt(100000, 1000000).toString()
-      const user = await prisma.user.findFirst({
-        where: channel === "email" ? { email: normalized } : { telephone: normalized },
-      })
-      const hash = createHash("sha256").update(code).digest("hex")
-      // 明文不回写：devPlainCode 由 DevOtpSender 内部回写（测试明文通道）；真实发送实现不包含该逻辑，换 sender 即自动停用明文存储
-      await prisma.otpCode.create({
-        data: {
-          channel: storedChannel,
-          target: normalized,
-          codeHash: hash,
-          expiresAt: new Date(Date.now() + OTP_TTL_MS),
-          userId: user?.id ?? null,
-        },
-      })
-      // 防枚举：目标不存在也"发送成功"（不投递）
-      if (user) {
-        // 命中查询字段（email/telephone）时该字段必非空；异常为 null 时静默不投递——保持防枚举语义，不抛错
-        const address = channel === "email" ? user.email : user.telephone
-        if (address !== null) {
-          if (channel === "email") await otpSender.sendEmail(address, code)
-          else await otpSender.sendSms(address, code)
+      const release = await acquireOtpSendLock(`${storedChannel}:${normalized}`)
+      try {
+        // 过期记录按 target 清理（防表无界增长）
+        await prisma.otpCode.deleteMany({
+          where: { channel: storedChannel, target: normalized, expiresAt: { lt: new Date() } },
+        })
+        const latest = await prisma.otpCode.findFirst({
+          where: { channel: storedChannel, target: normalized },
+          orderBy: { createdAt: "desc" },
+        })
+        if (latest && Date.now() - latest.createdAt.getTime() < OTP_COOLDOWN_MS) {
+          throw new HttpError(429, "RATE_LIMITED", "发送过于频繁，请 60 秒后再试")
         }
+
+        const code = randomInt(100000, 1000000).toString()
+        const user = await prisma.user.findFirst({
+          where: channel === "email" ? { email: normalized } : { telephone: normalized },
+        })
+        const hash = createHash("sha256").update(code).digest("hex")
+        await prisma.otpCode.create({
+          data: {
+            channel: storedChannel,
+            target: normalized,
+            codeHash: hash,
+            expiresAt: new Date(Date.now() + OTP_TTL_MS),
+            userId: user?.id ?? null,
+          },
+        })
+        // 防枚举：目标不存在也"发送成功"（不投递）
+        if (user) {
+          const address = channel === "email" ? user.email : user.telephone
+          if (address !== null) {
+            if (channel === "email") await otpSender.sendEmail(address, code)
+            else await otpSender.sendSms(address, code)
+          }
+        }
+        return c.json({ code: 0, data: { sent: true }, message: "ok" }, 200)
+      } finally {
+        release()
       }
-      return c.json({ code: 0, data: { sent: true }, message: "ok" }, 200)
     },
   )
 
@@ -104,15 +124,32 @@ export function otpRoutes(cfg: AppConfig): OpenAPIHono {
       }
       const hash = createHash("sha256").update(code).digest("hex")
       if (hash !== record.codeHash) {
-        await prisma.otpCode.update({ where: { id: record.id }, data: { attempts: { increment: 1 } } })
+        // 条件递增是单条原子语句：并发请求中最多五次能命中 attempts < 5。
+        const attempted = await prisma.otpCode.updateMany({
+          where: {
+            id: record.id,
+            consumedAt: null,
+            expiresAt: { gt: new Date() },
+            attempts: { lt: OTP_MAX_ATTEMPTS },
+          },
+          data: { attempts: { increment: 1 } },
+        })
+        if (attempted.count !== 1) {
+          throw new HttpError(423, "LOCKED", "尝试次数过多，请重新获取验证码")
+        }
         throw new HttpError(401, "INVALID_OTP", "验证码错误")
       }
       const user = await prisma.user.findUnique({ where: { id: record.userId ?? "" } })
       if (!user?.status) throw new HttpError(401, "INVALID_OTP", "账号不可用")
 
-      // 原子消费（CAS）：并发同码重放仅一个请求成功（与 refresh 轮换同模式）
+      // 原子消费同时约束 attempts/过期时间：错误尝试与正确码并发时也不能越过五次上限。
       const consumed = await prisma.otpCode.updateMany({
-        where: { id: record.id, consumedAt: null },
+        where: {
+          id: record.id,
+          consumedAt: null,
+          expiresAt: { gt: new Date() },
+          attempts: { lt: OTP_MAX_ATTEMPTS },
+        },
         data: { consumedAt: new Date() },
       })
       if (consumed.count !== 1) throw new HttpError(401, "INVALID_OTP", "验证码无效或已过期")

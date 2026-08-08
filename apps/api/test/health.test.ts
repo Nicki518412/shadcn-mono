@@ -16,4 +16,16 @@ describe("health", () => {
     const body = await res.json()
     expect(body).toMatchObject({ code: "NOT_FOUND" })
   })
+
+  it("OpenAPI 为受保护端点声明 BearerAuth", () => {
+    const document = createApp().getOpenAPIDocument({
+      openapi: "3.0.0",
+      info: { title: "test", version: "0" },
+    })
+    expect(document.components?.securitySchemes).toMatchObject({
+      BearerAuth: { type: "http", scheme: "bearer" },
+    })
+    expect(document.paths["/api/users"]?.get?.security).toEqual([{ BearerAuth: [] }])
+    expect(document.paths["/api/auth/login"]?.post?.security).toBeUndefined()
+  })
 })

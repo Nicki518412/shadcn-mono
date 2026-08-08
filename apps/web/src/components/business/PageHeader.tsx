@@ -12,7 +12,7 @@ export function PageHeader({
   description?: string
 }): JSX.Element {
   return (
-    <div className="space-y-1">
+    <div className="flex flex-col gap-1">
       <h1 className="font-heading text-xl font-semibold tracking-tight">{title}</h1>
       {description && <p className="text-sm text-muted-foreground">{description}</p>}
     </div>

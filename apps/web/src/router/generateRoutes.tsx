@@ -15,11 +15,33 @@ const pageLoaders = import.meta.glob("../features/**/page.tsx")
 
 type PageModule = () => Promise<{ default: ComponentType }>
 
-/** component 名 → lazy 页面组件；映射不到返回 null（页面未实现时菜单仍显示但点击 404，Task 20-22 补齐） */
+/** component 名 → lazy 页面组件；映射不到返回 null（导航过滤与路由生成共用该注册表）。 */
 function loadPage(component: string): LazyExoticComponent<ComponentType> | null {
   const loader = pageLoaders[`../features/${component}/page.tsx`] as PageModule | undefined
   if (!loader) return null
   return lazy(loader)
+}
+
+function hasPage(component: string | null): component is string {
+  return component !== null && pageLoaders[`../features/${component}/page.tsx`] !== undefined
+}
+
+/**
+ * 移除没有实际页面模块的 MENU，并递归折叠因此变空的 DIR。
+ * 权限码仍以服务端为准；这里只保证侧边栏不会展示无法访问的死链接。
+ */
+export function filterNavigableMenus(menus: MenuNode[]): MenuNode[] {
+  const result: MenuNode[] = []
+  for (const node of menus) {
+    if (node.type === "BUTTON") continue
+    if (node.type === "MENU") {
+      if (node.path && hasPage(node.component)) result.push({ ...node, children: [] })
+      continue
+    }
+    const children = filterNavigableMenus(node.children)
+    if (children.length > 0) result.push({ ...node, children })
+  }
+  return result
 }
 
 /** navTree → 路由表：递归遍历，仅 MENU 且有 path+component 的节点生成懒加载路由，其余类型跳过 */

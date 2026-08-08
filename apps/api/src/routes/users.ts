@@ -4,7 +4,7 @@ import type { Prisma } from "@repo/db"
 import { prisma } from "@repo/db"
 import { badRequest, conflict, notFound } from "../lib/http-error.js"
 import type { AppConfig } from "../config.js"
-import { createSubApp, okBody } from "../lib/openapi.js"
+import { bearerSecurity, createSubApp, okBody } from "../lib/openapi.js"
 import { hashPassword } from "@repo/db"
 import { p2002FieldMessage } from "../lib/prisma-error.js"
 import { errorBodySchema, idParamSchema, userDetailSchema, userPageResultSchema } from "../lib/schemas.js"
@@ -92,6 +92,7 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
       method: "get",
       path: "/api/users",
       middleware: [authenticate(cfg), requirePermission("system:user:query")],
+      security: bearerSecurity,
       request: { query: pageQuery },
       responses: {
         200: { description: "用户分页列表", ...okBody(userPageResultSchema) },
@@ -133,6 +134,7 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
       method: "post",
       path: "/api/users",
       middleware: [authenticate(cfg), requirePermission("system:user:create")],
+      security: bearerSecurity,
       request: { body: { content: { "application/json": { schema: userCreateSchema } } } },
       responses: {
         200: { description: "创建成功（返回详情）", ...okBody(userDetailSchema) },
@@ -172,6 +174,7 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
       method: "get",
       path: "/api/users/{id}",
       middleware: [authenticate(cfg), requirePermission("system:user:query")],
+      security: bearerSecurity,
       request: { params: idParamSchema },
       responses: {
         200: { description: "用户详情（含已挂角色）", ...okBody(userDetailSchema) },
@@ -193,6 +196,7 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
       method: "patch",
       path: "/api/users/me",
       middleware: [authenticate(cfg)],
+      security: bearerSecurity,
       request: { body: { content: { "application/json": { schema: meUpdateSchema } } } },
       responses: {
         200: { description: "更新成功", ...okBody(userDetailSchema) },
@@ -225,6 +229,7 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
       method: "patch",
       path: "/api/users/{id}",
       middleware: [authenticate(cfg), requirePermission("system:user:update")],
+      security: bearerSecurity,
       request: { params: idParamSchema, body: { content: { "application/json": { schema: userUpdateSchema } } } },
       responses: {
         200: { description: "更新成功（返回详情）", ...okBody(userDetailSchema) },
@@ -274,6 +279,7 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
       method: "delete",
       path: "/api/users/{id}",
       middleware: [authenticate(cfg), requirePermission("system:user:delete")],
+      security: bearerSecurity,
       request: { params: idParamSchema },
       responses: {
         200: { description: "删除成功", ...okBody(z.null()) },
@@ -299,6 +305,7 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
       method: "put",
       path: "/api/users/{id}/roles",
       middleware: [authenticate(cfg), requirePermission("system:user:assign-role")],
+      security: bearerSecurity,
       request: { params: idParamSchema, body: { content: { "application/json": { schema: roleIdsSchema } } } },
       responses: {
         200: { description: "分配成功（返回详情）", ...okBody(userDetailSchema) },

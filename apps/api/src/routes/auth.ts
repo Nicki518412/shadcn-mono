@@ -34,7 +34,8 @@ export function authRoutes(cfg: AppConfig): OpenAPIHono {
     }),
     async (c) => {
       const { username, password } = c.req.valid("json")
-      const key = `login:${username.toLowerCase()}:${c.req.header("x-forwarded-for") ?? "local"}`
+      // 规格要求按账号锁定。不能信任客户端可伪造的 X-Forwarded-For，否则更换请求头即可绕过计数。
+      const key = `login:${username.toLowerCase()}`
       if (!checkThrottle(key)) throw new HttpError(423, "LOCKED", "账号已锁定，请 15 分钟后再试")
 
       const user = await prisma.user.findUnique({ where: { username: username.toLowerCase() } })

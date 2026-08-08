@@ -1,5 +1,6 @@
 import { prisma } from "@repo/db"
 import { hashPassword } from "@repo/db"
+import { getDevOtpCode } from "../src/lib/otp-sender.js"
 
 export async function createTestUser(opts: {
   username: string
@@ -19,13 +20,9 @@ export async function createTestUser(opts: {
   })
 }
 
-/** 测试用：读最新未消费验证码（DevOtpSender 写 devPlainCode 明文通道；channel 与路由查询对称，需大写转换） */
-export async function captureCodeFromDb(target: string, channel: string): Promise<string> {
-  const record = await prisma.otpCode.findFirst({
-    where: { target, channel: channel.toUpperCase(), consumedAt: null },
-    orderBy: { createdAt: "desc" },
-  })
-  const code = record?.devPlainCode
+/** 测试用：读取 DevOtpSender 的进程内验证码，不向数据库写入明文。 */
+export function captureDevOtpCode(target: string, channel: "email" | "telephone"): string {
+  const code = getDevOtpCode(channel, target)
   if (!code) throw new Error(`未找到未消费验证码: ${target}`)
   return code
 }

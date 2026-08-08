@@ -164,8 +164,6 @@ model OtpCode {
   attempts     Int       @default(0)
   /// 消费时间（null=未消费）
   consumedAt   DateTime?
-  /// 明文验证码（测试专用：DevOtpSender 明文回写，仅开发环境；真实发送实现不写入）
-  devPlainCode String?
   /// 创建时间（UTC）
   createdAt    DateTime  @default(now())
   /// 关联用户 ID（可空，未登录场景无关联）

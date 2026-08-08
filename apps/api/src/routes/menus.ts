@@ -6,7 +6,7 @@ import type { MenuNode, MenuType } from "@repo/shared"
 import { buildTree } from "@repo/shared"
 import { badRequest, conflict, notFound } from "../lib/http-error.js"
 import type { AppConfig } from "../config.js"
-import { createSubApp, okBody } from "../lib/openapi.js"
+import { bearerSecurity, createSubApp, okBody } from "../lib/openapi.js"
 import { p2002FieldMessage } from "../lib/prisma-error.js"
 import { errorBodySchema, idParamSchema, menuNodeRefSchema, menuTypeSchema } from "../lib/schemas.js"
 import { authenticate, requirePermission } from "../middleware/auth.js"
@@ -127,6 +127,7 @@ export function menuRoutes(cfg: AppConfig): OpenAPIHono {
       method: "get",
       path: "/api/menus/tree",
       middleware: [authenticate(cfg), requirePermission("system:menu:query")],
+      security: bearerSecurity,
       responses: {
         200: { description: "全量菜单树（含按钮，管理页用）", ...okBody(z.array(menuNodeRefSchema)) },
         401: { description: "未登录", content: { "application/json": { schema: errorBodySchema } } },
@@ -144,6 +145,7 @@ export function menuRoutes(cfg: AppConfig): OpenAPIHono {
       method: "post",
       path: "/api/menus",
       middleware: [authenticate(cfg), requirePermission("system:menu:create")],
+      security: bearerSecurity,
       request: { body: { content: { "application/json": { schema: menuCreateSchema } } } },
       responses: {
         200: { description: "创建成功（返回详情）", ...okBody(menuNodeRefSchema) },
@@ -186,6 +188,7 @@ export function menuRoutes(cfg: AppConfig): OpenAPIHono {
       method: "get",
       path: "/api/menus/{id}",
       middleware: [authenticate(cfg), requirePermission("system:menu:query")],
+      security: bearerSecurity,
       request: { params: idParamSchema },
       responses: {
         200: { description: "菜单详情", ...okBody(menuNodeRefSchema) },
@@ -205,6 +208,7 @@ export function menuRoutes(cfg: AppConfig): OpenAPIHono {
       method: "patch",
       path: "/api/menus/{id}",
       middleware: [authenticate(cfg), requirePermission("system:menu:update")],
+      security: bearerSecurity,
       request: { params: idParamSchema, body: { content: { "application/json": { schema: menuUpdateSchema } } } },
       responses: {
         200: { description: "更新成功（返回详情）", ...okBody(menuNodeRefSchema) },
@@ -279,6 +283,7 @@ export function menuRoutes(cfg: AppConfig): OpenAPIHono {
       method: "delete",
       path: "/api/menus/{id}",
       middleware: [authenticate(cfg), requirePermission("system:menu:delete")],
+      security: bearerSecurity,
       request: { params: idParamSchema },
       responses: {
         200: { description: "删除成功（级联删除子树）", ...okBody(z.null()) },

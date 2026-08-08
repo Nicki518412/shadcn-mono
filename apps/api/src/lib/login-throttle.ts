@@ -1,4 +1,4 @@
-// 内存限流：账号 + IP 维度，连续失败 5 次锁 15 分钟（重启失效，单实例够用）
+// 内存限流：账号维度连续失败 5 次锁 15 分钟（重启失效，单实例够用）
 const locks = new Map<string, { lockedUntil: number; failures: number }>()
 let operationCount = 0
 

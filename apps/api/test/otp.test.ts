@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest"
 import { prisma } from "@repo/db"
 import { createApp } from "../src/index.js"
-import { captureCodeFromDb, createTestUser } from "./helpers.js"
+import { captureDevOtpCode, createTestUser } from "./helpers.js"
 
 const CHANNEL = "email"
 
@@ -50,11 +50,20 @@ describe("otp", () => {
     expect((await sendOtp(app, "cooldown@example.com")).status).toBe(429)
   })
 
+  it("send：同一 target 并发发送仅一个成功", async () => {
+    const app = createApp()
+    const responses = await Promise.all([
+      sendOtp(app, "concurrent-cooldown@example.com"),
+      sendOtp(app, "concurrent-cooldown@example.com"),
+    ])
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 429])
+  })
+
   it("login：正确验证码登录成功返回双 token，同码二次使用 401（一次性消费）", async () => {
     const app = createApp()
     const target = "otp_login@example.com"
     expect((await sendOtp(app, target)).status).toBe(200)
-    const code = await captureCodeFromDb(target, CHANNEL)
+    const code = captureDevOtpCode(target, CHANNEL)
     const res = await loginOtp(app, target, code)
     expect(res.status).toBe(200)
     const body = (await res.json()) as {
@@ -71,7 +80,7 @@ describe("otp", () => {
     const app = createApp()
     const target = "otp_locked@example.com"
     expect((await sendOtp(app, target)).status).toBe(200)
-    const code = await captureCodeFromDb(target, CHANNEL)
+    const code = captureDevOtpCode(target, CHANNEL)
     for (let i = 0; i < 5; i++) {
       expect((await loginOtp(app, target, "000000")).status).toBe(401)
     }
@@ -79,11 +88,27 @@ describe("otp", () => {
     expect((await loginOtp(app, target, code)).status).toBe(423)
   })
 
+  it("login：并发错码最多五次进入校验，其余立即锁定", async () => {
+    const app = createApp()
+    const target = "otp_concurrent_attempts@example.com"
+    await createTestUser({ username: "otp_concurrent_attempts", password: "Passw0rd!", email: target })
+    expect((await sendOtp(app, target)).status).toBe(200)
+    const code = captureDevOtpCode(target, CHANNEL)
+    const wrongCode = code === "000000" ? "000001" : "000000"
+    const responses = await Promise.all(
+      Array.from({ length: 10 }, async () => await loginOtp(app, target, wrongCode)),
+    )
+    const statuses = responses.map((response) => response.status)
+    expect(statuses.filter((status) => status === 401)).toHaveLength(5)
+    expect(statuses.filter((status) => status === 423)).toHaveLength(5)
+    expect((await loginOtp(app, target, code)).status).toBe(423)
+  })
+
   it("login：过期验证码返回 401", async () => {
     const app = createApp()
     const target = "otp_expired@example.com"
     expect((await sendOtp(app, target)).status).toBe(200)
-    const code = await captureCodeFromDb(target, CHANNEL)
+    const code = captureDevOtpCode(target, CHANNEL)
     // 直接改库模拟 5 分钟过期（不真实等待）
     await prisma.otpCode.updateMany({
       where: { target, consumedAt: null },
@@ -96,7 +121,7 @@ describe("otp", () => {
     const app = createApp()
     const target = "otp_attempt@example.com"
     expect((await sendOtp(app, target)).status).toBe(200)
-    const code = await captureCodeFromDb(target, CHANNEL)
+    const code = captureDevOtpCode(target, CHANNEL)
     for (let i = 0; i < 4; i++) {
       expect((await loginOtp(app, target, "000000")).status).toBe(401)
     }
@@ -108,7 +133,7 @@ describe("otp", () => {
     const app = createApp()
     const target = "13800138000"
     expect((await sendOtp(app, target, "telephone")).status).toBe(200)
-    const code = await captureCodeFromDb(target, "telephone")
+    const code = captureDevOtpCode(target, "telephone")
     const res = await loginOtp(app, target, code, "telephone")
     expect(res.status).toBe(200)
     const body = (await res.json()) as { data: { accessToken: string; user: { username: string } } }

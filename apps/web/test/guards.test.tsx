@@ -43,10 +43,8 @@ function renderRequireAuth(provider: AuthProvider) {
       <AuthProviderView provider={provider}>
         <MemoryRouter initialEntries={["/protected"]}>
           <Routes>
-            <Route element={<RequireAuth />}>
-              <Route path="/protected" element={<div>受保护内容</div>} />
-            </Route>
             <Route path="/login" element={<div>登录页</div>} />
+            <Route path="*" element={<RequireAuth />} />
           </Routes>
         </MemoryRouter>
       </AuthProviderView>

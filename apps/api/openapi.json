@@ -5,6 +5,13 @@
     "version": "0.1.0"
   },
   "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
     "schemas": {
       "MenuNode": {
         "type": "object",
@@ -727,6 +734,11 @@
     },
     "/api/auth/me": {
       "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "当前登录用户权限信息",
@@ -769,6 +781,11 @@
     },
     "/api/roles": {
       "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -860,6 +877,11 @@
         }
       },
       "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -968,6 +990,11 @@
     },
     "/api/roles/list": {
       "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "角色全量列表（下拉/分配用，无分页）",
@@ -1023,6 +1050,11 @@
     },
     "/api/roles/{id}": {
       "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -1093,6 +1125,11 @@
         }
       },
       "patch": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -1216,6 +1253,11 @@
         }
       },
       "delete": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -1291,6 +1333,11 @@
     },
     "/api/roles/{id}/menus": {
       "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -1373,6 +1420,11 @@
         }
       },
       "put": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -1479,6 +1531,11 @@
     },
     "/api/menus/tree": {
       "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "全量菜单树（含按钮，管理页用）",
@@ -1535,6 +1592,11 @@
     },
     "/api/menus": {
       "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1666,6 +1728,11 @@
     },
     "/api/menus/{id}": {
       "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -1736,6 +1803,11 @@
         }
       },
       "patch": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -1880,6 +1952,11 @@
         }
       },
       "delete": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -1955,6 +2032,11 @@
     },
     "/api/users": {
       "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -2046,6 +2128,11 @@
         }
       },
       "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2165,6 +2252,11 @@
     },
     "/api/users/{id}": {
       "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -2235,6 +2327,11 @@
         }
       },
       "patch": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -2372,6 +2469,11 @@
         }
       },
       "delete": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -2457,6 +2559,11 @@
     },
     "/api/users/me": {
       "patch": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2546,6 +2653,11 @@
     },
     "/api/users/{id}/roles": {
       "put": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {

@@ -11,6 +11,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     throw new Error(`AUTH_PROVIDER 仅支持 local/clerk，收到: ${provider}`)
   }
   const jwtSecret = env.JWT_SECRET ?? "dev-secret-change-me"
+  if (
+    provider === "local" &&
+    env.NODE_ENV === "production" &&
+    (jwtSecret === "dev-secret-change-me" || jwtSecret.length < 32)
+  ) {
+    throw new Error("生产环境 JWT_SECRET 必须配置为至少 32 个字符的随机密钥")
+  }
   const port = Number(env.PORT ?? 3001)
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error(`PORT 必须是 1-65535 的整数，收到: ${String(env.PORT ?? 3001)}`)

@@ -85,7 +85,7 @@ export default function DashboardPage(): JSX.Element {
         </Card>
         <Card>
           <CardContent className="flex items-center justify-between gap-4">
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               <p className="text-sm text-muted-foreground">按钮权限码</p>
               <p
                 data-testid="stat-permission-count"
@@ -101,7 +101,7 @@ export default function DashboardPage(): JSX.Element {
         </Card>
         <Card>
           <CardContent className="flex items-center justify-between gap-4">
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               <p className="text-sm text-muted-foreground">导航菜单</p>
               <p
                 data-testid="stat-menu-count"

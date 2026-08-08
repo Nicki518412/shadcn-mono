@@ -97,7 +97,6 @@ CREATE TABLE `OtpCode` (
   `expiresAt`    DATETIME     NOT NULL COMMENT '过期时间（5 分钟）',
   `attempts`     INT          NOT NULL DEFAULT 0 COMMENT '已尝试次数（上限 5 次）',
   `consumedAt`   DATETIME     NULL COMMENT '消费时间（null=未消费）',
-  `devPlainCode` VARCHAR(16)  NULL COMMENT '明文验证码（测试专用：DevOtpSender 明文回写，仅开发环境；真实发送实现不写入）',
   `createdAt`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
   `userId`       VARCHAR(32)  NULL COMMENT '关联用户 ID（可空，未登录场景无关联）',
   PRIMARY KEY (`id`),

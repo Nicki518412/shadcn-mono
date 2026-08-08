@@ -56,7 +56,7 @@ import { cn } from "@/lib/utils"
 import ForbiddenPage from "@/pages/ForbiddenPage"
 import NotFoundPage from "@/pages/NotFoundPage"
 import { ME_QUERY_KEY, useMeQuery } from "@/router/guards"
-import { menuToRoutes } from "@/router/generateRoutes"
+import { filterNavigableMenus, menuToRoutes } from "@/router/generateRoutes"
 
 type MenuNode = components["schemas"]["MenuNode"]
 
@@ -234,7 +234,8 @@ export default function AppLayout(): JSX.Element {
   const [profileOpen, setProfileOpen] = useState(false)
 
   // 路由在 me 数据就绪后生成（navTree 变化 → 重建）；RequireAuth 已拉取同 key 查询，共享缓存
-  const navTree = me?.navTree ?? []
+  const sourceNavTree = me?.navTree
+  const navTree = useMemo(() => filterNavigableMenus(sourceNavTree ?? []), [sourceNavTree])
   const routes = useMemo(() => menuToRoutes(navTree), [navTree])
   const trail = useMemo(
     () => findMenuTrail(navTree, location.pathname),
@@ -319,7 +320,7 @@ export default function AppLayout(): JSX.Element {
                       setProfileOpen(true)
                     }}
                   >
-                    <SettingsIcon className="size-4" />
+                    <SettingsIcon />
                     用户设置
                   </DropdownMenuItem>
                   {/* 退出登录用主题默认配色（不用 destructive 红色——跟随明暗主题） */}
@@ -350,7 +351,7 @@ export default function AppLayout(): JSX.Element {
               title="消息中心（即将上线）"
               disabled
             >
-              <BellIcon className="size-4" />
+              <BellIcon />
             </Button>
             <ThemeToggle />
           </div>

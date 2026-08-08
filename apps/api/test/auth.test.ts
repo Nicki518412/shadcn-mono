@@ -50,7 +50,7 @@ describe("auth", () => {
   })
 
   it("连续 5 次错误密码锁定 15 分钟", async () => {
-    // 独立用户：锁定作用于 throttle key（用户名+ip），避免污染同文件其他测试的登录
+    // 独立用户：锁定作用于账号 key，避免污染同文件其他测试的登录
     await createTestUser({ username: "throttle_test", password: "Passw0rd!" })
     const app = createApp()
     for (let i = 0; i < 5; i++) {
@@ -59,6 +59,20 @@ describe("auth", () => {
     }
     const res = await loginRequest(app, "throttle_test", "Passw0rd!")
     expect(res.status).toBe(423)
+  })
+
+  it("更换 X-Forwarded-For 不能绕过账号锁定", async () => {
+    await createTestUser({ username: "spoofed_ip_test", password: "Passw0rd!" })
+    const app = createApp()
+    for (let i = 0; i < 5; i++) {
+      const res = await app.request("/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-forwarded-for": `203.0.113.${String(i)}` },
+        body: JSON.stringify({ username: "spoofed_ip_test", password: "wrongpass" }),
+      })
+      expect(res.status).toBe(401)
+    }
+    expect((await loginRequest(app, "spoofed_ip_test", "Passw0rd!")).status).toBe(423)
   })
 
   it("refresh 轮换：旧 token 二次使用 401，新 token 有效", async () => {

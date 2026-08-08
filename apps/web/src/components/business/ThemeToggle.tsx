@@ -31,13 +31,13 @@ export function ThemeToggle(): React.JSX.Element {
     >
       <SunIcon
         className={cn(
-          "size-4 transition-all duration-300",
+          "transition-all duration-300",
           isDark ? "rotate-0 scale-100" : "-rotate-90 scale-0",
         )}
       />
       <MoonIcon
         className={cn(
-          "absolute inset-0 m-auto size-4 transition-all duration-300",
+          "absolute inset-0 m-auto transition-all duration-300",
           isDark ? "rotate-90 scale-0" : "rotate-0 scale-100",
         )}
       />

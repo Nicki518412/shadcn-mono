@@ -1,5 +1,7 @@
 # RBAC 管理端 SPA 实施计划
 
+> 实施状态（2026-08-08）：主体功能已完成。下方复选框保留为原始执行模板，不再作为实时进度源；当前完成度以仓库测试、构建和代码审查结果为准。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 从零构建 Turborepo monorepo：Hono + Prisma（SQLite/MySQL/PG 三方言）+ Vite/React/shadcn-ui 管理端 SPA，含三种登录、用户/角色/菜单 CRUD、多角色权限严格交集、Clerk 适配器、OpenAPI 文档。
@@ -680,14 +682,13 @@ model OtpCode {
   expiresAt    DateTime /// 过期时间（5 分钟）
   attempts     Int       @default(0) /// 已尝试次数（上限 5）
   consumedAt   DateTime? /// 消费时间（null = 未使用）
-  devPlainCode String? /// 测试专用：DevOtpSender 明文回写（仅开发环境），真实发送实现不写入
   createdAt    DateTime  @default(now()) /// 创建时间（UTC）
   userId       String? /// 关联用户 ID（目标匹配到用户时记录）
   user         User?     @relation(fields: [userId], references: [id]) /// 所属用户
 }
 ```
 
-> 注：`OtpCode.devPlainCode` 由 Task 8 的 OTP 测试使用（DevOtpSender 写入明文，生产实现不写）；`OtpCode.userId` 关联 User 的反查字段 `otpCodes` 已包含在 User 模型。执行 `prisma validate` 确认 schema 合法。
+> 注：OTP 表只保存验证码哈希，任何环境都不得向数据库写入明文。测试通过 `DevOtpSender` 的进程内存读取最近一次验证码；`OtpCode.userId` 关联 User 的反查字段 `otpCodes` 已包含在 User 模型。执行 `prisma validate` 确认 schema 合法。
 
 - [ ] **Step 3: client 单例 + 首次建库**
 
@@ -1504,17 +1505,33 @@ export interface OtpSender {
   sendSms(to: string, code: string): Promise<void>
 }
 
-/** 开发实现：仅打印到控制台。接入真实短信/邮件通道时替换为其他实现（见 README）。 */
+const devCodes = new Map<string, string>()
+
+/** 开发实现：打印到控制台并把验证码保存在当前进程内。 */
 export class DevOtpSender implements OtpSender {
-  async sendEmail(to: string, code: string): Promise<void> {
+  sendEmail(to: string, code: string): Promise<void> {
     console.log(`[DevOtpSender] EMAIL → ${to}: 验证码 ${code}（5 分钟内有效）`)
+    devCodes.set(`email:${to.toLowerCase()}`, code)
+    return Promise.resolve()
   }
-  async sendSms(to: string, code: string): Promise<void> {
+  sendSms(to: string, code: string): Promise<void> {
     console.log(`[DevOtpSender] SMS → ${to}: 验证码 ${code}（5 分钟内有效）`)
+    devCodes.set(`telephone:${to.toLowerCase()}`, code)
+    return Promise.resolve()
   }
 }
 
-export const otpSender: OtpSender = new DevOtpSender()
+export function getDevOtpCode(channel: "email" | "telephone", target: string): string | null {
+  return devCodes.get(`${channel}:${target.toLowerCase()}`) ?? null
+}
+
+class UnconfiguredOtpSender implements OtpSender {
+  sendEmail(): Promise<void> { return Promise.reject(new Error("生产环境尚未配置邮件 OTP Sender")) }
+  sendSms(): Promise<void> { return Promise.reject(new Error("生产环境尚未配置短信 OTP Sender")) }
+}
+
+export const otpSender: OtpSender =
+  process.env.NODE_ENV === "production" ? new UnconfiguredOtpSender() : new DevOtpSender()
 ```
 
 - [ ] **Step 2: 写失败测试**
@@ -1564,7 +1581,7 @@ describe("otp", () => {
 
   it("login：正确验证码登录成功并一次性消费", async () => {
     const app = createApp()
-    const code = await captureCodeFromDb(TARGET)
+    const code = captureDevOtpCode(TARGET, CHANNEL)
     const res = await app.request("/api/auth/otp/login", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -1583,7 +1600,7 @@ describe("otp", () => {
 
   it("login：错误码 5 次后锁定", async () => {
     const app = createApp()
-    const code = await captureCodeFromDb(TARGET)
+    const code = captureDevOtpCode(TARGET, CHANNEL)
     for (let i = 0; i < 5; i++) {
       const res = await app.request("/api/auth/otp/login", {
         method: "POST",
@@ -1606,21 +1623,17 @@ describe("otp", () => {
 
 `apps/api/test/helpers.ts` 追加：
 ```ts
-import { prisma } from "@repo/db"
+import { getDevOtpCode } from "../src/lib/otp-sender.js"
 
-/** 测试用：按 target 找到最新未消费验证码（DevOtpSender 会写入 devPlainCode 明文通道） */
-export async function captureCodeFromDb(target: string): Promise<string> {
-  const record = await prisma.otpCode.findFirst({
-    where: { target, consumedAt: null },
-    orderBy: { createdAt: "desc" },
-  })
-  const code = record?.devPlainCode
+/** 测试用：从 DevOtpSender 进程内存读取验证码，数据库始终只保存哈希。 */
+export function captureDevOtpCode(target: string, channel: "email" | "telephone"): string {
+  const code = getDevOtpCode(channel, target)
   if (!code) throw new Error(`未找到未消费验证码: ${target}`)
   return code
 }
 ```
 
-> **关键设计（实现者必读）**：验证码库中只存 sha256 哈希，测试无法反推明文——因此 `OtpCode.devPlainCode`（Task 4 已含）作为测试专用明文通道：`DevOtpSender` 场景下写入，真实发送实现不写。`captureCodeFromDb` 读取 `devPlainCode`。
+> **关键设计（实现者必读）**：验证码库中只存 sha256 哈希，测试通过同进程的 `DevOtpSender` 内存通道捕获验证码。生产环境未配置真实 Sender 时必须失败关闭，禁止回退到开发 Sender。
 
 - [ ] **Step 4: 实现 OTP 路由**（实现时顺带过期清理：send 流程中 `deleteMany({ where: { expiresAt: { lt: new Date() } } })` 清理该 target 的过期记录，防表无界增长——schema 已加 `@@index([channel, target, createdAt])`）
 
@@ -1678,8 +1691,6 @@ export function otpRoutes(jwtSecret: string): OpenAPIHono {
           codeHash: hash,
           expiresAt: new Date(Date.now() + OTP_TTL_MS),
           userId: user?.id ?? null,
-          // 测试专用明文（DevOtpSender 场景）：仅开发库保留；生产实现不写入
-          devPlainCode: code,
         },
       })
       // 防枚举：目标不存在同样"发送成功"（不投递）
@@ -1713,13 +1724,31 @@ export function otpRoutes(jwtSecret: string): OpenAPIHono {
       }
       const hash = createHash("sha256").update(code).digest("hex")
       if (hash !== record.codeHash) {
-        await prisma.otpCode.update({ where: { id: record.id }, data: { attempts: { increment: 1 } } })
+        const attempted = await prisma.otpCode.updateMany({
+          where: {
+            id: record.id,
+            consumedAt: null,
+            expiresAt: { gt: new Date() },
+            attempts: { lt: OTP_MAX_ATTEMPTS },
+          },
+          data: { attempts: { increment: 1 } },
+        })
+        if (attempted.count !== 1) throw new HttpError(423, "LOCKED", "尝试次数过多，请重新获取验证码")
         throw new HttpError(401, "INVALID_OTP", "验证码错误")
       }
       const user = await prisma.user.findUnique({ where: { id: record.userId ?? "" } })
       if (!user || !user.status) throw new HttpError(401, "INVALID_OTP", "账号不可用")
 
-      await prisma.otpCode.update({ where: { id: record.id }, data: { consumedAt: new Date() } })
+      const consumed = await prisma.otpCode.updateMany({
+        where: {
+          id: record.id,
+          consumedAt: null,
+          expiresAt: { gt: new Date() },
+          attempts: { lt: OTP_MAX_ATTEMPTS },
+        },
+        data: { consumedAt: new Date() },
+      })
+      if (consumed.count !== 1) throw new HttpError(401, "INVALID_OTP", "验证码无效或已过期")
       const pair = await issueTokenPair(user.id, jwtSecret)
       return c.json({ code: 0, data: pair, message: "ok" })
     },
@@ -1729,7 +1758,7 @@ export function otpRoutes(jwtSecret: string): OpenAPIHono {
 }
 ```
 
-> **实现修正点**：① 上述代码引用了 `OtpCode.devPlainCode` 字段——按 Step 3 的关键设计先在 schema.prisma 增加该字段并 `prisma db push`；② `captureCodeFromDb` 改为读 `devPlainCode`；③ 把 `otpRoutes` 挂到 `index.ts`（`app.route("/", otpRoutes(cfg.jwtSecret))`）。
+> **安全修正（2026-08-08）**：发送流程必须按 `channel+target` 串行化，关闭冷却检查与创建之间的并发窗口；错误次数递增和正确码消费必须使用带 `attempts < 5`、未消费、未过期条件的原子 `updateMany`。禁止增加数据库明文验证码字段。把 `otpRoutes` 挂到 `index.ts` 时传入完整 `AppConfig`。
 
 - [ ] **Step 5: 验证 + 提交**
 
