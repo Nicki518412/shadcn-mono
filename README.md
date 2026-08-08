@@ -1,128 +1,168 @@
-# shadcn-mono
+<div align="center">
+  <h1>shadcn-mono</h1>
+  <p><strong>一个契约驱动、可测试的全栈 RBAC 管理端 monorepo。</strong></p>
+  <p>简体中文 · <a href="./README.en.md">English</a> · <a href="./README.ja.md">日本語</a></p>
+</div>
 
-RBAC 管理端 monorepo：**Hono + zod-openapi** 后端、**Vite + React + shadcn-ui** 前端、**Prisma** 数据库层（SQLite / MySQL / PostgreSQL 三方言可移植）。支持账号密码、邮箱/手机动态码、Clerk 三种登录方式；权限模型为多角色**纯严格交集**（无超管例外）。
+`shadcn-mono` 将 React 管理端、Hono API、Prisma 数据层与共享 RBAC 规则组合在一个 Turborepo 中。它支持本地 JWT、邮箱/手机动态码和 Clerk 登录，并从同一份 Zod/OpenAPI 契约生成接口文档与前端类型。
 
-## 仓库结构
+> [!IMPORTANT]
+> `admin / Admin@123` 仅用于本地演示。部署前请更换默认凭据、配置生产密钥，并接入真实的邮件/短信发送服务。
 
-```
-apps/
-├── api/          # Hono 后端（OpenAPI 三合一：zod 驱动校验/文档/类型），端口 3001
-└── web/          # Vite + React + shadcn-ui 前端，端口 5173（/api 代理到 3001）
-packages/
-├── db/           # Prisma schema（运行时权威）+ 幂等种子（packages/db/src/seed.ts）
-├── shared/       # 权限纯函数（computeVisibleMenus，权限计算的唯一位置）
-└── config/       # 共享 tsconfig / eslint 配置
-docs/             # 设计文档（docs/superpowers/）+ 数据库文档（docs/database/）
-CLAUDE.md         # 智能体开发指南；.claude/skills/ 项目技能；.mcp.json codegraph
-```
+## 设计原则
+
+- **契约优先**：运行时校验、OpenAPI 文档和前端类型来自同一套路由 schema。
+- **权限单一事实源**：多角色权限严格交集，算法位于 `packages/shared`，前后端复用。
+- **数据库可移植**：Prisma schema 支持 SQLite、MySQL 和 PostgreSQL，避免依赖单一方言。
+- **安全默认值**：生产 JWT 密钥强制校验，OTP 数据库只保存哈希，未配置生产 Sender 时失败关闭。
+- **可验证交付**：GitHub Actions、Vitest、Testing Library、ESLint、Husky 和 commitlint 组成质量门。
 
 ## 快速开始
 
-要求：Node >= 22（@testing-library/jest-dom@7 的 engines 下限），pnpm 9.x（`packageManager: pnpm@9.12.0`）。
+### 环境要求
+
+- Node.js 22 或更高版本
+- pnpm 9.x（仓库固定为 `pnpm@9.12.0`）
+
+### 本地启动
 
 ```bash
-pnpm install              # postinstall 自动 prisma generate
+git clone https://github.com/Nicki518412/shadcn-mono.git
+cd shadcn-mono
 
-# 环境变量（首次）
-cp apps/api/.env.example apps/api/.env    # api dev 脚本依赖 --env-file=.env
-cp apps/web/.env.example apps/web/.env    # 可选，默认 local 模式
-# 另需 packages/db/.env（Prisma 命令以 packages/db 为 cwd 时加载；默认 SQLite）：
-#   DATABASE_URL="file:./dev.db"
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+cp packages/db/.env.example packages/db/.env
 
-pnpm --filter @repo/db seed   # 种子（幂等可重跑；会重置 admin 口令与演示联系方式）
-pnpm dev                      # web http://localhost:5173 / api http://localhost:3001
+pnpm install
+pnpm --filter @repo/db db:push
+pnpm --filter @repo/db seed
+pnpm dev
 ```
 
-默认账号 **admin / Admin@123**（ADMIN 角色，已授权全部菜单；email=admin@example.com、telephone=13800138000，便于演示三种登录）。
+打开 <http://localhost:5173>。API 地址默认为 <http://localhost:3001>，Swagger UI 位于 <http://localhost:3001/api/docs>。
 
-## 测试与构建
+默认演示账号：`admin / Admin@123`。种子脚本可幂等重跑，并会重置该账号的密码和演示联系方式。
+
+## 功能
+
+- **管理端**：React 19、Vite、React Router、TanStack Query、Tailwind CSS、shadcn/ui。
+- **API**：Hono、Zod、`@hono/zod-openapi` 和 Swagger UI。
+- **认证**：账号密码、邮箱/手机动态码、Clerk 托管登录。
+- **授权**：严格多角色交集；菜单、动态路由和页面按钮共享权限语义。
+- **数据层**：Prisma + SQLite / MySQL / PostgreSQL。
+- **测试**：API 集成测试、Web RTL 测试、共享权限纯函数测试。
+- **工程化**：Turborepo、GitHub Actions、严格 TypeScript、ESLint、Husky、lint-staged、commitlint。
+
+## 仓库结构
+
+```text
+apps/
+├── api/          # Hono API，默认端口 3001
+└── web/          # React 管理端，默认端口 5173
+packages/
+├── db/           # Prisma schema、client 与幂等种子
+├── shared/       # 前后端共享的权限纯函数
+└── config/       # 共享 TypeScript / ESLint 配置
+docs/
+├── database/     # 三方言数据库约定与参考 DDL
+└── superpowers/  # 设计规格与实施计划
+```
+
+## 权限模型
+
+用户最终权限是所有角色授权集合的**严格交集**：
+
+```text
+effectivePermissions(user) = role₁ ∩ role₂ ∩ ... ∩ roleₙ
+```
+
+- 任一角色权限为空，最终权限即为空；没有超级管理员绕过。
+- `BUTTON` 节点参与权限计算，但不会进入侧边栏或动态路由。
+- 导航树会自动补全祖先节点并折叠空目录。
+- 权限码格式为 `模块:资源:操作`，例如 `system:user:create`。
+- 后端 `requirePermission(code)` 是最终裁决；前端组件只负责显隐。
+
+算法唯一实现在 [`packages/shared/src/permissions.ts`](./packages/shared/src/permissions.ts)。
+
+## 认证与 OTP
+
+前后端 provider 必须保持一致：
+
+```dotenv
+# 本地模式
+VITE_AUTH_PROVIDER=local
+AUTH_PROVIDER=local
+
+# Clerk 模式
+VITE_AUTH_PROVIDER=clerk
+VITE_CLERK_PUBLISHABLE_KEY="pk_..."
+AUTH_PROVIDER=clerk
+CLERK_SECRET_KEY="sk_..."
+```
+
+开发环境的 `DevOtpSender` 会把验证码输出到 API 控制台，并只保存在当前进程内；数据库始终只保存验证码哈希。OTP 默认 5 分钟有效、60 秒冷却、最多 5 次尝试。
+
+## 数据库
+
+Prisma schema 是运行时权威，参考 DDL 位于 `docs/database/schema.sql`。切换数据库：
+
+1. 修改 `packages/db/.env` 中的 `DATABASE_URL`。
+2. 修改 `packages/db/prisma/schema.prisma` 的 `datasource.db.provider`。
+3. 执行迁移与种子：
 
 ```bash
-pnpm turbo test     # shared 单元 + api 集成 + web RTL
+pnpm --filter @repo/db db:migrate -- --name switch-database
+pnpm --filter @repo/db seed
+```
+
+完整方言差异见 [数据库指南](./docs/database/README.md)。
+
+## OpenAPI
+
+Swagger UI：<http://localhost:3001/api/docs>
+
+修改 API 后重新生成契约与前端类型：
+
+```bash
+pnpm --filter @repo/api generate:openapi
+pnpm --filter @repo/api generate:types
+```
+
+生成物为 `apps/api/openapi.json` 和 `apps/web/src/api/schema.d.ts`。API 源码提交时，pre-commit hook 会自动更新它们。
+
+## 开发
+
+```bash
+# 启动全部开发服务
+pnpm dev
+
+# 运行测试、构建和 lint
+pnpm turbo test
+pnpm turbo build
+pnpm turbo lint
+
+# 重建演示数据
+pnpm --filter @repo/db seed
+```
+
+API 集成测试会重建独立的 SQLite 测试库，不会修改开发数据库。生产启动前必须设置至少 32 个字符的随机 `JWT_SECRET`；开发占位值会导致 API 拒绝启动。
+
+## 文档
+
+- [数据库与权限语义](./docs/database/README.md)
+- [系统设计规格](./docs/superpowers/specs/2026-08-06-rbac-admin-design.md)
+- [实施计划与安全修正](./docs/superpowers/plans/2026-08-06-rbac-admin.md)
+- [智能体开发指南](./CLAUDE.md)
+
+## 参与贡献
+
+提交改动前请运行：
+
+```bash
+pnpm turbo test
 pnpm turbo build
 pnpm turbo lint
 ```
 
-生产启动前必须设置至少 32 字符的随机 `JWT_SECRET`；缺失或继续使用开发占位值时，API 会拒绝以 `NODE_ENV=production` 启动。
-
-```bash
-pnpm turbo build
-pnpm --filter @repo/api start
-```
-
-api 集成测试每次运行前自动重建 SQLite 测试库（`apps/api/test/setup.ts` 执行 `db push --force-reset`），不影响开发库。
-
-## 切换数据库（SQLite / MySQL / PostgreSQL）
-
-三方言差异表与完整约定见 **[docs/database/README.md](docs/database/README.md)**。核心三步：
-
-1. `packages/db/.env` 改 `DATABASE_URL`
-2. `packages/db/prisma/schema.prisma` 改 `datasource.db.provider`（sqlite / mysql / postgresql）
-3. 迁移 + 种子：`pnpm --filter @repo/db db:migrate -- --name switch` → `pnpm --filter @repo/db seed`
-
-## 接入真实短信/邮件通道（OtpSender）
-
-动态码发送入口为 `apps/api/src/lib/otp-sender.ts` 的 `OtpSender` 接口：
-
-```ts
-export interface OtpSender {
-  sendEmail(to: string, code: string): Promise<void>
-  sendSms(to: string, code: string): Promise<void>
-}
-```
-
-开发/测试环境使用 `DevOtpSender`：验证码打印到控制台，并仅保存在当前进程内供测试读取，数据库始终只存 sha256 哈希。生产环境默认禁用 Dev 实现；接入真实通道时实现该接口（调用短信/邮件服务商 API）并替换导出。
-
-> **开发模式提示**：使用邮箱/手机动态码登录时，验证码打印在 **api 进程的控制台**（`[DevOtpSender] EMAIL/SMS → 目标: 验证码 xxxxxx`）——登录页不再展示该提示，留意运行 `pnpm dev` 的终端输出。
-
-> 动态码业务参数（5 分钟有效、60 秒冷却、5 次尝试上限、sha256 存储）见 `apps/api/src/routes/otp.ts`。
-
-## 接入 Clerk 登录
-
-Clerk 模式 = Clerk 托管登录页 + 本地 RBAC 授权（按 `clerkId` 映射本地用户，**首次登录自动建号**）。
-
-1. dashboard.clerk.com → API Keys 获取密钥
-2. 前端 `.env`：`VITE_AUTH_PROVIDER=clerk` + `VITE_CLERK_PUBLISHABLE_KEY="pk_..."`
-3. 后端 `.env`：`AUTH_PROVIDER=clerk` + `CLERK_SECRET_KEY="sk_..."`
-
-两端 provider 必须一致（`local` / `clerk`）。前端 `VITE_AUTH_PROVIDER=clerk` 时登录页渲染 `<SignIn />`；后端 `AUTH_PROVIDER=clerk` 时认证中间件改为校验 Clerk session token（`apps/api/src/middleware/clerk-auth.ts`）。自动建号：username 取邮箱前缀清洗唯一化、passwordHash 为空串（Clerk 用户约定）、email 取第一个并统一小写。
-
-**已知限制**：
-
-- **Clerk 邮箱撞本地账号**（email 唯一索引冲突）→ 返回 409「该邮箱已被本地账号使用，请联系管理员」，**不自动关联**；需管理员在用户管理页人工处理。
-- **本地账号被禁用**（`status=false`）时，Clerk 登录会循环失败（每次认证即 401，Clerk 侧感知不到禁用状态）——需管理员在 Clerk Dashboard 吊销该用户会话。
-- 并发首次登录竞态已处理：双请求同时建号时按 `clerkId` 复用胜者（自愈），不会重复建号。
-
-## OpenAPI
-
-- Swagger UI：`/api/docs`（JSON 契约：`/api/openapi.json`）
-- 修改 API 源码后重新生成契约与前端类型：
-
-```bash
-pnpm --filter @repo/api generate:openapi   # → apps/api/openapi.json
-pnpm --filter @repo/api generate:types     # → apps/web/src/api/schema.d.ts
-```
-
-`apps/api/src/**/*.ts` 变更时，pre-commit 钩子（husky + lint-staged）会自动重生成并暂存这两份产物，提交时无需手动执行；若 typecheck 报 schema.d.ts 缺类型，先手动补跑上述两条命令。
-
-## 权限模型
-
-可见权限 = 用户所有角色授权菜单集合的**纯严格交集**（任一角色为空集合 ⇒ 无权限，无超管例外）：
-
-- BUTTON 节点同样参与交集，仅用于页面内按钮显隐，不进侧边栏、不参与动态路由
-- 导航树做祖先补全（保证可达）+ 空目录折叠
-- 权限码规范 `模块:资源:操作`（如 `system:user:create`）
-
-| 环节 | 位置 |
-|---|---|
-| 计算（唯一） | `packages/shared/src/permissions.ts`（纯函数） |
-| 后端裁决 | `requirePermission(code)` 中间件（`apps/api/src/middleware/auth.ts`），无权 403 |
-| 前端按钮显隐 | `<Permission code="...">` / `usePermissionCodes()`（`apps/web/src/components/business/Permission.tsx`） |
-
-完整定义见设计文档 §6 与 [docs/database/README.md](docs/database/README.md)「权限语义速查」。
-
-## 开发辅助（智能体资产）
-
-- `CLAUDE.md`：仓库指南（结构 / 命令 / 规范）
-- `.mcp.json`：codegraph 代码图谱 MCP 配置
-- `.claude/skills/`：`add-page`（新增页面全流程）、`switch-database`（三方言切库清单）
+提交信息遵循 [Conventional Commits](https://www.conventionalcommits.org/)。开始较大功能前，请先阅读设计文档并在 issue 中说明方案。
