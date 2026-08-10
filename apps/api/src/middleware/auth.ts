@@ -1,7 +1,7 @@
 import { prisma } from "@repo/db"
 import type { MiddlewareHandler } from "hono"
 import type { AppConfig } from "../config.js"
-import { forbidden, unauthorized } from "../lib/http-error.js"
+import { HttpError, unauthorized } from "../lib/http-error.js"
 import { verifyAccessToken } from "../lib/jwt.js"
 import { toPublicUser, type PublicUser } from "../lib/schemas.js"
 import { getUserAuthInfo, type AuthInfo } from "../services/auth-info.js"
@@ -43,7 +43,7 @@ export function requirePermission(code: string): MiddlewareHandler {
     const userId = c.get("userId")
     if (!userId) throw unauthorized("未登录")
     const info = await getUserAuthInfo(userId, c.get("authUser"))
-    if (!info.permissionCodes.includes(code)) throw forbidden(`缺少权限: ${code}`)
+    if (!info.permissionCodes.includes(code)) throw new HttpError(403, "PERMISSION_DENIED", `缺少权限: ${code}`)
     c.set("authInfo", info)
     await next()
   }

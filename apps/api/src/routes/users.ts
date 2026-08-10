@@ -2,11 +2,11 @@ import { createRoute, z } from "@hono/zod-openapi"
 import type { OpenAPIHono } from "@hono/zod-openapi"
 import type { Prisma } from "@repo/db"
 import { prisma } from "@repo/db"
-import { badRequest, conflict, notFound } from "../lib/http-error.js"
+import { HttpError, badRequest, notFound } from "../lib/http-error.js"
 import type { AppConfig } from "../config.js"
 import { bearerSecurity, createSubApp, okBody } from "../lib/openapi.js"
 import { hashPassword } from "@repo/db"
-import { p2002FieldMessage } from "../lib/prisma-error.js"
+import { p2002Conflict } from "../lib/prisma-error.js"
 import { errorBodySchema, idParamSchema, userDetailSchema, userPageResultSchema } from "../lib/schemas.js"
 import { authenticate, requirePermission } from "../middleware/auth.js"
 
@@ -43,11 +43,11 @@ const meUpdateSchema = z.object({
   telephone: z.string().min(5).max(32).nullable().optional(),
 })
 
-/** P2002 字段 → 409 message 映射（create/PATCH 共用） */
+/** P2002 字段 → 409 code+message 映射（create/PATCH 共用）；code 为 API 契约（前端 errors 命名空间映射） */
 const USER_UNIQUE_FIELDS = {
-  username: "用户名已存在",
-  email: "邮箱已被使用",
-  telephone: "手机号已被使用",
+  username: { code: "USERNAME_TAKEN", message: "用户名已存在" },
+  email: { code: "EMAIL_TAKEN", message: "邮箱已被使用" },
+  telephone: { code: "PHONE_TAKEN", message: "手机号已被使用" },
 } as const
 
 /** 角色存在性校验 + 去重（不存在 → 400）；事务内调用，保证校验与写入原子（须在 $transaction 回调中使用 tx） */
@@ -162,8 +162,8 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
         })
         return c.json({ code: 0, data: toUserDetail(await fetchUserDetail(user.id)), message: "ok" }, 200)
       } catch (err) {
-        const message = p2002FieldMessage(err, USER_UNIQUE_FIELDS)
-        if (message !== null) throw conflict(message)
+        const hit = p2002Conflict(err, USER_UNIQUE_FIELDS)
+        if (hit !== null) throw new HttpError(409, hit.code, hit.message)
         throw err
       }
     },
@@ -217,8 +217,8 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
         await prisma.user.update({ where: { id: userId }, data })
         return c.json({ code: 0, data: toUserDetail(await fetchUserDetail(userId)), message: "ok" }, 200)
       } catch (err) {
-        const message = p2002FieldMessage(err, USER_UNIQUE_FIELDS)
-        if (message !== null) throw conflict(message)
+        const hit = p2002Conflict(err, USER_UNIQUE_FIELDS)
+        if (hit !== null) throw new HttpError(409, hit.code, hit.message)
         throw err
       }
     },
@@ -267,8 +267,8 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
         }
         return c.json({ code: 0, data: toUserDetail(await fetchUserDetail(id)), message: "ok" }, 200)
       } catch (err) {
-        const message = p2002FieldMessage(err, USER_UNIQUE_FIELDS)
-        if (message !== null) throw conflict(message)
+        const hit = p2002Conflict(err, USER_UNIQUE_FIELDS)
+        if (hit !== null) throw new HttpError(409, hit.code, hit.message)
         throw err
       }
     },
@@ -294,7 +294,7 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
       // 存在性检查只需主键（select id），不需要 roles include
       const target = await prisma.user.findUnique({ where: { id }, select: { id: true } })
       if (!target) throw notFound("用户不存在")
-      if (id === c.get("userId")) throw badRequest("不能删除自己")
+      if (id === c.get("userId")) throw new HttpError(400, "SELF_DELETE", "不能删除自己")
       await prisma.user.delete({ where: { id } })
       return c.json({ code: 0, data: null, message: "ok" }, 200)
     },

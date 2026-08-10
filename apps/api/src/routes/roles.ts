@@ -2,10 +2,10 @@ import { createRoute, z } from "@hono/zod-openapi"
 import type { OpenAPIHono } from "@hono/zod-openapi"
 import type { Prisma } from "@repo/db"
 import { prisma } from "@repo/db"
-import { badRequest, conflict, notFound } from "../lib/http-error.js"
+import { HttpError, badRequest, notFound } from "../lib/http-error.js"
 import type { AppConfig } from "../config.js"
 import { bearerSecurity, createSubApp, okBody } from "../lib/openapi.js"
-import { p2002FieldMessage } from "../lib/prisma-error.js"
+import { p2002Conflict } from "../lib/prisma-error.js"
 import { errorBodySchema, idParamSchema, roleDetailSchema, roleListItemSchema, rolePageResultSchema } from "../lib/schemas.js"
 import { authenticate, requirePermission } from "../middleware/auth.js"
 
@@ -31,9 +31,9 @@ const roleUpdateSchema = roleCreateSchema.partial().extend({
 // 授权全量提交的菜单 id 数组；上限 500 防超大 payload（菜单树规模远小于此）
 const menuIdsSchema = z.object({ menuIds: z.array(z.string()).max(500) })
 
-/** P2002 字段 → 409 message 映射（create/PATCH 共用；code 统一大写存储，大小写变体同样命中唯一约束） */
+/** P2002 字段 → 409 code+message 映射（create/PATCH 共用；code 统一大写存储，大小写变体同样命中唯一约束） */
 const ROLE_UNIQUE_FIELDS = {
-  code: "角色编码已存在",
+  code: { code: "ROLE_CODE_TAKEN", message: "角色编码已存在" },
 } as const
 
 /** 菜单存在性校验 + 去重（不存在 → 400）；事务内调用，保证校验与写入原子（须在 $transaction 回调中使用 tx） */
@@ -151,8 +151,8 @@ export function roleRoutes(cfg: AppConfig): OpenAPIHono {
         const role = await prisma.role.create({ data })
         return c.json({ code: 0, data: toRoleDetail(role), message: "ok" }, 200)
       } catch (err) {
-        const message = p2002FieldMessage(err, ROLE_UNIQUE_FIELDS)
-        if (message !== null) throw conflict(message)
+        const hit = p2002Conflict(err, ROLE_UNIQUE_FIELDS)
+        if (hit !== null) throw new HttpError(409, hit.code, hit.message)
         throw err
       }
     },
@@ -208,8 +208,8 @@ export function roleRoutes(cfg: AppConfig): OpenAPIHono {
         const role = await prisma.role.update({ where: { id }, data })
         return c.json({ code: 0, data: toRoleDetail(role), message: "ok" }, 200)
       } catch (err) {
-        const message = p2002FieldMessage(err, ROLE_UNIQUE_FIELDS)
-        if (message !== null) throw conflict(message)
+        const hit = p2002Conflict(err, ROLE_UNIQUE_FIELDS)
+        if (hit !== null) throw new HttpError(409, hit.code, hit.message)
         throw err
       }
     },

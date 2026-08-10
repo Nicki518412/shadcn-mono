@@ -43,10 +43,11 @@ describe("auth", () => {
     expect(body.data.user.username).toBe("auth_test")
   })
 
-  it("密码错误返回 401", async () => {
+  it("密码错误返回 401（code LOGIN_FAILED）", async () => {
     const app = createApp()
     const res = await loginRequest(app, "auth_test", "wrongpass")
     expect(res.status).toBe(401)
+    expect(((await res.json()) as { code: string }).code).toBe("LOGIN_FAILED")
   })
 
   it("连续 5 次错误密码锁定 15 分钟", async () => {
@@ -59,6 +60,7 @@ describe("auth", () => {
     }
     const res = await loginRequest(app, "throttle_test", "Passw0rd!")
     expect(res.status).toBe(423)
+    expect(((await res.json()) as { code: string }).code).toBe("ACCOUNT_LOCKED")
   })
 
   it("更换 X-Forwarded-For 不能绕过账号锁定", async () => {

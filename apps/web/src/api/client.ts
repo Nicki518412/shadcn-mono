@@ -1,9 +1,26 @@
+import i18n from "@/localization/i18n"
 import { API_BASE, doRefresh, getAccessToken, getTokenRefresher, setAccessToken } from "./session"
 import type { ApiEnvelope } from "./session"
 
-/** 统一错误文案：api() 契约一律抛 Error（message 为后端文案或网络错误兜底）；非 Error 兜底通用文案 */
+/** 业务错误：携带后端错误码（errors 命名空间按码映射多语言文案），未知码回退 message */
+export class ApiError extends Error {
+  readonly code?: string
+  constructor(message: string, code?: string) {
+    super(message)
+    this.code = code
+  }
+}
+
+/**
+ * 统一错误文案：ApiError 携带后端错误码时经 errors 命名空间映射为当前语言文案
+ * （未知码 defaultValue 回退后端 message）；其余 Error 直接用 message；非 Error 兜底通用文案
+ */
 export function apiErrorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : "操作失败，请重试"
+  if (err instanceof ApiError && err.code) {
+    const key = `errors:${err.code}`
+    return i18n.t(key, { defaultValue: err.message })
+  }
+  return err instanceof Error ? err.message : "请求失败"
 }
 
 /** fetch 网络异常（TypeError，非 HTTP 错误）统一包装为业务 Error——api() 一律抛 Error 的契约 */
@@ -46,7 +63,9 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     }
   }
   const body = (await res.json().catch(() => null)) as ApiEnvelope<T> | null
-  const message = body?.message ?? `请求失败(${String(res.status)})`
-  if (!res.ok || body?.code !== 0) throw new Error(message)
+  if (!res.ok || body?.code !== 0) {
+    const message = body?.message ?? `请求失败(${String(res.status)})`
+    throw new ApiError(message, typeof body?.code === "string" ? body.code : undefined)
+  }
   return body.data
 }

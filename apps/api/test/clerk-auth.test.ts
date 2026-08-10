@@ -110,7 +110,7 @@ describe("clerk-auth 中间件", () => {
     const res = await app.request("/api/auth/me", { headers: { authorization: "Bearer clerk-token" } })
     expect(res.status).toBe(409)
     const body = (await res.json()) as { code: string; message: string }
-    expect(body.code).toBe("CONFLICT")
+    expect(body.code).toBe("EMAIL_TAKEN")
     expect(body.message).toBe("该邮箱已被本地账号使用，请联系管理员")
     const count = await prisma.user.count({ where: { clerkId: "clerk_test_5" } })
     expect(count).toBe(0)

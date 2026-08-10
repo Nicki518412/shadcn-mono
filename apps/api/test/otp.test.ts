@@ -74,6 +74,7 @@ describe("otp", () => {
     expect(body.data.user.username).toBe("otp_login_test")
     const again = await loginOtp(app, target, code)
     expect(again.status).toBe(401)
+    expect(((await again.json()) as { code: string }).code).toBe("INVALID_OTP")
   })
 
   it("login：错误码累计 5 次后 423（attempts 超限）", async () => {

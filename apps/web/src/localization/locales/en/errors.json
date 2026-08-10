@@ -1,0 +1,21 @@
+{
+  "LOGIN_FAILED": "Incorrect username or password",
+  "ACCOUNT_LOCKED": "Account locked. Try again in 15 minutes",
+  "ACCOUNT_DISABLED": "This account has been disabled",
+  "UNAUTHORIZED": "Not signed in or your session has expired",
+  "INVALID_OTP": "Invalid or expired verification code",
+  "OTP_LOCKED": "Too many attempts. Please request a new code",
+  "RATE_LIMITED": "Too many requests. Please try again later",
+  "PERMISSION_DENIED": "You don't have permission to perform this action",
+  "USERNAME_TAKEN": "Username already exists",
+  "EMAIL_TAKEN": "Email already in use",
+  "PHONE_TAKEN": "Phone number already in use",
+  "ROLE_CODE_TAKEN": "Role code already exists",
+  "MENU_PERMISSION_TAKEN": "Permission code already exists",
+  "SELF_DELETE": "You cannot delete yourself",
+  "MENU_TYPE_INVALID": "Invalid menu type or hierarchy",
+  "BAD_REQUEST": "Invalid request parameters",
+  "CONFLICT": "Data conflict",
+  "FORBIDDEN": "Access denied",
+  "NOT_FOUND": "Resource not found"
+}

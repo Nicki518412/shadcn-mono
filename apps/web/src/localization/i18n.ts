@@ -3,12 +3,14 @@ import { initReactI18next } from "react-i18next"
 
 import enCommon from "./locales/en/common.json"
 import enDashboard from "./locales/en/dashboard.json"
+import enErrors from "./locales/en/errors.json"
 import enLogin from "./locales/en/login.json"
 import enMenus from "./locales/en/menus.json"
 import enRoles from "./locales/en/roles.json"
 import enUsers from "./locales/en/users.json"
 import zhCommon from "./locales/zh/common.json"
 import zhDashboard from "./locales/zh/dashboard.json"
+import zhErrors from "./locales/zh/errors.json"
 import zhLogin from "./locales/zh/login.json"
 import zhMenus from "./locales/zh/menus.json"
 import zhRoles from "./locales/zh/roles.json"
@@ -40,19 +42,20 @@ declare module "i18next" {
       users: typeof zhUsers
       roles: typeof zhRoles
       menus: typeof zhMenus
+      errors: typeof zhErrors
     }
   }
 }
 
 void i18n.use(initReactI18next).init({
   resources: {
-    zh: { common: zhCommon, login: zhLogin, dashboard: zhDashboard, users: zhUsers, roles: zhRoles, menus: zhMenus },
-    en: { common: enCommon, login: enLogin, dashboard: enDashboard, users: enUsers, roles: enRoles, menus: enMenus },
+    zh: { common: zhCommon, login: zhLogin, dashboard: zhDashboard, users: zhUsers, roles: zhRoles, menus: zhMenus, errors: zhErrors },
+    en: { common: enCommon, login: enLogin, dashboard: enDashboard, users: enUsers, roles: enRoles, menus: enMenus, errors: enErrors },
   },
   lng: detectInitialLanguage(),
   fallbackLng: "zh",
   defaultNS: "common",
-  ns: ["common", "login", "dashboard", "users", "roles", "menus"],
+  ns: ["common", "login", "dashboard", "users", "roles", "menus", "errors"],
   interpolation: { escapeValue: false },
 })
 

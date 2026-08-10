@@ -2,7 +2,7 @@ import { createRoute, z } from "@hono/zod-openapi"
 import type { OpenAPIHono } from "@hono/zod-openapi"
 import { prisma } from "@repo/db"
 import type { AppConfig } from "../config.js"
-import { HttpError, forbidden, unauthorized } from "../lib/http-error.js"
+import { HttpError, unauthorized } from "../lib/http-error.js"
 import { checkThrottle, recordFailure, resetThrottle } from "../lib/login-throttle.js"
 import { createSubApp, okBody } from "../lib/openapi.js"
 import { verifyPassword } from "@repo/db"
@@ -36,19 +36,19 @@ export function authRoutes(cfg: AppConfig): OpenAPIHono {
       const { username, password } = c.req.valid("json")
       // 规格要求按账号锁定。不能信任客户端可伪造的 X-Forwarded-For，否则更换请求头即可绕过计数。
       const key = `login:${username.toLowerCase()}`
-      if (!checkThrottle(key)) throw new HttpError(423, "LOCKED", "账号已锁定，请 15 分钟后再试")
+      if (!checkThrottle(key)) throw new HttpError(423, "ACCOUNT_LOCKED", "账号已锁定，请 15 分钟后再试")
 
       const user = await prisma.user.findUnique({ where: { username: username.toLowerCase() } })
       // 用户不存在与密码不符同响应（防枚举）；均计入失败
       if (!user) {
         recordFailure(key)
-        throw unauthorized("用户名或密码错误")
+        throw new HttpError(401, "LOGIN_FAILED", "用户名或密码错误")
       }
       if (!user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
         recordFailure(key)
-        throw unauthorized("用户名或密码错误")
+        throw new HttpError(401, "LOGIN_FAILED", "用户名或密码错误")
       }
-      if (!user.status) throw forbidden("账号已被禁用")
+      if (!user.status) throw new HttpError(403, "ACCOUNT_DISABLED", "账号已被禁用")
 
       resetThrottle(key) // 登录成功清除失败计数
       const pair = await issueTokenPair(user.id, cfg.jwtSecret)

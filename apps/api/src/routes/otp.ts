@@ -120,7 +120,7 @@ export function otpRoutes(cfg: AppConfig): OpenAPIHono {
         throw new HttpError(401, "INVALID_OTP", "验证码无效或已过期")
       }
       if (record.attempts >= OTP_MAX_ATTEMPTS) {
-        throw new HttpError(423, "LOCKED", "尝试次数过多，请重新获取验证码")
+        throw new HttpError(423, "OTP_LOCKED", "尝试次数过多，请重新获取验证码")
       }
       const hash = createHash("sha256").update(code).digest("hex")
       if (hash !== record.codeHash) {
@@ -135,7 +135,7 @@ export function otpRoutes(cfg: AppConfig): OpenAPIHono {
           data: { attempts: { increment: 1 } },
         })
         if (attempted.count !== 1) {
-          throw new HttpError(423, "LOCKED", "尝试次数过多，请重新获取验证码")
+          throw new HttpError(423, "OTP_LOCKED", "尝试次数过多，请重新获取验证码")
         }
         throw new HttpError(401, "INVALID_OTP", "验证码错误")
       }

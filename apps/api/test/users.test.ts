@@ -141,6 +141,7 @@ describe("users CRUD", () => {
     expect(dup.status).toBe(409)
     const dupBody = (await dup.json()) as { code: string; message: string }
     expect(dupBody.message).toContain("用户名")
+    expect(dupBody.code).toBe("USERNAME_TAKEN")
   })
 
   it("更新用户：改昵称/密码/角色；旧密码失效、新密码可登录", async () => {
@@ -260,15 +261,18 @@ describe("users CRUD", () => {
       headers: auth,
       body: JSON.stringify({ ...base, username: "crud_dup2", email: "CRUD_DUP@example.com" }),
     })
-    expect(dupEmail.status).toBe(409)
-    expect(((await dupEmail.json()) as { message: string }).message).toContain("邮箱")
+    const dupEmailBody = (await dupEmail.json()) as { code: string; message: string }
+    expect(dupEmailBody.message).toContain("邮箱")
+    expect(dupEmailBody.code).toBe("EMAIL_TAKEN")
     const dupPhone = await app.request("/api/users", {
       method: "POST",
       headers: auth,
       body: JSON.stringify({ ...base, username: "crud_dup3", telephone: "13800001111" }),
     })
     expect(dupPhone.status).toBe(409)
-    expect(((await dupPhone.json()) as { message: string }).message).toContain("手机号")
+    const dupPhoneBody = (await dupPhone.json()) as { code: string; message: string }
+    expect(dupPhoneBody.message).toContain("手机号")
+    expect(dupPhoneBody.code).toBe("PHONE_TAKEN")
   })
 
   it("不存在的用户 id：GET/PATCH/DELETE 返回 404", async () => {

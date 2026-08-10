@@ -3,8 +3,8 @@ import type { ClerkClient, User as ClerkUser } from "@clerk/backend"
 import type { MiddlewareHandler } from "hono"
 import { prisma } from "@repo/db"
 import type { User } from "@repo/db"
-import { HttpError, conflict, unauthorized } from "../lib/http-error.js"
-import { p2002FieldMessage } from "../lib/prisma-error.js"
+import { HttpError, unauthorized } from "../lib/http-error.js"
+import { p2002Conflict } from "../lib/prisma-error.js"
 import { toPublicUser } from "../lib/schemas.js"
 
 /** 清洗 email 前缀为合法 username 基底（小写 + 仅保留 [a-z0-9_.-] + 截断 32）；空 → "user"（由 uniqueUsername 兜底） */
@@ -62,9 +62,10 @@ async function findOrCreateUser(client: ClerkClient, clerkId: string): Promise<U
     const winner = await prisma.user.findUnique({ where: { clerkId } })
     if (winner) return winner
     // email 与已有本地账号冲突（P2002 message 含字段名，三方言一致，见 prisma-error.ts）→ 可操作 409
-    if (p2002FieldMessage(err, { email: "email" }) !== null) {
-      throw conflict("该邮箱已被本地账号使用，请联系管理员")
-    }
+    const emailConflict = p2002Conflict(err, {
+      email: { code: "EMAIL_TAKEN", message: "该邮箱已被本地账号使用，请联系管理员" },
+    })
+    if (emailConflict !== null) throw new HttpError(409, emailConflict.code, emailConflict.message)
     throw err
   }
 }

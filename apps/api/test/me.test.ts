@@ -151,7 +151,7 @@ describe("auth me", () => {
     const denied = await app.request("/api/test-perm-denied", { headers: authHeader })
     expect(denied.status).toBe(403)
     const deniedBody = (await denied.json()) as { code: string; message: string }
-    expect(deniedBody.code).toBe("FORBIDDEN")
+    expect(deniedBody.code).toBe("PERMISSION_DENIED")
     expect(deniedBody.message).toContain("system:user:add")
 
     const noAuth = await app.request("/api/test-perm-no-auth")

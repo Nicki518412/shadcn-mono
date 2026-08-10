@@ -4,10 +4,10 @@ import type { Menu, Prisma } from "@repo/db"
 import { prisma } from "@repo/db"
 import type { MenuNode, MenuType } from "@repo/shared"
 import { buildTree } from "@repo/shared"
-import { badRequest, conflict, notFound } from "../lib/http-error.js"
+import { HttpError, badRequest, notFound } from "../lib/http-error.js"
 import type { AppConfig } from "../config.js"
 import { bearerSecurity, createSubApp, okBody } from "../lib/openapi.js"
-import { p2002FieldMessage } from "../lib/prisma-error.js"
+import { p2002Conflict } from "../lib/prisma-error.js"
 import { errorBodySchema, idParamSchema, menuNodeRefSchema, menuTypeSchema } from "../lib/schemas.js"
 import { authenticate, requirePermission } from "../middleware/auth.js"
 
@@ -39,9 +39,9 @@ const menuCreateSchema = z
 // 全部字段可选（改谁传谁）；parentId/path/component/icon/permission 显式传 null 表示清空（undefined 不修改）
 const menuUpdateSchema = z.object(menuFieldShape).partial()
 
-/** P2002 字段 → 409 message 映射（create/PATCH 共用；permission 可空 unique，null 不冲突） */
+/** P2002 字段 → 409 code+message 映射（create/PATCH 共用；permission 可空 unique，null 不冲突） */
 const MENU_UNIQUE_FIELDS = {
-  permission: "权限码已存在",
+  permission: { code: "MENU_PERMISSION_TAKEN", message: "权限码已存在" },
 } as const
 
 /**
@@ -163,7 +163,7 @@ export function menuRoutes(cfg: AppConfig): OpenAPIHono {
           ? await prisma.menu.findUnique({ where: { id: parentId }, select: { type: true } })
           : null
       if (parentId !== undefined && parentId !== null && parent === null) throw badRequest("父菜单不存在")
-      if (!canAttachTo(parent, type)) throw badRequest("菜单类型与父节点不匹配")
+      if (!canAttachTo(parent, type)) throw new HttpError(400, "MENU_TYPE_INVALID", "菜单类型与父节点不匹配")
       const data: Prisma.MenuUncheckedCreateInput = { name, type, sort }
       // exactOptionalPropertyTypes：undefined 不传；null 显式存 NULL（根/清空）
       if (parentId !== undefined) data.parentId = parentId
@@ -176,8 +176,8 @@ export function menuRoutes(cfg: AppConfig): OpenAPIHono {
         const menu = await prisma.menu.create({ data })
         return c.json({ code: 0, data: toMenuNode(menu), message: "ok" }, 200)
       } catch (err) {
-        const message = p2002FieldMessage(err, MENU_UNIQUE_FIELDS)
-        if (message !== null) throw conflict(message)
+        const hit = p2002Conflict(err, MENU_UNIQUE_FIELDS)
+        if (hit !== null) throw new HttpError(409, hit.code, hit.message)
         throw err
       }
     },
@@ -239,21 +239,21 @@ export function menuRoutes(cfg: AppConfig): OpenAPIHono {
         const parent =
           newParentId !== null ? await prisma.menu.findUnique({ where: { id: newParentId }, select: { type: true } }) : null
         if (newParentId !== null && parent === null) throw badRequest("父菜单不存在")
-        if (!canAttachTo(parent, effectiveType)) throw badRequest("菜单类型与父节点不匹配")
+        if (!canAttachTo(parent, effectiveType)) throw new HttpError(400, "MENU_TYPE_INVALID", "菜单类型与父节点不匹配")
         // type 变化时校验直接子节点与新 type 兼容（矩阵不变式：改 type 不得破坏既有子树的挂载规则，否则要求先调整子节点）
         if (typeChanged) {
           const children = await prisma.menu.findMany({ where: { parentId: id }, select: { type: true } })
           for (const child of children) {
             if (!canAttachTo({ type: effectiveType }, menuTypeSchema.parse(child.type))) {
-              throw badRequest("菜单类型与子节点不兼容，请先调整子节点")
+              throw new HttpError(400, "MENU_TYPE_INVALID", "菜单类型与子节点不兼容，请先调整子节点")
             }
           }
         }
         // 防自挂：不能挂到自己或自己的子孙（祖先链上沿 parentId 可达的集合）
         if (parentChanged) {
-          if (newParentId === id) throw badRequest("不能挂到自身")
+          if (newParentId === id) throw new HttpError(400, "MENU_TYPE_INVALID", "不能挂到自身")
           if (newParentId !== null && (await collectSubtreeIds(id)).has(newParentId)) {
-            throw badRequest("不能挂到自己的子节点")
+            throw new HttpError(400, "MENU_TYPE_INVALID", "不能挂到自己的子节点")
           }
         }
       }
@@ -271,8 +271,8 @@ export function menuRoutes(cfg: AppConfig): OpenAPIHono {
         const menu = await prisma.menu.update({ where: { id }, data })
         return c.json({ code: 0, data: toMenuNode(menu), message: "ok" }, 200)
       } catch (err) {
-        const message = p2002FieldMessage(err, MENU_UNIQUE_FIELDS)
-        if (message !== null) throw conflict(message)
+        const hit = p2002Conflict(err, MENU_UNIQUE_FIELDS)
+        if (hit !== null) throw new HttpError(409, hit.code, hit.message)
         throw err
       }
     },
