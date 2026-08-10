@@ -303,7 +303,7 @@ describe("MenuPage", () => {
     fireEvent.click(within(dialog).getByLabelText("父节点"))
     expect(screen.getByRole("option", { name: "系统管理" })).toBeInTheDocument()
     clickOption("系统管理")
-    fireEvent.change(within(dialog).getByLabelText("菜单名称"), { target: { value: "订单管理" } })
+    fireEvent.change(within(dialog).getByLabelText("菜单中文名称"), { target: { value: "订单管理" } })
     fireEvent.change(within(dialog).getByLabelText("路由路径"), { target: { value: "/system/order" } })
     fireEvent.change(within(dialog).getByLabelText("组件"), { target: { value: "system/order" } })
     fireEvent.click(within(dialog).getByRole("button", { name: "保存" }))
@@ -336,7 +336,7 @@ describe("MenuPage", () => {
     const dialog = await screen.findByRole("dialog")
     expect(dialog).toHaveTextContent("编辑菜单")
     // 字段回显：名称/类型/路由/组件
-    expect(within(dialog).getByLabelText("菜单名称")).toHaveValue("用户管理")
+    expect(within(dialog).getByLabelText("菜单中文名称")).toHaveValue("用户管理")
     expect(within(dialog).getByLabelText("类型")).toHaveTextContent("MENU")
     expect(within(dialog).getByLabelText("路由路径")).toHaveValue("/system/user")
     expect(within(dialog).getByLabelText("组件")).toHaveValue("system/user")
