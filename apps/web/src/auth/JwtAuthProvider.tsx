@@ -1,5 +1,5 @@
 import type { AuthProvider, AuthSession, LoginCredential, OtpChannel, SessionUser } from "./types"
-import { api } from "../api/client"
+import { ApiError, api } from "../api/client"
 import {
   API_BASE,
   clearTokens,
@@ -33,7 +33,7 @@ export class JwtAuthProvider implements AuthProvider {
     })
     const body = (await res.json().catch(() => null)) as ApiEnvelope<LoginResponse> | null
     const message = body?.message ?? "登录失败"
-    if (!res.ok || body?.code !== 0) throw new Error(message)
+    if (!res.ok || body?.code !== 0) throw new ApiError(message, typeof body?.code === "string" ? body.code : undefined)
     const { user, accessToken, refreshToken } = body.data
     setAccessToken(accessToken)
     setRefreshToken(refreshToken)
