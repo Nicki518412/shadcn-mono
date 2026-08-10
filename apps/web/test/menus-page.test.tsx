@@ -23,13 +23,13 @@ type MenuNode = components["schemas"]["MenuNode"]
  */
 const menuTree: MenuNode[] = [
   {
-    id: "m0", parentId: null, name: "工作台", nameEn: null, type: "MENU", path: "/",
+    id: "m0", parentId: null, nameZh: "工作台", nameEn: null, type: "MENU", path: "/",
     component: "dashboard", icon: null, permission: null, sort: 0, status: true, children: [],
   },
   {
     id: "d1",
     parentId: null,
-    name: "系统管理",
+    nameZh: "系统管理",
     nameEn: null,
     type: "DIR",
     path: null,
@@ -40,17 +40,17 @@ const menuTree: MenuNode[] = [
     status: true,
     children: [
       {
-        id: "m1", parentId: "d1", name: "用户管理", nameEn: null, type: "MENU", path: "/system/user",
+        id: "m1", parentId: "d1", nameZh: "用户管理", nameEn: null, type: "MENU", path: "/system/user",
         component: "system/user", icon: null, permission: "system:user:query", sort: 1, status: true,
         children: [
-          { id: "b1", parentId: "m1", name: "用户新增", nameEn: null, type: "BUTTON", path: null, component: null, icon: null, permission: "system:user:create", sort: 1, status: true, children: [] },
-          { id: "b2", parentId: "m1", name: "用户编辑", nameEn: null, type: "BUTTON", path: null, component: null, icon: null, permission: "system:user:update", sort: 2, status: true, children: [] },
+          { id: "b1", parentId: "m1", nameZh: "用户新增", nameEn: null, type: "BUTTON", path: null, component: null, icon: null, permission: "system:user:create", sort: 1, status: true, children: [] },
+          { id: "b2", parentId: "m1", nameZh: "用户编辑", nameEn: null, type: "BUTTON", path: null, component: null, icon: null, permission: "system:user:update", sort: 2, status: true, children: [] },
         ],
       },
       {
         id: "d2",
         parentId: "d1",
-        name: "系统监控",
+        nameZh: "系统监控",
         nameEn: null,
         type: "DIR",
         path: null,
@@ -61,11 +61,11 @@ const menuTree: MenuNode[] = [
         status: false,
         children: [
           {
-            id: "m2", parentId: "d2", name: "监控面板", nameEn: null, type: "MENU", path: "/system/monitor",
+            id: "m2", parentId: "d2", nameZh: "监控面板", nameEn: null, type: "MENU", path: "/system/monitor",
             component: "system/monitor", icon: null, permission: "system:monitor:query",
             sort: 1, status: true,
             children: [
-              { id: "b3", parentId: "m2", name: "监控导出", nameEn: null, type: "BUTTON", path: null, component: null, icon: null, permission: "system:monitor:export", sort: 1, status: true, children: [] },
+              { id: "b3", parentId: "m2", nameZh: "监控导出", nameEn: null, type: "BUTTON", path: null, component: null, icon: null, permission: "system:monitor:export", sort: 1, status: true, children: [] },
             ],
           },
         ],
@@ -143,7 +143,7 @@ function renderMenuPage(
   })
   queryClient.setQueryData<components["schemas"]["MeResponse"]>(ME_QUERY_KEY, {
     user: { id: "u1", username: "admin", nickname: "系统管理员", email: null, telephone: null },
-    roles: [{ id: "r1", name: "管理员", nameEn: "Administrator", code: "ADMIN" }],
+    roles: [{ id: "r1", nameZh: "管理员", nameEn: "Administrator", code: "ADMIN" }],
     navTree: [],
     permissionCodes,
   })
@@ -198,7 +198,7 @@ async function openCreateDialog(
   await waitFor(() => {
     expect(screen.getByText("系统管理")).toBeInTheDocument()
   })
-  fireEvent.click(screen.getByRole("button", { name: "新增菜单" }))
+  fireEvent.click(screen.getByRole("button", { name:"新增菜单" }))
   const dialog = await screen.findByRole("dialog")
   expect(dialog).toHaveTextContent("新增菜单")
   return dialog
@@ -235,19 +235,19 @@ describe("MenuPage", () => {
     expect(screen.getAllByText("MENU")).toHaveLength(3)
     expect(screen.getByText("禁用")).toBeInTheDocument()
     // 可见行数：工作台 + 系统管理 + 用户管理 + 系统监控 + 监控面板 = 5 行
-    expect(screen.getAllByRole("button", { name: "编辑" })).toHaveLength(5)
+    expect(screen.getAllByRole("button", { name:"编辑" })).toHaveLength(5)
 
     // 展开 MENU：BUTTON 子行可见；收起后再次隐藏
-    fireEvent.click(screen.getByRole("button", { name: "展开用户管理" }))
+    fireEvent.click(screen.getByRole("button", { name:"展开用户管理" }))
     expect(screen.getByText("用户新增")).toBeInTheDocument()
     expect(screen.getByText("用户编辑")).toBeInTheDocument()
     expect(screen.getByText("system:user:create")).toBeInTheDocument()
-    expect(screen.getAllByRole("button", { name: "编辑" })).toHaveLength(7)
-    fireEvent.click(screen.getByRole("button", { name: "收起用户管理" }))
+    expect(screen.getAllByRole("button", { name:"编辑" })).toHaveLength(7)
+    fireEvent.click(screen.getByRole("button", { name:"收起用户管理" }))
     expect(screen.queryByText("用户新增")).not.toBeInTheDocument()
 
     // 展开嵌套 MENU：BUTTON 子行可见
-    fireEvent.click(screen.getByRole("button", { name: "展开监控面板" }))
+    fireEvent.click(screen.getByRole("button", { name:"展开监控面板" }))
     expect(screen.getByText("监控导出")).toBeInTheDocument()
   })
 
@@ -260,9 +260,9 @@ describe("MenuPage", () => {
     await waitFor(() => {
       expect(screen.getByText("系统管理")).toBeInTheDocument()
     })
-    expect(screen.queryByRole("button", { name: "新增菜单" })).not.toBeInTheDocument()
-    expect(screen.getAllByRole("button", { name: "编辑" })).toHaveLength(5)
-    expect(screen.getAllByRole("button", { name: "删除" })).toHaveLength(5)
+    expect(screen.queryByRole("button", { name:"新增菜单" })).not.toBeInTheDocument()
+    expect(screen.getAllByRole("button", { name:"编辑" })).toHaveLength(5)
+    expect(screen.getAllByRole("button", { name:"删除" })).toHaveLength(5)
   })
 
   it("新增菜单：父节点选项按类型过滤（BUTTON 仅 MENU 父）→ 填表提交 POST body 断言", async () => {
@@ -271,28 +271,28 @@ describe("MenuPage", () => {
 
     // 默认类型 DIR：父节点选项 = 无（根目录）+ 全部 DIR，不含 MENU
     fireEvent.click(within(dialog).getByLabelText("父节点"))
-    expect(screen.getByRole("option", { name: "无（根目录）" })).toBeInTheDocument()
-    expect(screen.getByRole("option", { name: "系统管理" })).toBeInTheDocument()
-    expect(screen.getByRole("option", { name: "系统监控" })).toBeInTheDocument()
-    expect(screen.queryByRole("option", { name: "用户管理" })).not.toBeInTheDocument()
+    expect(screen.getByRole("option", { name:"无（根目录）" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name:"系统管理" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name:"系统监控" })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name:"用户管理" })).not.toBeInTheDocument()
     clickOption("系统管理")
 
     // 切到 MENU：父节点仍只能选 DIR（MENU/BUTTON 不可为父）
     fireEvent.click(within(dialog).getByLabelText("类型"))
     clickOption("MENU")
     fireEvent.click(within(dialog).getByLabelText("父节点"))
-    expect(screen.getByRole("option", { name: "系统管理" })).toBeInTheDocument()
-    expect(screen.queryByRole("option", { name: "用户管理" })).not.toBeInTheDocument()
+    expect(screen.getByRole("option", { name:"系统管理" })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name:"用户管理" })).not.toBeInTheDocument()
     clickOption("系统管理")
 
     // 切到 BUTTON：父选项只余 MENU 节点，且不可为根
     fireEvent.click(within(dialog).getByLabelText("类型"))
     clickOption("BUTTON")
     fireEvent.click(within(dialog).getByLabelText("父节点"))
-    expect(screen.getByRole("option", { name: "用户管理" })).toBeInTheDocument()
-    expect(screen.getByRole("option", { name: "监控面板" })).toBeInTheDocument()
-    expect(screen.queryByRole("option", { name: "无（根目录）" })).not.toBeInTheDocument()
-    expect(screen.queryByRole("option", { name: "系统管理" })).not.toBeInTheDocument()
+    expect(screen.getByRole("option", { name:"用户管理" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name:"监控面板" })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name:"无（根目录）" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("option", { name:"系统管理" })).not.toBeInTheDocument()
     clickOption("用户管理")
 
     // 切回 MENU：type 变更后原父节点（BUTTON 专用父 m1）非法 → 自动重置
@@ -301,16 +301,16 @@ describe("MenuPage", () => {
     // 父 Select 已重置为空 → 显示「无（根目录）」占位
     expect(within(dialog).getByLabelText("父节点")).toHaveTextContent("无（根目录）")
     fireEvent.click(within(dialog).getByLabelText("父节点"))
-    expect(screen.getByRole("option", { name: "系统管理" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name:"系统管理" })).toBeInTheDocument()
     clickOption("系统管理")
     fireEvent.change(within(dialog).getByLabelText("菜单中文名称"), { target: { value: "订单管理" } })
     fireEvent.change(within(dialog).getByLabelText("路由路径"), { target: { value: "/system/order" } })
     fireEvent.change(within(dialog).getByLabelText("组件"), { target: { value: "system/order" } })
-    fireEvent.click(within(dialog).getByRole("button", { name: "保存" }))
+    fireEvent.click(within(dialog).getByRole("button", { name:"保存" }))
 
     await waitFor(() => {
       expect(fetchBodies(fetchMock, "POST")).toContainEqual({
-        name: "订单管理",
+        nameZh: "订单管理",
         nameEn: null,
         type: "MENU",
         parentId: "d1",
@@ -343,12 +343,12 @@ describe("MenuPage", () => {
 
     // 排除自身子树：父选项只余 DIR 级节点，自身（用户管理）及后代（用户新增/用户编辑）不可选
     fireEvent.click(within(dialog).getByLabelText("父节点"))
-    expect(screen.getByRole("option", { name: "无（根目录）" })).toBeInTheDocument()
-    expect(screen.getByRole("option", { name: "系统管理" })).toBeInTheDocument()
-    expect(screen.getByRole("option", { name: "系统监控" })).toBeInTheDocument()
-    expect(screen.queryByRole("option", { name: "用户管理" })).not.toBeInTheDocument()
-    expect(screen.queryByRole("option", { name: "用户新增" })).not.toBeInTheDocument()
-    expect(screen.queryByRole("option", { name: "用户编辑" })).not.toBeInTheDocument()
+    expect(screen.getByRole("option", { name:"无（根目录）" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name:"系统管理" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name:"系统监控" })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name:"用户管理" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("option", { name:"用户新增" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("option", { name:"用户编辑" })).not.toBeInTheDocument()
     clickOption("系统管理")
 
     // MENU → BUTTON：path/component 显式传 null 清空（防后端"BUTTON 不允许填写 path 和 component"）；
@@ -356,15 +356,15 @@ describe("MenuPage", () => {
     fireEvent.click(within(dialog).getByLabelText("类型"))
     clickOption("BUTTON")
     fireEvent.click(within(dialog).getByLabelText("父节点"))
-    expect(screen.getByRole("option", { name: "监控面板" })).toBeInTheDocument()
-    expect(screen.queryByRole("option", { name: "无（根目录）" })).not.toBeInTheDocument()
+    expect(screen.getByRole("option", { name:"监控面板" })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name:"无（根目录）" })).not.toBeInTheDocument()
     clickOption("监控面板")
-    fireEvent.click(within(dialog).getByRole("button", { name: "保存" }))
+    fireEvent.click(within(dialog).getByRole("button", { name:"保存" }))
 
     await waitFor(() => {
       expect(fetchUrls(fetchMock, "PATCH")).toContain("/api/menus/m1")
       expect(fetchBodies(fetchMock, "PATCH")).toContainEqual({
-        name: "用户管理",
+        nameZh: "用户管理",
         nameEn: null,
         type: "BUTTON",
         parentId: "m2",
@@ -390,7 +390,7 @@ describe("MenuPage", () => {
     const dialog = await screen.findByRole("alertdialog")
     expect(dialog).toHaveTextContent("确定删除菜单「系统管理」？")
     expect(dialog).toHaveTextContent("将删除该菜单及其全部子节点")
-    fireEvent.click(within(dialog).getByRole("button", { name: "删除" }))
+    fireEvent.click(within(dialog).getByRole("button", { name:"删除" }))
 
     await waitFor(() => {
       expect(fetchUrls(fetchMock, "DELETE")).toContain("/api/menus/d1")

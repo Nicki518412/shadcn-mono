@@ -18,7 +18,7 @@ import { ME_QUERY_KEY } from "../src/router/guards"
 const roleList: components["schemas"]["RoleListItem"][] = [
   {
     id: "r1",
-    name: "管理员",
+    nameZh: "管理员",
     nameEn: "Administrator",
     code: "ADMIN",
     description: "系统内置管理员",
@@ -28,7 +28,7 @@ const roleList: components["schemas"]["RoleListItem"][] = [
   },
   {
     id: "r2",
-    name: "访客",
+    nameZh: "访客",
     nameEn: "Guest",
     code: "GUEST",
     description: null,
@@ -43,7 +43,7 @@ const menuTree: components["schemas"]["MenuNode"][] = [
   {
     id: "d1",
     parentId: null,
-    name: "系统管理",
+    nameZh: "系统管理",
     nameEn: null,
     type: "DIR",
     path: null,
@@ -56,7 +56,7 @@ const menuTree: components["schemas"]["MenuNode"][] = [
       {
         id: "m1",
         parentId: "d1",
-        name: "用户管理",
+        nameZh: "用户管理",
         nameEn: null,
         type: "MENU",
         path: "/system/user",
@@ -67,12 +67,12 @@ const menuTree: components["schemas"]["MenuNode"][] = [
         status: true,
         children: [
           {
-            id: "b1", parentId: "m1", name: "用户新增", nameEn: null, type: "BUTTON", path: null,
+            id: "b1", parentId: "m1", nameZh: "用户新增", nameEn: null, type: "BUTTON", path: null,
             component: null, icon: null, permission: "system:user:create",
             sort: 1, status: true, children: [],
           },
           {
-            id: "b2", parentId: "m1", name: "用户编辑", nameEn: null, type: "BUTTON", path: null,
+            id: "b2", parentId: "m1", nameZh: "用户编辑", nameEn: null, type: "BUTTON", path: null,
             component: null, icon: null, permission: "system:user:update",
             sort: 2, status: true, children: [],
           },
@@ -81,7 +81,7 @@ const menuTree: components["schemas"]["MenuNode"][] = [
       {
         id: "m2",
         parentId: "d1",
-        name: "角色管理",
+        nameZh: "角色管理",
         nameEn: null,
         type: "MENU",
         path: "/system/role",
@@ -92,7 +92,7 @@ const menuTree: components["schemas"]["MenuNode"][] = [
         status: true,
         children: [
           {
-            id: "b3", parentId: "m2", name: "分配权限", nameEn: null, type: "BUTTON", path: null,
+            id: "b3", parentId: "m2", nameZh: "分配权限", nameEn: null, type: "BUTTON", path: null,
             component: null, icon: null, permission: "system:role:assign",
             sort: 1, status: true, children: [],
           },
@@ -186,7 +186,7 @@ function renderRolePage(
   })
   queryClient.setQueryData<components["schemas"]["MeResponse"]>(ME_QUERY_KEY, {
     user: { id: "u1", username: "admin", nickname: "系统管理员", email: null, telephone: null },
-    roles: [{ id: "r1", name: "管理员", nameEn: "Administrator", code: "ADMIN" }],
+    roles: [{ id: "r1", nameZh: "管理员", nameEn: "Administrator", code: "ADMIN" }],
     navTree: [],
     permissionCodes,
   })
@@ -256,10 +256,10 @@ describe("RolePage", () => {
     expect(screen.getAllByText("-")).toHaveLength(1)
     expect(screen.getByText("0")).toBeInTheDocument()
     // Permission 全量授权：新增/分配权限/编辑/删除按钮均渲染
-    expect(screen.getByRole("button", { name: "新增角色" })).toBeInTheDocument()
-    expect(screen.getAllByRole("button", { name: "分配权限" })).toHaveLength(2)
-    expect(screen.getAllByRole("button", { name: "编辑" })).toHaveLength(2)
-    expect(screen.getAllByRole("button", { name: "删除" })).toHaveLength(2)
+    expect(screen.getByRole("button", { name:"新增角色" })).toBeInTheDocument()
+    expect(screen.getAllByRole("button", { name:"分配权限" })).toHaveLength(2)
+    expect(screen.getAllByRole("button", { name:"编辑" })).toHaveLength(2)
+    expect(screen.getAllByRole("button", { name:"删除" })).toHaveLength(2)
   })
 
   it("无 system:role:assign 权限：不渲染分配权限按钮（其余操作按钮不受影响）", async () => {
@@ -271,8 +271,8 @@ describe("RolePage", () => {
     await waitFor(() => {
       expect(screen.getByText("管理员")).toBeInTheDocument()
     })
-    expect(screen.queryByRole("button", { name: "分配权限" })).not.toBeInTheDocument()
-    expect(screen.getAllByRole("button", { name: "编辑" })).toHaveLength(2)
+    expect(screen.queryByRole("button", { name:"分配权限" })).not.toBeInTheDocument()
+    expect(screen.getAllByRole("button", { name:"编辑" })).toHaveLength(2)
   })
 
   it("新增角色：打开 Dialog 填表提交 → POST /api/roles 携带表单数据", async () => {
@@ -282,18 +282,18 @@ describe("RolePage", () => {
     await waitFor(() => {
       expect(screen.getByText("管理员")).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole("button", { name: "新增角色" }))
+    fireEvent.click(screen.getByRole("button", { name:"新增角色" }))
 
-    const nameInput = await screen.findByLabelText("角色名称")
+    const nameInput = await screen.findByLabelText("角色中文名称")
     fireEvent.change(nameInput, { target: { value: "运营" } })
     fireEvent.change(screen.getByLabelText("角色编码"), { target: { value: "OPERATOR" } })
     fireEvent.change(screen.getByLabelText("描述"), { target: { value: "运营人员" } })
     fireEvent.change(screen.getByLabelText("排序"), { target: { value: "5" } })
-    fireEvent.click(screen.getByRole("button", { name: "保存" }))
+    fireEvent.click(screen.getByRole("button", { name:"保存" }))
 
     await waitFor(() => {
       expect(fetchBodies(fetchMock, "POST")).toContainEqual({
-        name: "运营",
+        nameZh: "运营",
         nameEn: null,
         code: "OPERATOR",
         description: "运营人员",
@@ -311,15 +311,15 @@ describe("RolePage", () => {
     // 对话框提示覆盖语义；回显节点勾选（回显经 effect 写入，waitFor 等 effect flush）
     expect(await screen.findByRole("dialog")).toHaveTextContent("覆盖原有权限")
     await waitFor(() => {
-      expect(screen.getByRole("checkbox", { name: "用户新增" })).toBeChecked()
+      expect(screen.getByRole("checkbox", { name:"用户新增" })).toBeChecked()
     })
-    expect(screen.getByRole("checkbox", { name: "用户编辑" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"用户编辑" })).not.toBeChecked()
     // 祖先部分选中：indeterminate（aria-checked=mixed），不得误标全选
-    expect(screen.getByRole("checkbox", { name: "用户管理" })).toHaveAttribute(
+    expect(screen.getByRole("checkbox", { name:"用户管理" })).toHaveAttribute(
       "aria-checked",
       "mixed",
     )
-    expect(screen.getByRole("checkbox", { name: "系统管理" })).toHaveAttribute(
+    expect(screen.getByRole("checkbox", { name:"系统管理" })).toHaveAttribute(
       "aria-checked",
       "mixed",
     )
@@ -330,16 +330,16 @@ describe("RolePage", () => {
     await openGrantDialog(fetchMock)
 
     // 空回显：全树未勾选
-    expect(await screen.findByRole("checkbox", { name: "系统管理" })).not.toBeChecked()
+    expect(await screen.findByRole("checkbox", { name:"系统管理" })).not.toBeChecked()
 
-    fireEvent.click(screen.getByRole("checkbox", { name: "用户新增" }))
+    fireEvent.click(screen.getByRole("checkbox", { name:"用户新增" }))
     // 自身 + 祖先 m1/d1 自动选中
-    expect(screen.getByRole("checkbox", { name: "用户新增" })).toBeChecked()
-    expect(screen.getByRole("checkbox", { name: "用户管理" })).toBeChecked()
-    expect(screen.getByRole("checkbox", { name: "系统管理" })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"用户新增" })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"用户管理" })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"系统管理" })).toBeChecked()
     // 非祖先/后代不受影响
-    expect(screen.getByRole("checkbox", { name: "用户编辑" })).not.toBeChecked()
-    expect(screen.getByRole("checkbox", { name: "角色管理" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"用户编辑" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"角色管理" })).not.toBeChecked()
   })
 
   it("树形勾选联动：取消父节点级联取消全部后代", async () => {
@@ -348,19 +348,19 @@ describe("RolePage", () => {
     await openGrantDialog(fetchMock)
 
     await waitFor(() => {
-      expect(screen.getByRole("checkbox", { name: "角色管理" })).toBeChecked()
+      expect(screen.getByRole("checkbox", { name:"角色管理" })).toBeChecked()
     })
-    expect(screen.getByRole("checkbox", { name: "分配权限" })).toBeChecked()
-    expect(screen.getByRole("checkbox", { name: "系统管理" })).toHaveAttribute(
+    expect(screen.getByRole("checkbox", { name:"分配权限" })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"系统管理" })).toHaveAttribute(
       "aria-checked",
       "mixed",
     )
 
-    fireEvent.click(screen.getByRole("checkbox", { name: "角色管理" }))
+    fireEvent.click(screen.getByRole("checkbox", { name:"角色管理" }))
     // 父节点与其全部后代级联取消；无勾选的祖先同步取消半选态
-    expect(screen.getByRole("checkbox", { name: "角色管理" })).not.toBeChecked()
-    expect(screen.getByRole("checkbox", { name: "分配权限" })).not.toBeChecked()
-    expect(screen.getByRole("checkbox", { name: "系统管理" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"角色管理" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"分配权限" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"系统管理" })).not.toBeChecked()
   })
 
   it("树形勾选联动：取消父节点后清理孤儿祖先（勾选 b1 → 取消 m1 → 全树清空）", async () => {
@@ -368,14 +368,14 @@ describe("RolePage", () => {
     await openGrantDialog(fetchMock)
 
     // 勾选 b1：自动带上 m1/d1
-    fireEvent.click(await screen.findByRole("checkbox", { name: "用户新增" }))
-    expect(screen.getByRole("checkbox", { name: "系统管理" })).toBeChecked()
+    fireEvent.click(await screen.findByRole("checkbox", { name:"用户新增" }))
+    expect(screen.getByRole("checkbox", { name:"系统管理" })).toBeChecked()
     // 取消 m1：m1 子树级联取消，且 d1 无剩余选中后代 → 孤儿祖先一并清理
-    fireEvent.click(screen.getByRole("checkbox", { name: "用户管理" }))
-    expect(screen.getByRole("checkbox", { name: "用户新增" })).not.toBeChecked()
-    expect(screen.getByRole("checkbox", { name: "用户编辑" })).not.toBeChecked()
-    expect(screen.getByRole("checkbox", { name: "用户管理" })).not.toBeChecked()
-    expect(screen.getByRole("checkbox", { name: "系统管理" })).not.toBeChecked()
+    fireEvent.click(screen.getByRole("checkbox", { name:"用户管理" }))
+    expect(screen.getByRole("checkbox", { name:"用户新增" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"用户编辑" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"用户管理" })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"系统管理" })).not.toBeChecked()
   })
 
   it("树形勾选联动：点击半选父节点全选整个子树（父 + 全部后代）", async () => {
@@ -384,17 +384,17 @@ describe("RolePage", () => {
     await openGrantDialog(fetchMock)
 
     await waitFor(() => {
-      expect(screen.getByRole("checkbox", { name: "用户管理" })).toHaveAttribute(
+      expect(screen.getByRole("checkbox", { name:"用户管理" })).toHaveAttribute(
         "aria-checked",
         "mixed",
       )
     })
     // 点击半选父节点（native 语义 → 勾选）：自身 + 全部后代 + 祖先
-    fireEvent.click(screen.getByRole("checkbox", { name: "用户管理" }))
-    expect(screen.getByRole("checkbox", { name: "用户管理" })).toBeChecked()
-    expect(screen.getByRole("checkbox", { name: "用户新增" })).toBeChecked()
-    expect(screen.getByRole("checkbox", { name: "用户编辑" })).toBeChecked()
-    expect(screen.getByRole("checkbox", { name: "系统管理" })).toBeChecked()
+    fireEvent.click(screen.getByRole("checkbox", { name:"用户管理" }))
+    expect(screen.getByRole("checkbox", { name:"用户管理" })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"用户新增" })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"用户编辑" })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name:"系统管理" })).toBeChecked()
   })
 
   it("回显查询未就绪时保存按钮禁用（防误存空集清空权限）", async () => {
@@ -404,7 +404,7 @@ describe("RolePage", () => {
     await waitFor(() => {
       expect(screen.getByText("菜单加载中…")).toBeInTheDocument()
     })
-    expect(screen.getByRole("button", { name: "保存" })).toBeDisabled()
+    expect(screen.getByRole("button", { name:"保存" })).toBeDisabled()
   })
 
   it("保存 → PUT /api/roles/{id}/menus 全量提交（含自动带上的祖先与按钮节点）", async () => {
@@ -412,9 +412,9 @@ describe("RolePage", () => {
     await openGrantDialog(fetchMock)
 
     // 勾选按钮 b1（自动带 m1/d1）+ 勾选按钮 b3（自动带 m2）
-    fireEvent.click(await screen.findByRole("checkbox", { name: "用户新增" }))
-    fireEvent.click(screen.getByRole("checkbox", { name: "分配权限" }))
-    fireEvent.click(screen.getByRole("button", { name: "保存" }))
+    fireEvent.click(await screen.findByRole("checkbox", { name:"用户新增" }))
+    fireEvent.click(screen.getByRole("checkbox", { name:"分配权限" }))
+    fireEvent.click(screen.getByRole("button", { name:"保存" }))
 
     await waitFor(() => {
       expect(fetchUrls(fetchMock, "PUT")).toContain("/api/roles/r1/menus")

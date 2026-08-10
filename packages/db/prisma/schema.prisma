@@ -46,9 +46,9 @@ model User {
 model Role {
   /// 主键（cuid 全局唯一）
   id          String     @id @default(cuid())
-  /// 角色名称（展示用）
-  name        String
-  /// 英文名称（多语言展示，en 语言用；未填回落 name）
+  /// 中文名称（zh 语言展示）
+  nameZh      String
+  /// 英文名称（en 语言展示，未填回落 nameZh）
   nameEn      String?
   /// 角色编码（如 ADMIN，程序判断用）
   code        String     @unique
@@ -74,9 +74,9 @@ model Menu {
   id         String     @id @default(cuid())
   /// 父节点 ID（null=根；类型约束: DIR→DIR/MENU, MENU→BUTTON, BUTTON→无子级）
   parentId   String?
-  /// 菜单名称
-  name       String
-  /// 英文名称（多语言展示，en 语言用；未填回落 name）
+  /// 中文名称（zh 语言展示）
+  nameZh     String
+  /// 英文名称（en 语言展示，未填回落 nameZh）
   nameEn     String?
   /// 类型（DIR 目录 / MENU 菜单 / BUTTON 按钮，字符串 + zod 校验，兼容三方言）
   type       String

@@ -55,7 +55,7 @@ function collectParentOptions(
   for (const node of list) {
     if (excludedIds.has(node.id)) continue
     if (ALLOWED_PARENT_TYPES[type].includes(node.type)) {
-      result.push({ id: node.id, name: node.name, depth })
+      result.push({ id: node.id, name: node.nameZh, depth })
     }
     collectParentOptions(node.children, type, excludedIds, depth + 1, result)
   }
@@ -93,7 +93,7 @@ export function MenuFormDialog({
   const createMutation = useCreateMenuMutation()
   const updateMutation = useUpdateMenuMutation()
 
-  const [name, setName] = useState(menu?.name ?? "")
+  const [name, setName] = useState(menu?.nameZh ?? "")
   const [nameEn, setNameEn] = useState(menu?.nameEn ?? "")
   const [type, setType] = useState<MenuType>(menu?.type ?? "DIR")
   const [parentId, setParentId] = useState(menu?.parentId ?? "")
@@ -140,7 +140,7 @@ export function MenuFormDialog({
     }
     setError(null)
     const body: MenuCreateInput = {
-      name: name.trim(),
+      nameZh: name.trim(),
       // 留空显式传 null（en 语言回落中文名）
       nameEn: nameEn.trim() === "" ? null : nameEn.trim(),
       type,

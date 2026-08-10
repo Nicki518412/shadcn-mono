@@ -7,7 +7,7 @@ import { menuTypeSchema, type PublicUser } from "../lib/schemas.js"
 /** 用户完整权限信息（me 响应 / requirePermission 共用） */
 export interface AuthInfo {
   user: PublicUser
-  roles: { id: string; name: string; nameEn: string | null; code: string }[]
+  roles: { id: string; nameZh: string; nameEn: string | null; code: string }[]
   navTree: MenuNode[]
   permissionCodes: string[]
 }
@@ -19,7 +19,7 @@ function toMenuNode(menu: Menu): MenuNode {
   return {
     id: menu.id,
     parentId: menu.parentId,
-    name: menu.name,
+    nameZh: menu.nameZh,
     nameEn: menu.nameEn,
     type: menuTypeSchema.parse(menu.type),
     path: menu.path,
@@ -42,7 +42,7 @@ export async function getUserAuthInfo(userId: string, user: PublicUser): Promise
   const activeRoles = userRoles.filter((ur) => ur.role.status)
   const roles = activeRoles.map((ur) => ({
     id: ur.role.id,
-    name: ur.role.name,
+    nameZh: ur.role.nameZh,
     nameEn: ur.role.nameEn,
     code: ur.role.code,
   }))

@@ -5,7 +5,7 @@ import type { MenuNode } from "../src/types.js"
 function menu(partial: Partial<MenuNode> & { id: string }): MenuNode {
   return {
     parentId: null,
-    name: partial.id,
+    nameZh: partial.id,
     nameEn: null,
     type: "MENU",
     path: null,
@@ -19,11 +19,11 @@ function menu(partial: Partial<MenuNode> & { id: string }): MenuNode {
   }
 }
 
-const dirSystem = menu({ id: "d1", name: "系统管理", type: "DIR", sort: 1 })
-const dirEmpty = menu({ id: "d2", name: "空目录", type: "DIR", sort: 2 })
-const mUser = menu({ id: "m1", parentId: "d1", name: "用户管理", permission: "system:user:query", sort: 1 })
-const bAdd = menu({ id: "b1", parentId: "m1", name: "用户新增", type: "BUTTON", permission: "system:user:add", sort: 1 })
-const mRole = menu({ id: "m2", parentId: "d1", name: "角色管理", permission: "system:role:query", sort: 2 })
+const dirSystem = menu({ id: "d1", nameZh: "系统管理", type: "DIR", sort: 1 })
+const dirEmpty = menu({ id: "d2", nameZh: "空目录", type: "DIR", sort: 2 })
+const mUser = menu({ id: "m1", parentId: "d1", nameZh: "用户管理", permission: "system:user:query", sort: 1 })
+const bAdd = menu({ id: "b1", parentId: "m1", nameZh: "用户新增", type: "BUTTON", permission: "system:user:add", sort: 1 })
+const mRole = menu({ id: "m2", parentId: "d1", nameZh: "角色管理", permission: "system:role:query", sort: 2 })
 const allMenus = [dirSystem, mUser, bAdd, mRole, dirEmpty]
 
 describe("computeVisibleMenus", () => {
@@ -78,16 +78,16 @@ describe("computeVisibleMenus", () => {
   })
 
   it("嵌套空目录折叠：中间目录变空壳后也应移除", () => {
-    const a = menu({ id: "a", name: "A", type: "DIR", sort: 1 })
-    const b = menu({ id: "b", parentId: "a", name: "B", type: "DIR", sort: 1 })
+    const a = menu({ id: "a", nameZh: "A", type: "DIR", sort: 1 })
+    const b = menu({ id: "b", parentId: "a", nameZh: "B", type: "DIR", sort: 1 })
     const r = computeVisibleMenus([["a", "b"]], [a, b])
     expect(r.navTree).toEqual([])
   })
 
   it("嵌套非空目录保留整条链", () => {
-    const a = menu({ id: "a", name: "A", type: "DIR", sort: 1 })
-    const b = menu({ id: "b", parentId: "a", name: "B", type: "DIR", sort: 1 })
-    const m = menu({ id: "m", parentId: "b", name: "M", sort: 1 })
+    const a = menu({ id: "a", nameZh: "A", type: "DIR", sort: 1 })
+    const b = menu({ id: "b", parentId: "a", nameZh: "B", type: "DIR", sort: 1 })
+    const m = menu({ id: "m", parentId: "b", nameZh: "M", sort: 1 })
     const r = computeVisibleMenus([["a", "b", "m"]], [a, b, m])
     expect(r.navTree.map((n) => n.id)).toEqual(["a"])
     expect(r.navTree[0]?.children.map((n) => n.id)).toEqual(["b"])
@@ -108,10 +108,10 @@ describe("computeVisibleMenus", () => {
 
 describe("buildTree", () => {
   it("乱序节点构建排序后的树", () => {
-    const a = menu({ id: "a", name: "A", type: "DIR", sort: 2 })
-    const b = menu({ id: "b", parentId: "a", name: "B", sort: 1 })
-    const c = menu({ id: "c", parentId: "a", name: "C", sort: 2 })
-    const m = menu({ id: "m", parentId: "b", name: "M", sort: 1 })
+    const a = menu({ id: "a", nameZh: "A", type: "DIR", sort: 2 })
+    const b = menu({ id: "b", parentId: "a", nameZh: "B", sort: 1 })
+    const c = menu({ id: "c", parentId: "a", nameZh: "C", sort: 2 })
+    const m = menu({ id: "m", parentId: "b", nameZh: "M", sort: 1 })
     const tree = buildTree([m, a, c, b])
     expect(tree.map((n) => n.id)).toEqual(["a"])
     expect(tree[0]?.children.map((n) => n.id)).toEqual(["b", "c"])

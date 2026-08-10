@@ -170,7 +170,7 @@ export default function MenuPage(): JSX.Element {
             <AlertDialogHeader>
               <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
               <AlertDialogDescription>
-                {t("deleteMenuConfirm", { name: deleteMenu.name })}
+                {t("deleteMenuConfirm", { name: deleteMenu.nameZh })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

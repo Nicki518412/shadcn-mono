@@ -80,7 +80,7 @@ function toUserDetail(user: UserDetail) {
     telephone: user.telephone,
     status: user.status,
     createdAt: user.createdAt,
-    roles: user.roles.map((r) => ({ id: r.role.id, name: r.role.name, nameEn: r.role.nameEn, code: r.role.code })),
+    roles: user.roles.map((r) => ({ id: r.role.id, nameZh: r.role.nameZh, nameEn: r.role.nameEn, code: r.role.code })),
   }
 }
 

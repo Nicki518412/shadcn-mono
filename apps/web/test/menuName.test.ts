@@ -9,19 +9,19 @@ describe("menuDisplayName / roleDisplayName", () => {
   })
 
   it("zh 语言始终展示数据库原文 name", () => {
-    expect(menuDisplayName({ name: "用户管理", nameEn: "Users" })).toBe("用户管理")
-    expect(roleDisplayName({ name: "管理员", nameEn: "Administrator" })).toBe("管理员")
+    expect(menuDisplayName({ nameZh:"用户管理", nameEn: "Users" })).toBe("用户管理")
+    expect(roleDisplayName({ nameZh:"管理员", nameEn: "Administrator" })).toBe("管理员")
   })
 
   it("en 语言且配置了 nameEn 时展示 nameEn", async () => {
     await i18n.changeLanguage("en")
-    expect(menuDisplayName({ name: "用户管理", nameEn: "Users" })).toBe("Users")
-    expect(roleDisplayName({ name: "管理员", nameEn: "Administrator" })).toBe("Administrator")
+    expect(menuDisplayName({ nameZh:"用户管理", nameEn: "Users" })).toBe("Users")
+    expect(roleDisplayName({ nameZh:"管理员", nameEn: "Administrator" })).toBe("Administrator")
   })
 
   it("en 语言但未配置 nameEn 时回落 name", async () => {
     await i18n.changeLanguage("en")
-    expect(menuDisplayName({ name: "自定义菜单", nameEn: null })).toBe("自定义菜单")
-    expect(roleDisplayName({ name: "自定义角色", nameEn: null })).toBe("自定义角色")
+    expect(menuDisplayName({ nameZh:"自定义菜单", nameEn: null })).toBe("自定义菜单")
+    expect(roleDisplayName({ nameZh:"自定义角色", nameEn: null })).toBe("自定义角色")
   })
 })

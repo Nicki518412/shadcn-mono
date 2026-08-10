@@ -1,11 +1,11 @@
 // 种子数据（幂等可重跑）：菜单树 / 角色授权 / admin 账号（设计文档 §9）
-// upsert 策略：有 permission 的按 permission findUnique；无 permission 的按 name+parentId+path findFirst；
+// upsert 策略：有 permission 的按 permission findUnique；无 permission 的按 nameZh+parentId+path findFirst；
 // 存在则更新 nameEn（多语言展示字段，种子变更需同步存量行），其余字段不更新；不存在创建——重复运行不产生重复数据、不触发唯一约束冲突
 import { prisma } from "./client.js"
 import { hashPassword } from "./lib/password.js"
 
 interface MenuSeedInput {
-  name: string
+  nameZh: string
   nameEn?: string
   type: string
   path?: string
@@ -19,7 +19,7 @@ async function upsertMenu(input: MenuSeedInput): Promise<string> {
   const existing = input.permission
     ? await prisma.menu.findUnique({ where: { permission: input.permission } })
     : await prisma.menu.findFirst({
-        where: { name: input.name, parentId: input.parentId ?? null, path: input.path ?? null },
+        where: { nameZh: input.nameZh, parentId: input.parentId ?? null, path: input.path ?? null },
       })
   if (existing) {
     if (input.nameEn !== undefined && existing.nameEn !== input.nameEn) {
@@ -29,7 +29,7 @@ async function upsertMenu(input: MenuSeedInput): Promise<string> {
   }
   const created = await prisma.menu.create({
     data: {
-      name: input.name,
+      nameZh: input.nameZh,
       nameEn: input.nameEn ?? null,
       type: input.type,
       // exactOptionalPropertyTypes：可选参数 undefined 不可显式赋值，统一转 null
@@ -45,40 +45,40 @@ async function upsertMenu(input: MenuSeedInput): Promise<string> {
 
 async function main(): Promise<void> {
   try {
-    // 1. 菜单树（与设计文档 §9 一致；nameEn 为英文展示名，en 语言时优先展示，未填回落 name）
-    const dashboardId = await upsertMenu({ name: "Dashboard", nameEn: "Dashboard", type: "MENU", path: "/", component: "dashboard", sort: 0 })
-    // 系统管理无 permission/path 稳定键，按 name+parentId 匹配：种子源码改名会静默新建（旧节点残留，需人工清理）；菜单管理页创建同名根节点会被误命中
-    const sysId = await upsertMenu({ name: "系统管理", nameEn: "System", type: "DIR", sort: 100 })
+    // 1. 菜单树（与设计文档 §9 一致；nameEn 为英文展示名，en 语言时优先展示，未填回落 nameZh）
+    const dashboardId = await upsertMenu({ nameZh: "Dashboard", nameEn: "Dashboard", type: "MENU", path: "/", component: "dashboard", sort: 0 })
+    // 系统管理无 permission/path 稳定键，按 nameZh+parentId 匹配：种子源码改名会静默新建（旧节点残留，需人工清理）；菜单管理页创建同名根节点会被误命中
+    const sysId = await upsertMenu({ nameZh: "系统管理", nameEn: "System", type: "DIR", sort: 100 })
     const userMenuId = await upsertMenu({
-      name: "用户管理", nameEn: "Users", type: "MENU", path: "/system/user", component: "system/user",
+      nameZh: "用户管理", nameEn: "Users", type: "MENU", path: "/system/user", component: "system/user",
       permission: "system:user:query", sort: 1, parentId: sysId,
     })
-    await upsertMenu({ name: "用户新增", nameEn: "Add User", type: "BUTTON", permission: "system:user:create", sort: 1, parentId: userMenuId })
-    await upsertMenu({ name: "用户编辑", nameEn: "Edit User", type: "BUTTON", permission: "system:user:update", sort: 2, parentId: userMenuId })
-    await upsertMenu({ name: "用户删除", nameEn: "Delete User", type: "BUTTON", permission: "system:user:delete", sort: 3, parentId: userMenuId })
-    await upsertMenu({ name: "分配角色", nameEn: "Assign Roles", type: "BUTTON", permission: "system:user:assign-role", sort: 4, parentId: userMenuId })
+    await upsertMenu({ nameZh: "用户新增", nameEn: "Add User", type: "BUTTON", permission: "system:user:create", sort: 1, parentId: userMenuId })
+    await upsertMenu({ nameZh: "用户编辑", nameEn: "Edit User", type: "BUTTON", permission: "system:user:update", sort: 2, parentId: userMenuId })
+    await upsertMenu({ nameZh: "用户删除", nameEn: "Delete User", type: "BUTTON", permission: "system:user:delete", sort: 3, parentId: userMenuId })
+    await upsertMenu({ nameZh: "分配角色", nameEn: "Assign Roles", type: "BUTTON", permission: "system:user:assign-role", sort: 4, parentId: userMenuId })
     const roleMenuId = await upsertMenu({
-      name: "角色管理", nameEn: "Roles", type: "MENU", path: "/system/role", component: "system/role",
+      nameZh: "角色管理", nameEn: "Roles", type: "MENU", path: "/system/role", component: "system/role",
       permission: "system:role:query", sort: 2, parentId: sysId,
     })
-    await upsertMenu({ name: "角色新增", nameEn: "Add Role", type: "BUTTON", permission: "system:role:create", sort: 1, parentId: roleMenuId })
-    await upsertMenu({ name: "角色编辑", nameEn: "Edit Role", type: "BUTTON", permission: "system:role:update", sort: 2, parentId: roleMenuId })
-    await upsertMenu({ name: "角色删除", nameEn: "Delete Role", type: "BUTTON", permission: "system:role:delete", sort: 3, parentId: roleMenuId })
-    await upsertMenu({ name: "分配权限", nameEn: "Grant Permissions", type: "BUTTON", permission: "system:role:assign", sort: 4, parentId: roleMenuId })
+    await upsertMenu({ nameZh: "角色新增", nameEn: "Add Role", type: "BUTTON", permission: "system:role:create", sort: 1, parentId: roleMenuId })
+    await upsertMenu({ nameZh: "角色编辑", nameEn: "Edit Role", type: "BUTTON", permission: "system:role:update", sort: 2, parentId: roleMenuId })
+    await upsertMenu({ nameZh: "角色删除", nameEn: "Delete Role", type: "BUTTON", permission: "system:role:delete", sort: 3, parentId: roleMenuId })
+    await upsertMenu({ nameZh: "分配权限", nameEn: "Grant Permissions", type: "BUTTON", permission: "system:role:assign", sort: 4, parentId: roleMenuId })
     const menuMenuId = await upsertMenu({
-      name: "菜单管理", nameEn: "Menus", type: "MENU", path: "/system/menu", component: "system/menu",
+      nameZh: "菜单管理", nameEn: "Menus", type: "MENU", path: "/system/menu", component: "system/menu",
       permission: "system:menu:query", sort: 3, parentId: sysId,
     })
-    await upsertMenu({ name: "菜单新增", nameEn: "Add Menu", type: "BUTTON", permission: "system:menu:create", sort: 1, parentId: menuMenuId })
-    await upsertMenu({ name: "菜单编辑", nameEn: "Edit Menu", type: "BUTTON", permission: "system:menu:update", sort: 2, parentId: menuMenuId })
-    await upsertMenu({ name: "菜单删除", nameEn: "Delete Menu", type: "BUTTON", permission: "system:menu:delete", sort: 3, parentId: menuMenuId })
+    await upsertMenu({ nameZh: "菜单新增", nameEn: "Add Menu", type: "BUTTON", permission: "system:menu:create", sort: 1, parentId: menuMenuId })
+    await upsertMenu({ nameZh: "菜单编辑", nameEn: "Edit Menu", type: "BUTTON", permission: "system:menu:update", sort: 2, parentId: menuMenuId })
+    await upsertMenu({ nameZh: "菜单删除", nameEn: "Delete Menu", type: "BUTTON", permission: "system:menu:delete", sort: 3, parentId: menuMenuId })
 
     // 2. 角色：ADMIN 授权全量菜单+按钮；GUEST 仅 Dashboard（deleteMany + createMany 全量覆盖，幂等）
     const allMenuIds = (await prisma.menu.findMany({ select: { id: true } })).map((m) => m.id)
     const adminRole = await prisma.role.upsert({
       where: { code: "ADMIN" },
-      update: { name: "管理员", nameEn: "Administrator" },
-      create: { name: "管理员", nameEn: "Administrator", code: "ADMIN", sort: 0 },
+      update: { nameZh: "管理员", nameEn: "Administrator" },
+      create: { nameZh: "管理员", nameEn: "Administrator", code: "ADMIN", sort: 0 },
     })
     await prisma.$transaction([
       prisma.roleMenu.deleteMany({ where: { roleId: adminRole.id } }),
@@ -86,8 +86,8 @@ async function main(): Promise<void> {
     ])
     const guestRole = await prisma.role.upsert({
       where: { code: "GUEST" },
-      update: { name: "访客", nameEn: "Guest" },
-      create: { name: "访客", nameEn: "Guest", code: "GUEST", sort: 100 },
+      update: { nameZh: "访客", nameEn: "Guest" },
+      create: { nameZh: "访客", nameEn: "Guest", code: "GUEST", sort: 100 },
     })
     await prisma.$transaction([
       prisma.roleMenu.deleteMany({ where: { roleId: guestRole.id } }),

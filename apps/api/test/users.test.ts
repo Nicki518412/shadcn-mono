@@ -21,7 +21,7 @@ let adminRoleId: string
 
 /** 按权限码查菜单，不存在则创建（permission 唯一索引：其他测试文件可能已建同码菜单，复用而非重建） */
 async function upsertMenu(data: {
-  name: string
+  nameZh:string
   type: string
   permission: string
   parentId?: string
@@ -53,13 +53,13 @@ describe("users CRUD", () => {
       data: { username: ADMIN_USERNAME, passwordHash: await hashPassword(ADMIN_PASSWORD), nickname: "管理员" },
     })
     adminId = admin.id
-    const role = await prisma.role.create({ data: { name: "管理员", code: "ADMIN" } })
+    const role = await prisma.role.create({ data: { nameZh:"管理员", code: "ADMIN" } })
     adminRoleId = role.id
     await prisma.userRole.create({ data: { userId: admin.id, roleId: role.id } })
 
-    const dir = await prisma.menu.create({ data: { name: "系统管理", type: "DIR", icon: "Settings", sort: 1 } })
+    const dir = await prisma.menu.create({ data: { nameZh:"系统管理", type: "DIR", icon: "Settings", sort: 1 } })
     const mUser = await upsertMenu({
-      name: "用户管理",
+      nameZh:"用户管理",
       type: "MENU",
       permission: "system:user:query",
       path: "/system/user",
@@ -69,28 +69,28 @@ describe("users CRUD", () => {
       sort: 1,
     })
     const bCreate = await upsertMenu({
-      name: "用户新增",
+      nameZh:"用户新增",
       type: "BUTTON",
       permission: "system:user:create",
       parentId: mUser.id,
       sort: 1,
     })
     const bUpdate = await upsertMenu({
-      name: "用户编辑",
+      nameZh:"用户编辑",
       type: "BUTTON",
       permission: "system:user:update",
       parentId: mUser.id,
       sort: 2,
     })
     const bDelete = await upsertMenu({
-      name: "用户删除",
+      nameZh:"用户删除",
       type: "BUTTON",
       permission: "system:user:delete",
       parentId: mUser.id,
       sort: 3,
     })
     const bAssign = await upsertMenu({
-      name: "分配角色",
+      nameZh:"分配角色",
       type: "BUTTON",
       permission: "system:user:assign-role",
       parentId: mUser.id,

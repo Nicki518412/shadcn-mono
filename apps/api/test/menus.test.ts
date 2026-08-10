@@ -16,7 +16,7 @@ let bDeleteId: string
 
 /** 按权限码查菜单，不存在则创建（permission 唯一索引：其他测试文件/seed 可能已建同码菜单，复用而非重建） */
 async function upsertMenu(data: {
-  name: string
+  nameZh:string
   type: string
   permission: string
   parentId?: string
@@ -47,13 +47,13 @@ describe("menus CRUD", () => {
     const admin = await prisma.user.create({
       data: { username: ADMIN_USERNAME, passwordHash: await hashPassword(ADMIN_PASSWORD), nickname: "菜单管理员" },
     })
-    const role = await prisma.role.create({ data: { name: "菜单管理员", code: "MENUS_ADMIN" } })
+    const role = await prisma.role.create({ data: { nameZh:"菜单管理员", code: "MENUS_ADMIN" } })
     await prisma.userRole.create({ data: { userId: admin.id, roleId: role.id } })
 
-    const dir = await prisma.menu.create({ data: { name: "菜单测试目录", type: "DIR", icon: "Folder", sort: 1 } })
+    const dir = await prisma.menu.create({ data: { nameZh:"菜单测试目录", type: "DIR", icon: "Folder", sort: 1 } })
     dirId = dir.id
     const mQuery = await upsertMenu({
-      name: "菜单管理",
+      nameZh:"菜单管理",
       type: "MENU",
       permission: "system:menu:query",
       path: "/system/menu",
@@ -64,7 +64,7 @@ describe("menus CRUD", () => {
     })
     menuId = mQuery.id
     const bCreate = await upsertMenu({
-      name: "菜单新增",
+      nameZh:"菜单新增",
       type: "BUTTON",
       permission: "system:menu:create",
       parentId: mQuery.id,
@@ -72,7 +72,7 @@ describe("menus CRUD", () => {
     })
     bCreateId = bCreate.id
     const bUpdate = await upsertMenu({
-      name: "菜单编辑",
+      nameZh:"菜单编辑",
       type: "BUTTON",
       permission: "system:menu:update",
       parentId: mQuery.id,
@@ -80,7 +80,7 @@ describe("menus CRUD", () => {
     })
     bUpdateId = bUpdate.id
     const bDelete = await upsertMenu({
-      name: "菜单删除",
+      nameZh:"菜单删除",
       type: "BUTTON",
       permission: "system:menu:delete",
       parentId: mQuery.id,
@@ -97,7 +97,7 @@ describe("menus CRUD", () => {
 
   // 清理上个用例建的测试菜单（名称统一 MENU_CRUD_ 前缀，避免与其他文件/seed 的菜单混淆）
   beforeEach(async () => {
-    await prisma.menu.deleteMany({ where: { name: { startsWith: "MENU_CRUD_" } } })
+    await prisma.menu.deleteMany({ where: { nameZh:{ startsWith: "MENU_CRUD_" } } })
   })
 
   it("菜单树：GET /api/menus/tree 返回全量树（DIR 含 children、BUTTON 挂在 MENU 下、同层按 sort 升序）", async () => {
@@ -124,16 +124,16 @@ describe("menus CRUD", () => {
       app.request("/api/menus", { method: "POST", headers: auth, body: JSON.stringify(body) })
 
     // MENU 下挂 DIR → 400（MENU 只能挂 BUTTON）
-    expect((await post({ name: "MENU_CRUD_非法目录", type: "DIR", parentId: menuId })).status).toBe(400)
+    expect((await post({ nameZh:"MENU_CRUD_非法目录", type: "DIR", parentId: menuId })).status).toBe(400)
     // MENU 下挂 BUTTON → 200
-    const btn = await post({ name: "MENU_CRUD_按钮", type: "BUTTON", parentId: menuId, permission: "menu_crud_btn" })
+    const btn = await post({ nameZh:"MENU_CRUD_按钮", type: "BUTTON", parentId: menuId, permission: "menu_crud_btn" })
     expect(btn.status).toBe(200)
     const btnId = ((await btn.json()) as { data: MenuNode }).data.id
     // BUTTON 下挂子节点 → 400（BUTTON 无子级）
-    expect((await post({ name: "MENU_CRUD_按钮之子", type: "DIR", parentId: btnId })).status).toBe(400)
+    expect((await post({ nameZh:"MENU_CRUD_按钮之子", type: "DIR", parentId: btnId })).status).toBe(400)
     // DIR 下挂 MENU → 200
     const m1 = await post({
-      name: "MENU_CRUD_菜单A",
+      nameZh:"MENU_CRUD_菜单A",
       type: "MENU",
       parentId: dirId,
       path: "/a",
@@ -142,22 +142,22 @@ describe("menus CRUD", () => {
     })
     expect(m1.status).toBe(200)
     // DIR 下挂 DIR → 200（矩阵：DIR→DIR 嵌套合法）
-    expect((await post({ name: "MENU_CRUD_嵌套目录", type: "DIR", parentId: dirId })).status).toBe(200)
+    expect((await post({ nameZh:"MENU_CRUD_嵌套目录", type: "DIR", parentId: dirId })).status).toBe(200)
     // DIR 下挂 BUTTON → 400
-    expect((await post({ name: "MENU_CRUD_目录按钮", type: "BUTTON", parentId: dirId })).status).toBe(400)
+    expect((await post({ nameZh:"MENU_CRUD_目录按钮", type: "BUTTON", parentId: dirId })).status).toBe(400)
     // MENU 缺 path → 400
-    expect((await post({ name: "MENU_CRUD_缺路径", type: "MENU", parentId: dirId, component: "x" })).status).toBe(400)
+    expect((await post({ nameZh:"MENU_CRUD_缺路径", type: "MENU", parentId: dirId, component: "x" })).status).toBe(400)
     // MENU 缺 component → 400
-    expect((await post({ name: "MENU_CRUD_缺组件", type: "MENU", parentId: dirId, path: "/x" })).status).toBe(400)
+    expect((await post({ nameZh:"MENU_CRUD_缺组件", type: "MENU", parentId: dirId, path: "/x" })).status).toBe(400)
     // BUTTON 带 path → 400
-    expect((await post({ name: "MENU_CRUD_带路径按钮", type: "BUTTON", parentId: menuId, path: "/x" })).status).toBe(400)
+    expect((await post({ nameZh:"MENU_CRUD_带路径按钮", type: "BUTTON", parentId: menuId, path: "/x" })).status).toBe(400)
     // BUTTON 带 component → 400（与 path 对称）
-    expect((await post({ name: "MENU_CRUD_带组件按钮", type: "BUTTON", parentId: menuId, component: "x" })).status).toBe(400)
+    expect((await post({ nameZh:"MENU_CRUD_带组件按钮", type: "BUTTON", parentId: menuId, component: "x" })).status).toBe(400)
     // BUTTON 无父（不能是根）→ 400；根可为 DIR/MENU（Dashboard 是 MENU 根）
-    expect((await post({ name: "MENU_CRUD_根按钮", type: "BUTTON" })).status).toBe(400)
-    expect((await post({ name: "MENU_CRUD_根目录", type: "DIR" })).status).toBe(200)
+    expect((await post({ nameZh:"MENU_CRUD_根按钮", type: "BUTTON" })).status).toBe(400)
+    expect((await post({ nameZh:"MENU_CRUD_根目录", type: "DIR" })).status).toBe(200)
     expect(
-      (await post({ name: "MENU_CRUD_根菜单", type: "MENU", path: "/root", component: "root", permission: "menu_crud_root_menu" }))
+      (await post({ nameZh:"MENU_CRUD_根菜单", type: "MENU", path: "/root", component: "root", permission: "menu_crud_root_menu" }))
         .status,
     ).toBe(200)
   })
@@ -170,7 +170,7 @@ describe("menus CRUD", () => {
       app.request("/api/menus", { method: "POST", headers: auth, body: JSON.stringify(body) })
 
     const first = await post({
-      name: "MENU_CRUD_唯一1",
+      nameZh:"MENU_CRUD_唯一1",
       type: "MENU",
       parentId: dirId,
       path: "/p1",
@@ -179,7 +179,7 @@ describe("menus CRUD", () => {
     })
     expect(first.status).toBe(200)
     const dup = await post({
-      name: "MENU_CRUD_唯一2",
+      nameZh:"MENU_CRUD_唯一2",
       type: "MENU",
       parentId: dirId,
       path: "/p2",
@@ -189,8 +189,8 @@ describe("menus CRUD", () => {
     expect(dup.status).toBe(409)
     expect(((await dup.json()) as { message: string }).message).toContain("权限码")
     // 空 permission 可重复（可空 unique，三方言允许多个 NULL）
-    expect((await post({ name: "MENU_CRUD_空码1", type: "MENU", parentId: dirId, path: "/e1", component: "e1" })).status).toBe(200)
-    expect((await post({ name: "MENU_CRUD_空码2", type: "MENU", parentId: dirId, path: "/e2", component: "e2" })).status).toBe(200)
+    expect((await post({ nameZh:"MENU_CRUD_空码1", type: "MENU", parentId: dirId, path: "/e1", component: "e1" })).status).toBe(200)
+    expect((await post({ nameZh:"MENU_CRUD_空码2", type: "MENU", parentId: dirId, path: "/e2", component: "e2" })).status).toBe(200)
   })
 
   it("英文名称：create 传 nameEn 存储并返回；PATCH null 清空、不传不修改", async () => {
@@ -201,7 +201,7 @@ describe("menus CRUD", () => {
       method: "POST",
       headers: auth,
       body: JSON.stringify({
-        name: "MENU_CRUD_英文菜单",
+        nameZh:"MENU_CRUD_英文菜单",
         nameEn: "English Menu",
         type: "MENU",
         parentId: dirId,
@@ -243,11 +243,11 @@ describe("menus CRUD", () => {
     const patch = (id: string, body: Record<string, unknown>) =>
       app.request(`/api/menus/${id}`, { method: "PATCH", headers: auth, body: JSON.stringify(body) })
     // 两层子树：dirA → dirB → menuC（menuC 挂 dirB 下）
-    const dirA = await prisma.menu.create({ data: { name: "MENU_CRUD_祖父", type: "DIR", sort: 1 } })
-    const dirB = await prisma.menu.create({ data: { name: "MENU_CRUD_父", type: "DIR", parentId: dirA.id, sort: 1 } })
+    const dirA = await prisma.menu.create({ data: { nameZh:"MENU_CRUD_祖父", type: "DIR", sort: 1 } })
+    const dirB = await prisma.menu.create({ data: { nameZh:"MENU_CRUD_父", type: "DIR", parentId: dirA.id, sort: 1 } })
     const menuC = await prisma.menu.create({
       data: {
-        name: "MENU_CRUD_子",
+        nameZh:"MENU_CRUD_子",
         type: "MENU",
         parentId: dirB.id,
         path: "/c",
@@ -264,7 +264,7 @@ describe("menus CRUD", () => {
     // 新父不存在 → 400
     expect((await patch(dirB.id, { parentId: "no_such_parent" })).status).toBe(400)
     // 改到合法父节点 → 200
-    const other = await prisma.menu.create({ data: { name: "MENU_CRUD_新父", type: "DIR" } })
+    const other = await prisma.menu.create({ data: { nameZh:"MENU_CRUD_新父", type: "DIR" } })
     const ok = await patch(dirB.id, { parentId: other.id })
     expect(ok.status).toBe(200)
     expect((await prisma.menu.findUnique({ where: { id: dirB.id } }))?.parentId).toBe(other.id)
@@ -273,7 +273,7 @@ describe("menus CRUD", () => {
     expect(toRoot.status).toBe(200)
     expect((await prisma.menu.findUnique({ where: { id: dirB.id } }))?.parentId).toBeNull()
     // 不存在的 id → 404
-    expect((await patch("no_such_menu_id", { name: "不存在" })).status).toBe(404)
+    expect((await patch("no_such_menu_id", { nameZh:"不存在" })).status).toBe(404)
   })
 
   it("级联删除：删 DIR 整棵子树消失 + RoleMenu 关联清理；不存在的 id 404", async () => {
@@ -281,10 +281,10 @@ describe("menus CRUD", () => {
     const token = await loginAdmin()
     const auth = { authorization: `Bearer ${token}` }
     // 建 DIR → MENU → BUTTON 三层
-    const dir = await prisma.menu.create({ data: { name: "MENU_CRUD_级联目录", type: "DIR" } })
+    const dir = await prisma.menu.create({ data: { nameZh:"MENU_CRUD_级联目录", type: "DIR" } })
     const menu = await prisma.menu.create({
       data: {
-        name: "MENU_CRUD_级联菜单",
+        nameZh:"MENU_CRUD_级联菜单",
         type: "MENU",
         parentId: dir.id,
         path: "/cascade",
@@ -293,10 +293,10 @@ describe("menus CRUD", () => {
       },
     })
     const btn = await prisma.menu.create({
-      data: { name: "MENU_CRUD_级联按钮", type: "BUTTON", parentId: menu.id, permission: "menu_crud_cas_b" },
+      data: { nameZh:"MENU_CRUD_级联按钮", type: "BUTTON", parentId: menu.id, permission: "menu_crud_cas_b" },
     })
     // 挂一个角色授权整棵子树（验证 RoleMenu 关联清理）
-    const role = await prisma.role.create({ data: { name: "级联角色", code: "MENU_CRUD_CAS_ROLE" } })
+    const role = await prisma.role.create({ data: { nameZh:"级联角色", code: "MENU_CRUD_CAS_ROLE" } })
     await prisma.roleMenu.createMany({ data: [dir, menu, btn].map((m) => ({ roleId: role.id, menuId: m.id })) })
     expect(await prisma.roleMenu.count({ where: { roleId: role.id } })).toBe(3)
 
@@ -320,7 +320,7 @@ describe("menus CRUD", () => {
       app.request(`/api/menus/${id}`, { method: "PATCH", headers: auth, body: JSON.stringify(body) })
     const menu = await prisma.menu.create({
       data: {
-        name: "MENU_CRUD_条件菜单",
+        nameZh:"MENU_CRUD_条件菜单",
         type: "MENU",
         parentId: dirId,
         path: "/cond",
@@ -347,7 +347,7 @@ describe("menus CRUD", () => {
     // 建 MENU（挂 dirId 下）带一个 BUTTON 子节点
     const menu = await prisma.menu.create({
       data: {
-        name: "MENU_CRUD_改型菜单",
+        nameZh:"MENU_CRUD_改型菜单",
         type: "MENU",
         parentId: dirId,
         path: "/cvt",
@@ -356,14 +356,14 @@ describe("menus CRUD", () => {
       },
     })
     const btn = await prisma.menu.create({
-      data: { name: "MENU_CRUD_改型按钮", type: "BUTTON", parentId: menu.id, permission: "menu_crud_cvt_b" },
+      data: { nameZh:"MENU_CRUD_改型按钮", type: "BUTTON", parentId: menu.id, permission: "menu_crud_cvt_b" },
     })
     // 存在 BUTTON 子节点时 MENU→DIR → 400（DIR 不能挂 BUTTON 子级，须先调整子节点）
     expect((await patch(menu.id, { type: "DIR" })).status).toBe(400)
     // 先用 API 把 BUTTON 子移到另一个 MENU 下，再 MENU→DIR → 200（type 合法变更）
     const host = await prisma.menu.create({
       data: {
-        name: "MENU_CRUD_宿主菜单",
+        nameZh:"MENU_CRUD_宿主菜单",
         type: "MENU",
         parentId: dirId,
         path: "/host",
@@ -375,10 +375,10 @@ describe("menus CRUD", () => {
     expect((await patch(menu.id, { type: "DIR" })).status).toBe(200)
     expect((await prisma.menu.findUnique({ where: { id: menu.id } }))?.type).toBe("DIR")
     // type 不变、仅换父到不兼容父（DIR 挂到 MENU 下）→ 400
-    const dirA = await prisma.menu.create({ data: { name: "MENU_CRUD_组合目录", type: "DIR", parentId: dirId } })
+    const dirA = await prisma.menu.create({ data: { nameZh:"MENU_CRUD_组合目录", type: "DIR", parentId: dirId } })
     expect((await patch(dirA.id, { parentId: menuId })).status).toBe(400)
     // type 与 parent 同时变化且组合不合法（BUTTON 不能挂 DIR 父）→ 400
-    const dirB = await prisma.menu.create({ data: { name: "MENU_CRUD_组合目录B", type: "DIR" } })
+    const dirB = await prisma.menu.create({ data: { nameZh:"MENU_CRUD_组合目录B", type: "DIR" } })
     expect((await patch(dirA.id, { type: "BUTTON", parentId: dirB.id })).status).toBe(400)
   })
 })

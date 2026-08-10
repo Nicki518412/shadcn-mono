@@ -40,14 +40,14 @@ describe("auth me", () => {
     const userId = user.id
 
     const [roleA, roleB] = await Promise.all([
-      prisma.role.create({ data: { name: "角色A", nameEn: "Role A", code: "ROLE_A" } }),
-      prisma.role.create({ data: { name: "角色B", nameEn: "Role B", code: "ROLE_B" } }),
+      prisma.role.create({ data: { nameZh:"角色A", nameEn: "Role A", code: "ROLE_A" } }),
+      prisma.role.create({ data: { nameZh:"角色B", nameEn: "Role B", code: "ROLE_B" } }),
     ])
     // 菜单树：DIR d1 → MENU m1 + BUTTON b1 + MENU m2（nameEn 随节点透传，多语言展示用）
-    const d1 = await prisma.menu.create({ data: { name: "系统管理", nameEn: "System", type: "DIR", icon: "Settings", sort: 1 } })
+    const d1 = await prisma.menu.create({ data: { nameZh:"系统管理", nameEn: "System", type: "DIR", icon: "Settings", sort: 1 } })
     const m1 = await prisma.menu.create({
       data: {
-        name: "用户管理",
+        nameZh:"用户管理",
         nameEn: "Users",
         type: "MENU",
         path: "/system/user",
@@ -60,7 +60,7 @@ describe("auth me", () => {
     })
     const m2 = await prisma.menu.create({
       data: {
-        name: "角色管理",
+        nameZh:"角色管理",
         type: "MENU",
         path: "/system/role",
         component: "system/role",
@@ -70,7 +70,7 @@ describe("auth me", () => {
       },
     })
     const b1 = await prisma.menu.create({
-      data: { name: "新增用户", type: "BUTTON", permission: "system:user:add", parentId: m1.id, sort: 1 },
+      data: { nameZh:"新增用户", type: "BUTTON", permission: "system:user:add", parentId: m1.id, sort: 1 },
     })
     d1Id = d1.id
     m1Id = m1.id
@@ -113,9 +113,9 @@ describe("auth me", () => {
     const root = body.data.navTree[0]
     if (!root) throw new Error("navTree 根节点缺失")
     expect(root.type).toBe("DIR")
-    expect(root.name).toBe("系统管理")
+    expect(root.nameZh).toBe("系统管理")
     expect(root.nameEn).toBe("System")
-    expect(root.children.map((n) => n.name)).toEqual(["用户管理"])
+    expect(root.children.map((n) => n.nameZh)).toEqual(["用户管理"])
     const userMenu = root.children[0]
     if (!userMenu) throw new Error("m1 节点缺失")
     expect(userMenu.nameEn).toBe("Users")
@@ -167,12 +167,12 @@ describe("auth me", () => {
     await createTestUser({ username: "me_disabled", password: PASSWORD })
     const user = await prisma.user.findUnique({ where: { username: "me_disabled" } })
     if (!user) throw new Error("测试用户未创建")
-    const roleC = await prisma.role.create({ data: { name: "角色C(禁用)", code: "ROLE_C", status: false } })
-    const roleD = await prisma.role.create({ data: { name: "角色D", code: "ROLE_D" } })
+    const roleC = await prisma.role.create({ data: { nameZh:"角色C(禁用)", code: "ROLE_C", status: false } })
+    const roleD = await prisma.role.create({ data: { nameZh:"角色D", code: "ROLE_D" } })
     // 禁用菜单：status=false，授权了也不得进入导航/权限码（permission 码唯一，不与共享树冲突）
     const mDisabled = await prisma.menu.create({
       data: {
-        name: "隐藏菜单",
+        nameZh:"隐藏菜单",
         type: "MENU",
         path: "/system/hidden",
         component: "system/hidden",
@@ -211,7 +211,7 @@ describe("auth me", () => {
     expect(body.data.navTree).toHaveLength(1)
     const root = body.data.navTree[0]
     if (!root) throw new Error("navTree 根节点缺失")
-    expect(root.children.map((n) => n.name)).toEqual(["用户管理"])
+    expect(root.children.map((n) => n.nameZh)).toEqual(["用户管理"])
   })
 
   it("无角色用户 me 返回空权限", async () => {
@@ -230,7 +230,7 @@ describe("auth me", () => {
     await createTestUser({ username: "me_zero", password: PASSWORD })
     const user = await prisma.user.findUnique({ where: { username: "me_zero" } })
     if (!user) throw new Error("测试用户未创建")
-    const role = await prisma.role.create({ data: { name: "零授权", code: "ROLE_ZERO" } })
+    const role = await prisma.role.create({ data: { nameZh:"零授权", code: "ROLE_ZERO" } })
     await prisma.userRole.create({ data: { userId: user.id, roleId: role.id } })
 
     const app = createApp()

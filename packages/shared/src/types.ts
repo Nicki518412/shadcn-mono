@@ -3,8 +3,8 @@ export type MenuType = "DIR" | "MENU" | "BUTTON"
 export interface MenuNode {
   id: string
   parentId: string | null
-  name: string
-  /** 英文名称（多语言展示，en 语言用；未填回落 name） */
+  nameZh: string
+  /** 英文名称（en 语言展示，未填回落 nameZh） */
   nameEn: string | null
   type: MenuType
   path: string | null

@@ -23,7 +23,7 @@
             "type": "string",
             "nullable": true
           },
-          "name": {
+          "nameZh": {
             "type": "string"
           },
           "nameEn": {
@@ -70,7 +70,7 @@
         "required": [
           "id",
           "parentId",
-          "name",
+          "nameZh",
           "nameEn",
           "type",
           "path",
@@ -180,7 +180,7 @@
                 "id": {
                   "type": "string"
                 },
-                "name": {
+                "nameZh": {
                   "type": "string"
                 },
                 "nameEn": {
@@ -193,7 +193,7 @@
               },
               "required": [
                 "id",
-                "name",
+                "nameZh",
                 "nameEn",
                 "code"
               ]
@@ -226,7 +226,7 @@
           "id": {
             "type": "string"
           },
-          "name": {
+          "nameZh": {
             "type": "string"
           },
           "nameEn": {
@@ -252,7 +252,7 @@
         },
         "required": [
           "id",
-          "name",
+          "nameZh",
           "nameEn",
           "code",
           "description",
@@ -296,7 +296,7 @@
           "id": {
             "type": "string"
           },
-          "name": {
+          "nameZh": {
             "type": "string"
           },
           "nameEn": {
@@ -309,7 +309,7 @@
         },
         "required": [
           "id",
-          "name",
+          "nameZh",
           "nameEn",
           "code"
         ]
@@ -908,7 +908,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name": {
+                  "nameZh": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 64
@@ -936,7 +936,7 @@
                   }
                 },
                 "required": [
-                  "name",
+                  "nameZh",
                   "code"
                 ]
               }
@@ -1171,7 +1171,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name": {
+                  "nameZh": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 64
@@ -1633,7 +1633,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name": {
+                  "nameZh": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 64
@@ -1684,7 +1684,7 @@
                   }
                 },
                 "required": [
-                  "name",
+                  "nameZh",
                   "type"
                 ]
               }
@@ -1859,7 +1859,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name": {
+                  "nameZh": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 64

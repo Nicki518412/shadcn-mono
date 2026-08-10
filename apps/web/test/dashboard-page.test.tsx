@@ -24,12 +24,12 @@ const me: MeResponse = {
     email: "admin@example.com",
     telephone: "13800138000",
   },
-  roles: [{ id: "r1", name: "管理员", nameEn: "Administrator", code: "ADMIN" }],
+  roles: [{ id: "r1", nameZh: "管理员", nameEn: "Administrator", code: "ADMIN" }],
   navTree: [
     {
       id: "m1",
       parentId: null,
-      name: "Dashboard",
+      nameZh: "Dashboard",
       nameEn: "Dashboard",
       type: "MENU",
       path: "/",
@@ -43,7 +43,7 @@ const me: MeResponse = {
     {
       id: "m2",
       parentId: null,
-      name: "系统管理",
+      nameZh: "系统管理",
       nameEn: "System",
       type: "DIR",
       path: null,
@@ -56,7 +56,7 @@ const me: MeResponse = {
         {
           id: "m3",
           parentId: "m2",
-          name: "用户管理",
+          nameZh: "用户管理",
           nameEn: "Users",
           type: "MENU",
           path: "/system/user",
@@ -69,7 +69,7 @@ const me: MeResponse = {
             {
               id: "m4",
               parentId: "m3",
-              name: "用户新增",
+              nameZh: "用户新增",
               nameEn: null,
               type: "BUTTON",
               path: null,
@@ -85,7 +85,7 @@ const me: MeResponse = {
         {
           id: "m5",
           parentId: "m2",
-          name: "角色管理",
+          nameZh: "角色管理",
           nameEn: "Roles",
           type: "MENU",
           path: "/system/role",

@@ -41,7 +41,7 @@ export function RoleFormDialog({
   const createMutation = useCreateRoleMutation()
   const updateMutation = useUpdateRoleMutation()
 
-  const [name, setName] = useState(role?.name ?? "")
+  const [name, setName] = useState(role?.nameZh ?? "")
   const [nameEn, setNameEn] = useState(role?.nameEn ?? "")
   const [code, setCode] = useState(role?.code ?? "")
   const [description, setDescription] = useState(role?.description ?? "")
@@ -67,7 +67,7 @@ export function RoleFormDialog({
     setError(null)
     if (isEdit && role) {
       const body: RoleUpdateInput = {
-        name: name.trim(),
+        nameZh: name.trim(),
         // 留空显式传 null（en 语言回落中文名）
         nameEn: nameEn.trim() === "" ? null : nameEn.trim(),
         code: code.trim(),
@@ -79,7 +79,7 @@ export function RoleFormDialog({
       updateMutation.mutate({ id: role.id, body }, { onSuccess: () => { onClose(); } })
     } else {
       const body: RoleCreateInput = {
-        name: name.trim(),
+        nameZh: name.trim(),
         // 留空显式传 null（en 语言回落中文名）
         nameEn: nameEn.trim() === "" ? null : nameEn.trim(),
         code: code.trim(),

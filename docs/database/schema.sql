@@ -26,8 +26,8 @@ CREATE TABLE `User` (
 -- 角色（权限分组，通过 UserRole 关联用户、RoleMenu 关联菜单权限）
 CREATE TABLE `Role` (
   `id`          VARCHAR(32)  NOT NULL COMMENT '主键（cuid 全局唯一）',
-  `name`        VARCHAR(255) NOT NULL COMMENT '角色名称（展示用）',
-  `nameEn`      VARCHAR(255) NULL COMMENT '英文名称（多语言展示，未填回落 name）',
+  `nameZh`      VARCHAR(255) NOT NULL COMMENT '中文名称（zh 语言展示）',
+  `nameEn`      VARCHAR(255) NULL COMMENT '英文名称（en 语言展示，未填回落 nameZh）',
   `code`        VARCHAR(255) NOT NULL COMMENT '角色编码（如 ADMIN，程序判断用）',
   `description` VARCHAR(255) NULL COMMENT '角色描述',
   `sort`        INT          NOT NULL DEFAULT 0 COMMENT '排序值（列表展示顺序）',
@@ -42,8 +42,8 @@ CREATE TABLE `Role` (
 CREATE TABLE `Menu` (
   `id`         VARCHAR(32)  NOT NULL COMMENT '主键（cuid 全局唯一）',
   `parentId`   VARCHAR(32)  NULL COMMENT '父节点 ID（null=根；类型约束: DIR→DIR/MENU, MENU→BUTTON, BUTTON→无子级）',
-  `name`       VARCHAR(255) NOT NULL COMMENT '菜单名称',
-  `nameEn`     VARCHAR(255) NULL COMMENT '英文名称（多语言展示，未填回落 name）',
+  `nameZh`     VARCHAR(255) NOT NULL COMMENT '中文名称（zh 语言展示）',
+  `nameEn`     VARCHAR(255) NULL COMMENT '英文名称（en 语言展示，未填回落 nameZh）',
   `type`       VARCHAR(16)  NOT NULL COMMENT '类型（DIR 目录 / MENU 菜单 / BUTTON 按钮，字符串 + zod 校验，兼容三方言）',
   `path`       VARCHAR(255) NULL COMMENT '路由路径（MENU 必填，如 /system/user）',
   `component`  VARCHAR(255) NULL COMMENT '前端组件注册 key（MENU 必填）',

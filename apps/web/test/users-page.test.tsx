@@ -24,7 +24,7 @@ const userList: components["schemas"]["UserListItem"][] = [
     telephone: "13800138000",
     status: true,
     createdAt: "2026-08-01T02:00:00.000Z",
-    roles: [{ id: "r1", name: "管理员", nameEn: "Administrator", code: "ADMIN" }],
+    roles: [{ id: "r1", nameZh: "管理员", nameEn: "Administrator", code: "ADMIN" }],
   },
   {
     id: "u2",
@@ -41,7 +41,7 @@ const userList: components["schemas"]["UserListItem"][] = [
 const rolesList: components["schemas"]["RoleListItem"][] = [
   {
     id: "r1",
-    name: "管理员",
+    nameZh: "管理员",
     nameEn: "Administrator",
     code: "ADMIN",
     description: null,
@@ -51,7 +51,7 @@ const rolesList: components["schemas"]["RoleListItem"][] = [
   },
   {
     id: "r2",
-    name: "访客",
+    nameZh: "访客",
     nameEn: "Guest",
     code: "GUEST",
     description: null,
@@ -140,7 +140,7 @@ function renderUserPage(
   })
   queryClient.setQueryData<components["schemas"]["MeResponse"]>(ME_QUERY_KEY, {
     user: { id: "u1", username: "admin", nickname: "系统管理员", email: null, telephone: null },
-    roles: [{ id: "r1", name: "管理员", nameEn: "Administrator", code: "ADMIN" }],
+    roles: [{ id: "r1", nameZh: "管理员", nameEn: "Administrator", code: "ADMIN" }],
     navTree: [],
     permissionCodes,
   })
@@ -196,10 +196,10 @@ describe("UserPage", () => {
     expect(screen.getByText("管理员")).toBeInTheDocument()
     expect(screen.getAllByText("-")).toHaveLength(3)
     // Permission 全量授权：新增/编辑/分配角色/删除按钮均渲染
-    expect(screen.getByRole("button", { name: "新增用户" })).toBeInTheDocument()
-    expect(screen.getAllByRole("button", { name: "编辑" })).toHaveLength(2)
-    expect(screen.getAllByRole("button", { name: "分配角色" })).toHaveLength(2)
-    expect(screen.getAllByRole("button", { name: "删除" })).toHaveLength(2)
+    expect(screen.getByRole("button", { name:"新增用户" })).toBeInTheDocument()
+    expect(screen.getAllByRole("button", { name:"编辑" })).toHaveLength(2)
+    expect(screen.getAllByRole("button", { name:"分配角色" })).toHaveLength(2)
+    expect(screen.getAllByRole("button", { name:"删除" })).toHaveLength(2)
   })
 
   it("无 system:user:create 权限：不渲染新增按钮（其余操作按钮不受影响）", async () => {
@@ -211,8 +211,8 @@ describe("UserPage", () => {
     await waitFor(() => {
       expect(screen.getByText("admin")).toBeInTheDocument()
     })
-    expect(screen.queryByRole("button", { name: "新增用户" })).not.toBeInTheDocument()
-    expect(screen.getAllByRole("button", { name: "编辑" })).toHaveLength(2)
+    expect(screen.queryByRole("button", { name:"新增用户" })).not.toBeInTheDocument()
+    expect(screen.getAllByRole("button", { name:"编辑" })).toHaveLength(2)
   })
 
   it("新增用户：打开 Dialog 填表提交 → POST /api/users 携带表单数据", async () => {
@@ -222,13 +222,13 @@ describe("UserPage", () => {
     await waitFor(() => {
       expect(screen.getByText("admin")).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole("button", { name: "新增用户" }))
+    fireEvent.click(screen.getByRole("button", { name:"新增用户" }))
 
     const usernameInput = await screen.findByLabelText("用户名")
     fireEvent.change(usernameInput, { target: { value: "alice" } })
     fireEvent.change(screen.getByLabelText("密码"), { target: { value: "Passw0rd!" } })
     fireEvent.change(screen.getByLabelText("昵称"), { target: { value: "爱丽丝" } })
-    fireEvent.click(screen.getByRole("button", { name: "保存" }))
+    fireEvent.click(screen.getByRole("button", { name:"保存" }))
 
     await waitFor(() => {
       expect(fetchBodies(fetchMock, "POST")).toContainEqual({
@@ -250,7 +250,7 @@ describe("UserPage", () => {
 
     const nicknameInput = await screen.findByLabelText("昵称")
     fireEvent.change(nicknameInput, { target: { value: "新昵称" } })
-    fireEvent.click(screen.getByRole("button", { name: "保存" }))
+    fireEvent.click(screen.getByRole("button", { name:"保存" }))
 
     await waitFor(() => {
       expect(fetchBodies(fetchMock, "PATCH")).toContainEqual({
@@ -274,7 +274,7 @@ describe("UserPage", () => {
 
     const dialog = await screen.findByRole("alertdialog")
     expect(dialog).toHaveTextContent("确定删除用户「zhangsan」？")
-    fireEvent.click(within(dialog).getByRole("button", { name: "删除" }))
+    fireEvent.click(within(dialog).getByRole("button", { name:"删除" }))
 
     await waitFor(() => {
       expect(fetchUrls(fetchMock, "DELETE")).toContain("/api/users/u2")
@@ -291,7 +291,7 @@ describe("UserPage", () => {
     fireEvent.click(rowButton("zhangsan", "删除"))
 
     const dialog = await screen.findByRole("alertdialog")
-    fireEvent.click(within(dialog).getByRole("button", { name: "取消" }))
+    fireEvent.click(within(dialog).getByRole("button", { name:"取消" }))
 
     await waitFor(() => {
       expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument()
@@ -310,9 +310,9 @@ describe("UserPage", () => {
 
     // 回显：管理员已勾选；勾选访客后保存
     // （Base UI Checkbox：id 落在隐藏 input 上、可见根为 role=checkbox——按 role+name 定位）
-    expect(await screen.findByRole("checkbox", { name: "管理员" })).toBeChecked()
-    fireEvent.click(screen.getByRole("checkbox", { name: "访客" }))
-    fireEvent.click(screen.getByRole("button", { name: "保存" }))
+    expect(await screen.findByRole("checkbox", { name:"管理员" })).toBeChecked()
+    fireEvent.click(screen.getByRole("checkbox", { name:"访客" }))
+    fireEvent.click(screen.getByRole("button", { name:"保存" }))
 
     await waitFor(() => {
       expect(fetchUrls(fetchMock, "PUT")).toContain("/api/users/u1/roles")
@@ -329,7 +329,7 @@ describe("UserPage", () => {
       expect(screen.getByText("admin")).toBeInTheDocument()
     })
     // 翻到第 3 页（PaginationLink 渲染 <a role="button">）
-    fireEvent.click(screen.getByRole("button", { name: "3" }))
+    fireEvent.click(screen.getByRole("button", { name:"3" }))
     await waitFor(() => {
       const urls = fetchMock.mock.calls.map(([input]) => toUrlString(input))
       expect(urls).toContain("/api/users?page=3&pageSize=10")
@@ -340,7 +340,7 @@ describe("UserPage", () => {
 
     fireEvent.click(rowButton("admin", "删除"))
     const dialog = await screen.findByRole("alertdialog")
-    fireEvent.click(within(dialog).getByRole("button", { name: "删除" }))
+    fireEvent.click(within(dialog).getByRole("button", { name:"删除" }))
 
     // total 21 → 20 → totalPages 3 → 2，page 回钳到 2 并重新查询
     await waitFor(() => {

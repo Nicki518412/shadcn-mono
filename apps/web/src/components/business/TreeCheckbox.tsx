@@ -100,7 +100,7 @@ export function TreeCheckbox({
           !checked && collectSelfAndDescendantIds(node).some((id) => selected.has(id))
         const checkbox = (
           <Checkbox
-            aria-label={node.name}
+            aria-label={node.nameZh}
             checked={checked}
             indeterminate={indeterminate}
             onCheckedChange={(next) => {
@@ -127,7 +127,7 @@ export function TreeCheckbox({
                 >
                   <ChevronRightIcon className="size-4 shrink-0 transition-transform group-data-open/collapsible:rotate-90" />
                   <FolderIcon className="size-4 shrink-0" />
-                  <span className="truncate">{node.name}</span>
+                  <span className="truncate">{node.nameZh}</span>
                   <Badge variant={badgeVariant(node.type)} className="ml-auto">
                     {node.type}
                   </Badge>
@@ -152,7 +152,7 @@ export function TreeCheckbox({
               className="w-full justify-start gap-2 px-2.5 text-foreground"
             >
               <FileIcon className="size-4 shrink-0" />
-              <span className="truncate">{node.name}</span>
+              <span className="truncate">{node.nameZh}</span>
               <Badge variant={badgeVariant(node.type)} className="ml-auto">
                 {node.type}
               </Badge>

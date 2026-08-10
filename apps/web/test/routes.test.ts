@@ -4,7 +4,7 @@ import { filterNavigableMenus, menuToRoutes } from "../src/router/generateRoutes
 
 type MenuNode = components["schemas"]["MenuNode"]
 
-function menu(overrides: Partial<MenuNode> & Pick<MenuNode, "id" | "name" | "type">): MenuNode {
+function menu(overrides: Partial<MenuNode> & Pick<MenuNode, "id" | "nameZh" | "type">): MenuNode {
   return {
     parentId: null,
     nameEn: null,
@@ -24,18 +24,18 @@ describe("dynamic routes", () => {
     const tree = [
       menu({
         id: "valid-dir",
-        name: "有效目录",
+        nameZh:"有效目录",
         type: "DIR",
         children: [
-          menu({ id: "dashboard", name: "Dashboard", type: "MENU", path: "/", component: "dashboard" }),
+          menu({ id: "dashboard", nameZh: "Dashboard", type: "MENU", path: "/", component: "dashboard" }),
         ],
       }),
       menu({
         id: "empty-dir",
-        name: "空目录",
+        nameZh:"空目录",
         type: "DIR",
         children: [
-          menu({ id: "missing", name: "缺失页面", type: "MENU", path: "/missing", component: "missing/page" }),
+          menu({ id: "missing", nameZh: "缺失页面", type: "MENU", path: "/missing", component: "missing/page" }),
         ],
       }),
     ]

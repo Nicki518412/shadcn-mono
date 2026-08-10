@@ -55,20 +55,20 @@ describe("app routing", () => {
             code: 0,
             data: {
               user: { id: "u1", username: "admin", nickname: "系统管理员", email: "admin@example.com", telephone: null },
-              roles: [{ id: "r1", name: "管理员", nameEn: "Administrator", code: "ADMIN" }],
+              roles: [{ id: "r1", nameZh: "管理员", nameEn: "Administrator", code: "ADMIN" }],
               navTree: [
                 {
-                  id: "dash", parentId: null, name: "Dashboard", nameEn: "Dashboard", type: "MENU",
+                  id: "dash", parentId: null, nameZh: "Dashboard", nameEn: "Dashboard", type: "MENU",
                   path: "/", component: "dashboard", icon: null, permission: null,
                   sort: 0, status: true, children: [],
                 },
                 {
-                  id: "sys", parentId: null, name: "系统管理", nameEn: "System", type: "DIR",
+                  id: "sys", parentId: null, nameZh: "系统管理", nameEn: "System", type: "DIR",
                   path: null, component: null, icon: null, permission: null,
                   sort: 100, status: true,
                   children: [
                     {
-                      id: "m1", parentId: "sys", name: "用户管理", nameEn: "Users", type: "MENU",
+                      id: "m1", parentId: "sys", nameZh: "用户管理", nameEn: "Users", type: "MENU",
                       path: "/system/user", component: "system/user", icon: null,
                       permission: "system:user:query", sort: 1, status: true, children: [],
                     },

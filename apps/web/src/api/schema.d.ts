@@ -422,7 +422,7 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
-                        name: string;
+                        nameZh: string;
                         nameEn?: string | null;
                         code: string;
                         description?: string;
@@ -677,7 +677,7 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
-                        name?: string;
+                        nameZh?: string;
                         nameEn?: string | null;
                         code?: string;
                         description?: string | null;
@@ -964,7 +964,7 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
-                        name: string;
+                        nameZh: string;
                         nameEn?: string | null;
                         /** @enum {string} */
                         type: "DIR" | "MENU" | "BUTTON";
@@ -1167,7 +1167,7 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
-                        name?: string;
+                        nameZh?: string;
                         nameEn?: string | null;
                         /** @enum {string} */
                         type?: "DIR" | "MENU" | "BUTTON";
@@ -1763,7 +1763,7 @@ export interface components {
         MenuNode: {
             id: string;
             parentId: string | null;
-            name: string;
+            nameZh: string;
             nameEn: string | null;
             /** @enum {string} */
             type: "DIR" | "MENU" | "BUTTON";
@@ -1799,7 +1799,7 @@ export interface components {
             user: components["schemas"]["UserPublic"];
             roles: {
                 id: string;
-                name: string;
+                nameZh: string;
                 nameEn: string | null;
                 code: string;
             }[];
@@ -1808,7 +1808,7 @@ export interface components {
         };
         RoleListItem: {
             id: string;
-            name: string;
+            nameZh: string;
             nameEn: string | null;
             code: string;
             description: string | null;
@@ -1823,7 +1823,7 @@ export interface components {
         RoleDetail: components["schemas"]["RoleListItem"] & Record<string, never>;
         UserRole: {
             id: string;
-            name: string;
+            nameZh: string;
             nameEn: string | null;
             code: string;
         };

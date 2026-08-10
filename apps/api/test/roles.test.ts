@@ -26,7 +26,7 @@ let bAssignId: string
 
 /** 按权限码查菜单，不存在则创建（permission 唯一索引：其他测试文件可能已建同码菜单，复用而非重建） */
 async function upsertMenu(data: {
-  name: string
+  nameZh:string
   type: string
   permission: string
   parentId?: string
@@ -57,13 +57,13 @@ describe("roles CRUD", () => {
     const admin = await prisma.user.create({
       data: { username: ADMIN_USERNAME, passwordHash: await hashPassword(ADMIN_PASSWORD), nickname: "角色管理员" },
     })
-    const role = await prisma.role.create({ data: { name: "角色管理员", code: "ROLES_ADMIN" } })
+    const role = await prisma.role.create({ data: { nameZh:"角色管理员", code: "ROLES_ADMIN" } })
     await prisma.userRole.create({ data: { userId: admin.id, roleId: role.id } })
 
-    const dir = await prisma.menu.create({ data: { name: "系统管理", type: "DIR", icon: "Settings", sort: 1 } })
+    const dir = await prisma.menu.create({ data: { nameZh:"系统管理", type: "DIR", icon: "Settings", sort: 1 } })
     dirId = dir.id
     const mRole = await upsertMenu({
-      name: "角色管理",
+      nameZh:"角色管理",
       type: "MENU",
       permission: "system:role:query",
       path: "/system/role",
@@ -74,7 +74,7 @@ describe("roles CRUD", () => {
     })
     roleMenuId = mRole.id
     const bCreate = await upsertMenu({
-      name: "角色新增",
+      nameZh:"角色新增",
       type: "BUTTON",
       permission: "system:role:create",
       parentId: mRole.id,
@@ -82,7 +82,7 @@ describe("roles CRUD", () => {
     })
     bCreateId = bCreate.id
     const bUpdate = await upsertMenu({
-      name: "角色编辑",
+      nameZh:"角色编辑",
       type: "BUTTON",
       permission: "system:role:update",
       parentId: mRole.id,
@@ -90,7 +90,7 @@ describe("roles CRUD", () => {
     })
     bUpdateId = bUpdate.id
     const bDelete = await upsertMenu({
-      name: "角色删除",
+      nameZh:"角色删除",
       type: "BUTTON",
       permission: "system:role:delete",
       parentId: mRole.id,
@@ -98,7 +98,7 @@ describe("roles CRUD", () => {
     })
     bDeleteId = bDelete.id
     const bAssign = await upsertMenu({
-      name: "分配权限",
+      nameZh:"分配权限",
       type: "BUTTON",
       permission: "system:role:assign",
       parentId: mRole.id,
@@ -126,22 +126,22 @@ describe("roles CRUD", () => {
     const create = await app.request("/api/roles", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-      body: JSON.stringify({ name: "测试角色", nameEn: "Test Role", code: "Test_Role", sort: 1 }),
+      body: JSON.stringify({ nameZh:"测试角色", nameEn: "Test Role", code: "Test_Role", sort: 1 }),
     })
     expect(create.status).toBe(200)
     const body = (await create.json()) as { data: RoleItem }
-    expect(body.data.name).toBe("测试角色")
+    expect(body.data.nameZh).toBe("测试角色")
     expect(body.data.nameEn).toBe("Test Role")
     expect(body.data.code).toBe("TEST_ROLE")
     expect(body.data.sort).toBe(1)
     const stored = await prisma.role.findUnique({ where: { code: "TEST_ROLE" } })
-    expect(stored?.name).toBe("测试角色")
+    expect(stored?.nameZh).toBe("测试角色")
     expect(stored?.nameEn).toBe("Test Role")
 
     const dup = await app.request("/api/roles", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-      body: JSON.stringify({ name: "重复", code: "test_role", sort: 2 }),
+      body: JSON.stringify({ nameZh:"重复", code: "test_role", sort: 2 }),
     })
     expect(dup.status).toBe(409)
     const dupBody = (await dup.json()) as { message: string }
@@ -152,7 +152,7 @@ describe("roles CRUD", () => {
     const app = createApp()
     const token = await loginAdmin()
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
-    const role = await prisma.role.create({ data: { name: "授权角色", code: "ROLE_CRUD_GRANT" } })
+    const role = await prisma.role.create({ data: { nameZh:"授权角色", code: "ROLE_CRUD_GRANT" } })
     const menuIds = [dirId, roleMenuId, bCreateId, bUpdateId, bDeleteId, bAssignId]
     const put = await app.request(`/api/roles/${role.id}/menus`, {
       method: "PUT",
@@ -182,7 +182,7 @@ describe("roles CRUD", () => {
     const app = createApp()
     const token = await loginAdmin()
     const auth = { authorization: `Bearer ${token}` }
-    const role = await prisma.role.create({ data: { name: "待删角色", code: "ROLE_CRUD_DEL" } })
+    const role = await prisma.role.create({ data: { nameZh:"待删角色", code: "ROLE_CRUD_DEL" } })
     const user = await prisma.user.create({
       data: { username: "role_crud_del_user", passwordHash: await hashPassword("Passw0rd!"), nickname: "挂角色用户" },
     })
@@ -199,7 +199,7 @@ describe("roles CRUD", () => {
     const patch = await app.request(`/api/roles/${missing}`, {
       method: "PATCH",
       headers: { ...auth, "content-type": "application/json" },
-      body: JSON.stringify({ name: "不存在" }),
+      body: JSON.stringify({ nameZh:"不存在" }),
     })
     expect(patch.status).toBe(404)
     const delMissing = await app.request(`/api/roles/${missing}`, { method: "DELETE", headers: auth })
@@ -211,29 +211,29 @@ describe("roles CRUD", () => {
     const token = await loginAdmin()
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const role = await prisma.role.create({
-      data: { name: "旧名", code: "ROLE_CRUD_PATCH1", description: "原始描述", sort: 1 },
+      data: { nameZh:"旧名", code: "ROLE_CRUD_PATCH1", description: "原始描述", sort: 1 },
     })
     const res = await app.request(`/api/roles/${role.id}`, {
       method: "PATCH",
       headers: auth,
-      body: JSON.stringify({ name: "新名", nameEn: "New En Name", status: false, description: null, code: "role_crud_patch2" }),
+      body: JSON.stringify({ nameZh:"新名", nameEn: "New En Name", status: false, description: null, code: "role_crud_patch2" }),
     })
     expect(res.status).toBe(200)
     const body = (await res.json()) as { data: RoleItem }
-    expect(body.data.name).toBe("新名")
+    expect(body.data.nameZh).toBe("新名")
     expect(body.data.nameEn).toBe("New En Name")
     expect(body.data.code).toBe("ROLE_CRUD_PATCH2")
     expect(body.data.status).toBe(false)
     expect(body.data.description).toBeNull()
     const stored = await prisma.role.findUnique({ where: { id: role.id } })
-    expect(stored?.name).toBe("新名")
+    expect(stored?.nameZh).toBe("新名")
     expect(stored?.nameEn).toBe("New En Name")
     expect(stored?.code).toBe("ROLE_CRUD_PATCH2")
     expect(stored?.status).toBe(false)
     expect(stored?.description).toBeNull()
 
     // PATCH code 撞已存在角色（大小写变体同约束）→ 409，且目标角色编码不落库
-    const other = await prisma.role.create({ data: { name: "冲突目标", code: "ROLE_CRUD_PATCH3" } })
+    const other = await prisma.role.create({ data: { nameZh:"冲突目标", code: "ROLE_CRUD_PATCH3" } })
     const dup = await app.request(`/api/roles/${other.id}`, {
       method: "PATCH",
       headers: auth,
@@ -248,7 +248,7 @@ describe("roles CRUD", () => {
     const app = createApp()
     const token = await loginAdmin()
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
-    const role = await prisma.role.create({ data: { name: "边界角色", code: "ROLE_CRUD_EDGE" } })
+    const role = await prisma.role.create({ data: { nameZh:"边界角色", code: "ROLE_CRUD_EDGE" } })
     // 重复 menuId：Set 去重后落库（回显仅 1 个）
     const put = await app.request(`/api/roles/${role.id}/menus`, {
       method: "PUT",
@@ -309,9 +309,9 @@ describe("roles CRUD", () => {
     const token = await loginAdmin()
     const auth = { authorization: `Bearer ${token}` }
     await Promise.all([
-      prisma.role.create({ data: { name: "关键词一号", code: "ROLE_CRUD_KW1", sort: 1 } }),
-      prisma.role.create({ data: { name: "关键词二号", code: "ROLE_CRUD_KW2", sort: 2 } }),
-      prisma.role.create({ data: { name: "唯一角色", code: "ROLE_CRUD_KW3", sort: 3 } }),
+      prisma.role.create({ data: { nameZh:"关键词一号", code: "ROLE_CRUD_KW1", sort: 1 } }),
+      prisma.role.create({ data: { nameZh:"关键词二号", code: "ROLE_CRUD_KW2", sort: 2 } }),
+      prisma.role.create({ data: { nameZh:"唯一角色", code: "ROLE_CRUD_KW3", sort: 3 } }),
     ])
     const page = await app.request("/api/roles?page=1&pageSize=2", { headers: auth })
     expect(page.status).toBe(200)
@@ -334,15 +334,15 @@ describe("roles CRUD", () => {
     expect(byName.status).toBe(200)
     const nameBody = (await byName.json()) as PageBody
     expect(nameBody.data.total).toBe(1)
-    expect(nameBody.data.list.map((r) => r.name)).toEqual(["唯一角色"])
+    expect(nameBody.data.list.map((r) => r.nameZh)).toEqual(["唯一角色"])
   })
 
   it("GET /roles/list：全量返回（无分页、含管理员角色），供下拉使用", async () => {
     const app = createApp()
     const token = await loginAdmin()
     const auth = { authorization: `Bearer ${token}` }
-    await prisma.role.create({ data: { name: "下拉角色一", code: "ROLE_CRUD_LIST1", sort: 5 } })
-    await prisma.role.create({ data: { name: "下拉角色二", code: "ROLE_CRUD_LIST2", sort: 6 } })
+    await prisma.role.create({ data: { nameZh:"下拉角色一", code: "ROLE_CRUD_LIST1", sort: 5 } })
+    await prisma.role.create({ data: { nameZh:"下拉角色二", code: "ROLE_CRUD_LIST2", sort: 6 } })
     const res = await app.request("/api/roles/list", { headers: auth })
     expect(res.status).toBe(200)
     const body = (await res.json()) as ListBody

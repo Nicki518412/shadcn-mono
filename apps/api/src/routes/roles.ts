@@ -16,7 +16,7 @@ const pageQuery = z.object({
 })
 
 const roleCreateSchema = z.object({
-  name: z.string().min(1).max(64),
+  nameZh: z.string().min(1).max(64),
   nameEn: z.string().max(64).nullable().optional(),
   code: z.string().min(2).max(32).regex(/^[A-Za-z0-9_-]+$/),
   description: z.string().optional(),
@@ -58,7 +58,7 @@ type RoleDetail = Awaited<ReturnType<typeof fetchRoleDetail>>
 function toRoleDetail(role: RoleDetail) {
   return {
     id: role.id,
-    name: role.name,
+    nameZh: role.nameZh,
     nameEn: role.nameEn,
     code: role.code,
     description: role.description,
@@ -92,7 +92,7 @@ export function roleRoutes(cfg: AppConfig): OpenAPIHono {
       const where = keyword
         ? {
             OR: [
-              { name: { contains: keyword } },
+              { nameZh: { contains: keyword } },
               { code: { contains: keyword } },
             ],
           }
@@ -144,9 +144,9 @@ export function roleRoutes(cfg: AppConfig): OpenAPIHono {
       },
     }),
     async (c) => {
-      const { name, nameEn, code, description, sort, status } = c.req.valid("json")
+      const { nameZh, nameEn, code, description, sort, status } = c.req.valid("json")
       // code 统一大写存储（程序判断用编码，与大小写输入解耦）；exactOptionalPropertyTypes：undefined 不传
-      const data: Prisma.RoleCreateInput = { name, code: code.toUpperCase(), sort }
+      const data: Prisma.RoleCreateInput = { nameZh, code: code.toUpperCase(), sort }
       if (nameEn !== undefined) data.nameEn = nameEn
       if (description !== undefined) data.description = description
       if (status !== undefined) data.status = status
@@ -202,7 +202,7 @@ export function roleRoutes(cfg: AppConfig): OpenAPIHono {
       const fields = c.req.valid("json")
       await fetchRoleDetail(id)
       const data: Prisma.RoleUpdateInput = {}
-      if (fields.name !== undefined) data.name = fields.name
+      if (fields.nameZh !== undefined) data.nameZh = fields.nameZh
       if (fields.nameEn !== undefined) data.nameEn = fields.nameEn
       if (fields.code !== undefined) data.code = fields.code.toUpperCase()
       if (fields.description !== undefined) data.description = fields.description

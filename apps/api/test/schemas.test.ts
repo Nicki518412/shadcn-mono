@@ -30,11 +30,11 @@ describe("schemas", () => {
     await createTestUser({ username: USERNAME, password: PASSWORD })
     const user = await prisma.user.findUnique({ where: { username: USERNAME } })
     if (!user) throw new Error("测试用户未创建")
-    const role = await prisma.role.create({ data: { name: "全量授权", code: "SCHEMA_ROLE" } })
-    const d1 = await prisma.menu.create({ data: { name: "系统管理", type: "DIR", sort: 1 } })
+    const role = await prisma.role.create({ data: { nameZh:"全量授权", code: "SCHEMA_ROLE" } })
+    const d1 = await prisma.menu.create({ data: { nameZh:"系统管理", type: "DIR", sort: 1 } })
     const m1 = await prisma.menu.create({
       data: {
-        name: "用户管理",
+        nameZh:"用户管理",
         type: "MENU",
         path: "/system/user",
         component: "system/user",
@@ -45,7 +45,7 @@ describe("schemas", () => {
       },
     })
     const b1 = await prisma.menu.create({
-      data: { name: "新增用户", type: "BUTTON", permission: "system:user:add", parentId: m1.id, sort: 1 },
+      data: { nameZh:"新增用户", type: "BUTTON", permission: "system:user:add", parentId: m1.id, sort: 1 },
     })
     await prisma.userRole.create({ data: { userId: user.id, roleId: role.id } })
     await prisma.roleMenu.createMany({
