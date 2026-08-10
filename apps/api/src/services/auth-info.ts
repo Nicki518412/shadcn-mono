@@ -7,7 +7,7 @@ import { menuTypeSchema, type PublicUser } from "../lib/schemas.js"
 /** 用户完整权限信息（me 响应 / requirePermission 共用） */
 export interface AuthInfo {
   user: PublicUser
-  roles: { id: string; name: string; code: string }[]
+  roles: { id: string; name: string; nameEn: string | null; code: string }[]
   navTree: MenuNode[]
   permissionCodes: string[]
 }
@@ -20,6 +20,7 @@ function toMenuNode(menu: Menu): MenuNode {
     id: menu.id,
     parentId: menu.parentId,
     name: menu.name,
+    nameEn: menu.nameEn,
     type: menuTypeSchema.parse(menu.type),
     path: menu.path,
     component: menu.component,
@@ -39,7 +40,12 @@ export async function getUserAuthInfo(userId: string, user: PublicUser): Promise
   const userRoles = await prisma.userRole.findMany({ where: { userId }, include: { role: true } })
   // 禁用角色不参与权限计算（授权无效）
   const activeRoles = userRoles.filter((ur) => ur.role.status)
-  const roles = activeRoles.map((ur) => ({ id: ur.role.id, name: ur.role.name, code: ur.role.code }))
+  const roles = activeRoles.map((ur) => ({
+    id: ur.role.id,
+    name: ur.role.name,
+    nameEn: ur.role.nameEn,
+    code: ur.role.code,
+  }))
   const roleIds = activeRoles.map((ur) => ur.roleId)
 
   const [roleMenus, menus] = await Promise.all([

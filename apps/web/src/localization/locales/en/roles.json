@@ -29,6 +29,8 @@
   "createDesc": "Create a new system role",
   "roleName": "Role Name",
   "roleNamePlaceholder": "Role display name",
+  "roleNameEn": "English Name",
+  "roleNameEnPlaceholder": "English display name (shown in en UI, falls back to Chinese name)",
   "roleCode": "Role Code",
   "roleCodePlaceholder": "Uppercase code, e.g. ADMIN",
   "codeUppercase": "Code is automatically uppercased when saved",

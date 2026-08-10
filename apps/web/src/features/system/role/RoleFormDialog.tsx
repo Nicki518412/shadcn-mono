@@ -42,6 +42,7 @@ export function RoleFormDialog({
   const updateMutation = useUpdateRoleMutation()
 
   const [name, setName] = useState(role?.name ?? "")
+  const [nameEn, setNameEn] = useState(role?.nameEn ?? "")
   const [code, setCode] = useState(role?.code ?? "")
   const [description, setDescription] = useState(role?.description ?? "")
   const [sort, setSort] = useState(role?.sort ?? 0)
@@ -67,6 +68,8 @@ export function RoleFormDialog({
     if (isEdit && role) {
       const body: RoleUpdateInput = {
         name: name.trim(),
+        // 留空显式传 null（en 语言回落中文名）
+        nameEn: nameEn.trim() === "" ? null : nameEn.trim(),
         code: code.trim(),
         // 留空显式传 null 清空（PATCH 语义，与用户表单 email/telephone 处理一致）
         description: description.trim() === "" ? null : description.trim(),
@@ -75,7 +78,14 @@ export function RoleFormDialog({
       }
       updateMutation.mutate({ id: role.id, body }, { onSuccess: () => { onClose(); } })
     } else {
-      const body: RoleCreateInput = { name: name.trim(), code: code.trim(), sort, status }
+      const body: RoleCreateInput = {
+        name: name.trim(),
+        // 留空显式传 null（en 语言回落中文名）
+        nameEn: nameEn.trim() === "" ? null : nameEn.trim(),
+        code: code.trim(),
+        sort,
+        status,
+      }
       if (description.trim()) body.description = description.trim()
       createMutation.mutate(body, { onSuccess: () => { onClose(); } })
     }
@@ -118,6 +128,19 @@ export function RoleFormDialog({
                     setName(event.target.value)
                   }}
                   placeholder={t("roleNamePlaceholder")}
+                />
+              </FieldContent>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="role-form-name-en">{t("roleNameEn")}</FieldLabel>
+              <FieldContent>
+                <Input
+                  id="role-form-name-en"
+                  value={nameEn}
+                  onChange={(event) => {
+                    setNameEn(event.target.value)
+                  }}
+                  placeholder={t("roleNameEnPlaceholder")}
                 />
               </FieldContent>
             </Field>

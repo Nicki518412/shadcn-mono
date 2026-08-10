@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { roleDisplayName } from "@/localization/menuName"
 import { useRolesListQuery } from "../role/useRoles"
 import { useCreateUserMutation, useUpdateUserMutation } from "./useUsers"
 import type { UserCreateInput, UserListItem, UserUpdateInput } from "./useUsers"
@@ -233,7 +234,7 @@ export function UserFormDialog({
                           htmlFor={`user-form-role-${role.id}`}
                           className="text-sm font-normal"
                         >
-                          {role.name}
+                          {roleDisplayName(role)}
                         </Label>
                       </div>
                     ))}

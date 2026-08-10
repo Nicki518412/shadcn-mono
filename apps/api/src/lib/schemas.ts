@@ -63,6 +63,7 @@ export const menuNodeSchema: z.ZodType<MenuNode> = z.lazy(() =>
     id: z.string(),
     parentId: z.string().nullable(),
     name: z.string(),
+    nameEn: z.string().nullable(),
     type: z.enum(["DIR", "MENU", "BUTTON"]),
     path: z.string().nullable(),
     component: z.string().nullable(),
@@ -86,7 +87,7 @@ export const menuNodeRefSchema: z.ZodType<MenuNode> = z.any().openapi({ $ref: "#
 export const meResponseSchema = z
   .object({
     user: publicUserSchema,
-    roles: z.array(z.object({ id: z.string(), name: z.string(), code: z.string() })),
+    roles: z.array(z.object({ id: z.string(), name: z.string(), nameEn: z.string().nullable(), code: z.string() })),
     navTree: z.array(menuNodeRefSchema),
     permissionCodes: z.array(z.string()),
   })
@@ -94,7 +95,7 @@ export const meResponseSchema = z
 
 /** 用户-角色简要信息（用户列表/详情响应共用） */
 export const userRoleSchema = z
-  .object({ id: z.string(), name: z.string(), code: z.string() })
+  .object({ id: z.string(), name: z.string(), nameEn: z.string().nullable(), code: z.string() })
   .openapi("UserRole")
 
 /** 用户列表项（分页列表 data.list 元素） */
@@ -125,6 +126,7 @@ export const roleListItemSchema = z
   .object({
     id: z.string(),
     name: z.string(),
+    nameEn: z.string().nullable(),
     code: z.string(),
     description: z.string().nullable(),
     sort: z.number(),

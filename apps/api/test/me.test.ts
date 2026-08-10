@@ -40,14 +40,15 @@ describe("auth me", () => {
     const userId = user.id
 
     const [roleA, roleB] = await Promise.all([
-      prisma.role.create({ data: { name: "角色A", code: "ROLE_A" } }),
-      prisma.role.create({ data: { name: "角色B", code: "ROLE_B" } }),
+      prisma.role.create({ data: { name: "角色A", nameEn: "Role A", code: "ROLE_A" } }),
+      prisma.role.create({ data: { name: "角色B", nameEn: "Role B", code: "ROLE_B" } }),
     ])
-    // 菜单树：DIR d1 → MENU m1 + BUTTON b1 + MENU m2
-    const d1 = await prisma.menu.create({ data: { name: "系统管理", type: "DIR", icon: "Settings", sort: 1 } })
+    // 菜单树：DIR d1 → MENU m1 + BUTTON b1 + MENU m2（nameEn 随节点透传，多语言展示用）
+    const d1 = await prisma.menu.create({ data: { name: "系统管理", nameEn: "System", type: "DIR", icon: "Settings", sort: 1 } })
     const m1 = await prisma.menu.create({
       data: {
         name: "用户管理",
+        nameEn: "Users",
         type: "MENU",
         path: "/system/user",
         component: "system/user",
@@ -103,6 +104,8 @@ describe("auth me", () => {
     const body = (await res.json()) as MeBody
     expect(body.data.user.username).toBe(USERNAME)
     expect(body.data.roles).toHaveLength(2)
+    // 角色带 nameEn（多语言展示；me 角色徽标用）
+    expect(body.data.roles.map((r) => r.nameEn)).toEqual(expect.arrayContaining(["Role A", "Role B"]))
     // b1（system:user:add）被交掉，仅剩 m1 的码
     expect(body.data.permissionCodes).toEqual(["system:user:query"])
     // navTree：d1 → [m1]，b1/m2 不出现
@@ -111,9 +114,11 @@ describe("auth me", () => {
     if (!root) throw new Error("navTree 根节点缺失")
     expect(root.type).toBe("DIR")
     expect(root.name).toBe("系统管理")
+    expect(root.nameEn).toBe("System")
     expect(root.children.map((n) => n.name)).toEqual(["用户管理"])
     const userMenu = root.children[0]
     if (!userMenu) throw new Error("m1 节点缺失")
+    expect(userMenu.nameEn).toBe("Users")
     expect(userMenu.children).toHaveLength(0)
   })
 

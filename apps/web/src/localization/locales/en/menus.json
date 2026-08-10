@@ -27,6 +27,8 @@
   "createDesc": "Create a new system menu (directory / menu / button)",
   "menuName": "Menu Name",
   "menuNamePlaceholder": "Menu display name",
+  "menuNameEn": "English Name",
+  "menuNameEnPlaceholder": "English display name (shown in en UI, falls back to Chinese name)",
   "type": "Type",
   "typePlaceholder": "Select type",
   "typeDesc": "The type determines which child nodes can be attached (BUTTON can only be attached under a MENU)",

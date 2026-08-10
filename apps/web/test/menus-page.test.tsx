@@ -23,13 +23,14 @@ type MenuNode = components["schemas"]["MenuNode"]
  */
 const menuTree: MenuNode[] = [
   {
-    id: "m0", parentId: null, name: "工作台", type: "MENU", path: "/",
+    id: "m0", parentId: null, name: "工作台", nameEn: null, type: "MENU", path: "/",
     component: "dashboard", icon: null, permission: null, sort: 0, status: true, children: [],
   },
   {
     id: "d1",
     parentId: null,
     name: "系统管理",
+    nameEn: null,
     type: "DIR",
     path: null,
     component: null,
@@ -39,17 +40,18 @@ const menuTree: MenuNode[] = [
     status: true,
     children: [
       {
-        id: "m1", parentId: "d1", name: "用户管理", type: "MENU", path: "/system/user",
+        id: "m1", parentId: "d1", name: "用户管理", nameEn: null, type: "MENU", path: "/system/user",
         component: "system/user", icon: null, permission: "system:user:query", sort: 1, status: true,
         children: [
-          { id: "b1", parentId: "m1", name: "用户新增", type: "BUTTON", path: null, component: null, icon: null, permission: "system:user:create", sort: 1, status: true, children: [] },
-          { id: "b2", parentId: "m1", name: "用户编辑", type: "BUTTON", path: null, component: null, icon: null, permission: "system:user:update", sort: 2, status: true, children: [] },
+          { id: "b1", parentId: "m1", name: "用户新增", nameEn: null, type: "BUTTON", path: null, component: null, icon: null, permission: "system:user:create", sort: 1, status: true, children: [] },
+          { id: "b2", parentId: "m1", name: "用户编辑", nameEn: null, type: "BUTTON", path: null, component: null, icon: null, permission: "system:user:update", sort: 2, status: true, children: [] },
         ],
       },
       {
         id: "d2",
         parentId: "d1",
         name: "系统监控",
+        nameEn: null,
         type: "DIR",
         path: null,
         component: null,
@@ -59,11 +61,11 @@ const menuTree: MenuNode[] = [
         status: false,
         children: [
           {
-            id: "m2", parentId: "d2", name: "监控面板", type: "MENU", path: "/system/monitor",
+            id: "m2", parentId: "d2", name: "监控面板", nameEn: null, type: "MENU", path: "/system/monitor",
             component: "system/monitor", icon: null, permission: "system:monitor:query",
             sort: 1, status: true,
             children: [
-              { id: "b3", parentId: "m2", name: "监控导出", type: "BUTTON", path: null, component: null, icon: null, permission: "system:monitor:export", sort: 1, status: true, children: [] },
+              { id: "b3", parentId: "m2", name: "监控导出", nameEn: null, type: "BUTTON", path: null, component: null, icon: null, permission: "system:monitor:export", sort: 1, status: true, children: [] },
             ],
           },
         ],
@@ -141,7 +143,7 @@ function renderMenuPage(
   })
   queryClient.setQueryData<components["schemas"]["MeResponse"]>(ME_QUERY_KEY, {
     user: { id: "u1", username: "admin", nickname: "系统管理员", email: null, telephone: null },
-    roles: [{ id: "r1", name: "管理员", code: "ADMIN" }],
+    roles: [{ id: "r1", name: "管理员", nameEn: "Administrator", code: "ADMIN" }],
     navTree: [],
     permissionCodes,
   })
@@ -309,6 +311,7 @@ describe("MenuPage", () => {
     await waitFor(() => {
       expect(fetchBodies(fetchMock, "POST")).toContainEqual({
         name: "订单管理",
+        nameEn: null,
         type: "MENU",
         parentId: "d1",
         path: "/system/order",
@@ -362,6 +365,7 @@ describe("MenuPage", () => {
       expect(fetchUrls(fetchMock, "PATCH")).toContain("/api/menus/m1")
       expect(fetchBodies(fetchMock, "PATCH")).toContainEqual({
         name: "用户管理",
+        nameEn: null,
         type: "BUTTON",
         parentId: "m2",
         path: null,

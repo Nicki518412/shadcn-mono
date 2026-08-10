@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/table"
 import { usePagination } from "@/hooks/usePagination"
 import i18n from "@/localization/i18n"
+import { roleDisplayName } from "@/localization/menuName"
 import { RoleAssignDialog } from "./RoleAssignDialog"
 import { UserFormDialog } from "./UserFormDialog"
 import { useDeleteUserMutation, useUsersQuery } from "./useUsers"
@@ -193,7 +194,7 @@ export default function UserPage(): JSX.Element {
                         <div className="flex flex-wrap gap-1">
                           {user.roles.map((role) => (
                             <Badge key={role.id} variant="outline">
-                              {role.name}
+                              {roleDisplayName(role)}
                             </Badge>
                           ))}
                         </div>

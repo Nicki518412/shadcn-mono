@@ -6,6 +6,7 @@ function menu(partial: Partial<MenuNode> & { id: string }): MenuNode {
   return {
     parentId: null,
     name: partial.id,
+    nameEn: null,
     type: "MENU",
     path: null,
     component: null,

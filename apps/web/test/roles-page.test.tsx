@@ -19,6 +19,7 @@ const roleList: components["schemas"]["RoleListItem"][] = [
   {
     id: "r1",
     name: "管理员",
+    nameEn: "Administrator",
     code: "ADMIN",
     description: "系统内置管理员",
     sort: 0,
@@ -28,6 +29,7 @@ const roleList: components["schemas"]["RoleListItem"][] = [
   {
     id: "r2",
     name: "访客",
+    nameEn: "Guest",
     code: "GUEST",
     description: null,
     sort: 100,
@@ -42,6 +44,7 @@ const menuTree: components["schemas"]["MenuNode"][] = [
     id: "d1",
     parentId: null,
     name: "系统管理",
+    nameEn: null,
     type: "DIR",
     path: null,
     component: null,
@@ -54,6 +57,7 @@ const menuTree: components["schemas"]["MenuNode"][] = [
         id: "m1",
         parentId: "d1",
         name: "用户管理",
+        nameEn: null,
         type: "MENU",
         path: "/system/user",
         component: "system/user",
@@ -63,12 +67,12 @@ const menuTree: components["schemas"]["MenuNode"][] = [
         status: true,
         children: [
           {
-            id: "b1", parentId: "m1", name: "用户新增", type: "BUTTON", path: null,
+            id: "b1", parentId: "m1", name: "用户新增", nameEn: null, type: "BUTTON", path: null,
             component: null, icon: null, permission: "system:user:create",
             sort: 1, status: true, children: [],
           },
           {
-            id: "b2", parentId: "m1", name: "用户编辑", type: "BUTTON", path: null,
+            id: "b2", parentId: "m1", name: "用户编辑", nameEn: null, type: "BUTTON", path: null,
             component: null, icon: null, permission: "system:user:update",
             sort: 2, status: true, children: [],
           },
@@ -78,6 +82,7 @@ const menuTree: components["schemas"]["MenuNode"][] = [
         id: "m2",
         parentId: "d1",
         name: "角色管理",
+        nameEn: null,
         type: "MENU",
         path: "/system/role",
         component: "system/role",
@@ -87,7 +92,7 @@ const menuTree: components["schemas"]["MenuNode"][] = [
         status: true,
         children: [
           {
-            id: "b3", parentId: "m2", name: "分配权限", type: "BUTTON", path: null,
+            id: "b3", parentId: "m2", name: "分配权限", nameEn: null, type: "BUTTON", path: null,
             component: null, icon: null, permission: "system:role:assign",
             sort: 1, status: true, children: [],
           },
@@ -181,7 +186,7 @@ function renderRolePage(
   })
   queryClient.setQueryData<components["schemas"]["MeResponse"]>(ME_QUERY_KEY, {
     user: { id: "u1", username: "admin", nickname: "系统管理员", email: null, telephone: null },
-    roles: [{ id: "r1", name: "管理员", code: "ADMIN" }],
+    roles: [{ id: "r1", name: "管理员", nameEn: "Administrator", code: "ADMIN" }],
     navTree: [],
     permissionCodes,
   })
@@ -289,6 +294,7 @@ describe("RolePage", () => {
     await waitFor(() => {
       expect(fetchBodies(fetchMock, "POST")).toContainEqual({
         name: "运营",
+        nameEn: null,
         code: "OPERATOR",
         description: "运营人员",
         sort: 5,

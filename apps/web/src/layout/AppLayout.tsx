@@ -53,6 +53,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { ProfileDialog } from "@/features/system/user/ProfileDialog"
+import { menuDisplayName } from "@/localization/menuName"
 import { APP_NAME } from "@/config"
 import { iconByName } from "@/lib/icons"
 import { cn } from "@/lib/utils"
@@ -81,7 +82,7 @@ function MenuLink({ node }: { node: MenuNode }): JSX.Element | null {
         className="relative after:absolute after:inset-y-1.5 after:left-0 after:w-0.5 after:rounded-full after:bg-sidebar-primary after:opacity-0 data-active:after:opacity-100"
       >
         {Icon ? <Icon className="size-4 shrink-0" /> : null}
-        <span>{node.name}</span>
+        <span>{menuDisplayName(node)}</span>
       </SidebarMenuButton>
     </SidebarMenuItem>
   )
@@ -98,7 +99,7 @@ function SubMenuLink({ node }: { node: MenuNode }): JSX.Element | null {
       isActive={location.pathname === node.path}
     >
       {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
-      <span>{node.name}</span>
+      <span>{menuDisplayName(node)}</span>
     </SidebarMenuSubButton>
   )
 }
@@ -111,7 +112,7 @@ function DirGroup({ node }: { node: MenuNode }): JSX.Element {
       <SidebarMenuItem>
         <CollapsibleTrigger render={<SidebarMenuButton />}>
           <Icon className="size-4 shrink-0" />
-          <span>{node.name}</span>
+          <span>{menuDisplayName(node)}</span>
           <ChevronRightIcon className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
         </CollapsibleTrigger>
       </SidebarMenuItem>
@@ -133,7 +134,7 @@ function SubMenuEntry({ node }: { node: MenuNode }): JSX.Element | null {
     return (
       <SidebarMenuSubItem>
         <span className="flex h-7 items-center px-2 text-xs font-medium text-sidebar-foreground/70">
-          {node.name}
+          {menuDisplayName(node)}
         </span>
         <SidebarMenuSub>
           {node.children.map((child) => (
@@ -155,13 +156,14 @@ function SubMenuEntry({ node }: { node: MenuNode }): JSX.Element | null {
  * 默认展开，点击目录名收起/展开——管理端目录惯例）；嵌套 DIR 同样可折叠递归。
  */
 function Navigation({ navTree }: { navTree: MenuNode[] }): JSX.Element {
+  const { t } = useTranslation()
   const overview = navTree.filter((node) => node.type === "MENU")
   const dirGroups = navTree.filter((node) => node.type === "DIR")
   return (
     <>
       {overview.length > 0 && (
         <SidebarGroup>
-          <SidebarGroupLabel>总览</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("overview")}</SidebarGroupLabel>
           <SidebarMenu>
             {overview.map((node) => (
               <MenuLink key={node.id} node={node} />
@@ -220,7 +222,7 @@ function Breadcrumb({ trail }: { trail: MenuNode[] | null }): JSX.Element {
                 isLast ? "font-medium text-foreground" : "text-muted-foreground",
               )}
             >
-              {node.name}
+              {menuDisplayName(node)}
             </span>
           </Fragment>
         )

@@ -44,6 +44,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { roleDisplayName } from "@/localization/menuName"
 import { usePagination } from "@/hooks/usePagination"
 import { MenuGrantDialog } from "./MenuGrantDialog"
 import { RoleFormDialog } from "./RoleFormDialog"
@@ -168,7 +169,7 @@ export default function RolePage(): JSX.Element {
                 ))
               : roles.map((role) => (
                   <TableRow key={role.id}>
-                    <TableCell>{role.name}</TableCell>
+                    <TableCell>{roleDisplayName(role)}</TableCell>
                     <TableCell>
                       <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{role.code}</code>
                     </TableCell>
@@ -332,7 +333,7 @@ export default function RolePage(): JSX.Element {
             <AlertDialogHeader>
               <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
               <AlertDialogDescription>
-                {t("deleteRoleConfirm", { name: deleteRole.name })}
+                {t("deleteRoleConfirm", { name: roleDisplayName(deleteRole) })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

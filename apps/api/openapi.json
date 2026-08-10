@@ -26,6 +26,10 @@
           "name": {
             "type": "string"
           },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
           "type": {
             "type": "string",
             "enum": [
@@ -67,6 +71,7 @@
           "id",
           "parentId",
           "name",
+          "nameEn",
           "type",
           "path",
           "component",
@@ -178,6 +183,10 @@
                 "name": {
                   "type": "string"
                 },
+                "nameEn": {
+                  "type": "string",
+                  "nullable": true
+                },
                 "code": {
                   "type": "string"
                 }
@@ -185,6 +194,7 @@
               "required": [
                 "id",
                 "name",
+                "nameEn",
                 "code"
               ]
             }
@@ -219,6 +229,10 @@
           "name": {
             "type": "string"
           },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
           "code": {
             "type": "string"
           },
@@ -239,6 +253,7 @@
         "required": [
           "id",
           "name",
+          "nameEn",
           "code",
           "description",
           "sort",
@@ -284,6 +299,10 @@
           "name": {
             "type": "string"
           },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
           "code": {
             "type": "string"
           }
@@ -291,6 +310,7 @@
         "required": [
           "id",
           "name",
+          "nameEn",
           "code"
         ]
       },
@@ -893,6 +913,11 @@
                     "minLength": 1,
                     "maxLength": 64
                   },
+                  "nameEn": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 64
+                  },
                   "code": {
                     "type": "string",
                     "minLength": 2,
@@ -1149,6 +1174,11 @@
                   "name": {
                     "type": "string",
                     "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "nameEn": {
+                    "type": "string",
+                    "nullable": true,
                     "maxLength": 64
                   },
                   "code": {
@@ -1608,6 +1638,11 @@
                     "minLength": 1,
                     "maxLength": 64
                   },
+                  "nameEn": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 64
+                  },
                   "type": {
                     "type": "string",
                     "enum": [
@@ -1827,6 +1862,11 @@
                   "name": {
                     "type": "string",
                     "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "nameEn": {
+                    "type": "string",
+                    "nullable": true,
                     "maxLength": 64
                   },
                   "type": {

@@ -94,6 +94,7 @@ export function MenuFormDialog({
   const updateMutation = useUpdateMenuMutation()
 
   const [name, setName] = useState(menu?.name ?? "")
+  const [nameEn, setNameEn] = useState(menu?.nameEn ?? "")
   const [type, setType] = useState<MenuType>(menu?.type ?? "DIR")
   const [parentId, setParentId] = useState(menu?.parentId ?? "")
   const [path, setPath] = useState(menu?.path ?? "")
@@ -140,6 +141,8 @@ export function MenuFormDialog({
     setError(null)
     const body: MenuCreateInput = {
       name: name.trim(),
+      // 留空显式传 null（en 语言回落中文名）
+      nameEn: nameEn.trim() === "" ? null : nameEn.trim(),
       type,
       parentId: parentId === "" ? null : parentId,
       sort,
@@ -193,6 +196,19 @@ export function MenuFormDialog({
                     setName(event.target.value)
                   }}
                   placeholder={t("menuNamePlaceholder")}
+                />
+              </FieldContent>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="menu-form-name-en">{t("menuNameEn")}</FieldLabel>
+              <FieldContent>
+                <Input
+                  id="menu-form-name-en"
+                  value={nameEn}
+                  onChange={(event) => {
+                    setNameEn(event.target.value)
+                  }}
+                  placeholder={t("menuNameEnPlaceholder")}
                 />
               </FieldContent>
             </Field>

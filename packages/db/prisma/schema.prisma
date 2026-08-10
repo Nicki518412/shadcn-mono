@@ -48,6 +48,8 @@ model Role {
   id          String     @id @default(cuid())
   /// 角色名称（展示用）
   name        String
+  /// 英文名称（多语言展示，en 语言用；未填回落 name）
+  nameEn      String?
   /// 角色编码（如 ADMIN，程序判断用）
   code        String     @unique
   /// 角色描述
@@ -74,6 +76,8 @@ model Menu {
   parentId   String?
   /// 菜单名称
   name       String
+  /// 英文名称（多语言展示，en 语言用；未填回落 name）
+  nameEn     String?
   /// 类型（DIR 目录 / MENU 菜单 / BUTTON 按钮，字符串 + zod 校验，兼容三方言）
   type       String
   /// 路由路径（MENU 必填，如 /system/user）

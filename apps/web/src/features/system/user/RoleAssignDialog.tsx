@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field"
 import { Label } from "@/components/ui/label"
+import { roleDisplayName } from "@/localization/menuName"
 import { useRolesListQuery } from "../role/useRoles"
 import { useAssignRolesMutation } from "./useUsers"
 import type { UserListItem } from "./useUsers"
@@ -89,7 +90,7 @@ export function RoleAssignDialog({
                       htmlFor={`role-assign-${role.id}`}
                       className="text-sm font-normal"
                     >
-                      {role.name}
+                      {roleDisplayName(role)}
                     </Label>
                   </div>
                 ))}

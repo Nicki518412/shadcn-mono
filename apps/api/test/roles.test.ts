@@ -126,15 +126,17 @@ describe("roles CRUD", () => {
     const create = await app.request("/api/roles", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-      body: JSON.stringify({ name: "测试角色", code: "Test_Role", sort: 1 }),
+      body: JSON.stringify({ name: "测试角色", nameEn: "Test Role", code: "Test_Role", sort: 1 }),
     })
     expect(create.status).toBe(200)
     const body = (await create.json()) as { data: RoleItem }
     expect(body.data.name).toBe("测试角色")
+    expect(body.data.nameEn).toBe("Test Role")
     expect(body.data.code).toBe("TEST_ROLE")
     expect(body.data.sort).toBe(1)
     const stored = await prisma.role.findUnique({ where: { code: "TEST_ROLE" } })
     expect(stored?.name).toBe("测试角色")
+    expect(stored?.nameEn).toBe("Test Role")
 
     const dup = await app.request("/api/roles", {
       method: "POST",
@@ -214,16 +216,18 @@ describe("roles CRUD", () => {
     const res = await app.request(`/api/roles/${role.id}`, {
       method: "PATCH",
       headers: auth,
-      body: JSON.stringify({ name: "新名", status: false, description: null, code: "role_crud_patch2" }),
+      body: JSON.stringify({ name: "新名", nameEn: "New En Name", status: false, description: null, code: "role_crud_patch2" }),
     })
     expect(res.status).toBe(200)
     const body = (await res.json()) as { data: RoleItem }
     expect(body.data.name).toBe("新名")
+    expect(body.data.nameEn).toBe("New En Name")
     expect(body.data.code).toBe("ROLE_CRUD_PATCH2")
     expect(body.data.status).toBe(false)
     expect(body.data.description).toBeNull()
     const stored = await prisma.role.findUnique({ where: { id: role.id } })
     expect(stored?.name).toBe("新名")
+    expect(stored?.nameEn).toBe("New En Name")
     expect(stored?.code).toBe("ROLE_CRUD_PATCH2")
     expect(stored?.status).toBe(false)
     expect(stored?.description).toBeNull()

@@ -193,6 +193,49 @@ describe("menus CRUD", () => {
     expect((await post({ name: "MENU_CRUD_空码2", type: "MENU", parentId: dirId, path: "/e2", component: "e2" })).status).toBe(200)
   })
 
+  it("英文名称：create 传 nameEn 存储并返回；PATCH null 清空、不传不修改", async () => {
+    const app = createApp()
+    const token = await loginAdmin()
+    const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
+    const created = await app.request("/api/menus", {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({
+        name: "MENU_CRUD_英文菜单",
+        nameEn: "English Menu",
+        type: "MENU",
+        parentId: dirId,
+        path: "/en",
+        component: "en",
+        permission: "menu_crud_en",
+      }),
+    })
+    expect(created.status).toBe(200)
+    const createdBody = (await created.json()) as { data: MenuNode }
+    expect(createdBody.data.nameEn).toBe("English Menu")
+    const stored = await prisma.menu.findUnique({ where: { id: createdBody.data.id } })
+    expect(stored?.nameEn).toBe("English Menu")
+
+    // PATCH null 显式清空
+    const cleared = await app.request(`/api/menus/${createdBody.data.id}`, {
+      method: "PATCH",
+      headers: auth,
+      body: JSON.stringify({ nameEn: null }),
+    })
+    expect(cleared.status).toBe(200)
+    expect(((await cleared.json()) as { data: MenuNode }).data.nameEn).toBeNull()
+    expect((await prisma.menu.findUnique({ where: { id: createdBody.data.id } }))?.nameEn).toBeNull()
+
+    // PATCH 不传 nameEn：保持当前值（undefined 不修改）
+    const untouched = await app.request(`/api/menus/${createdBody.data.id}`, {
+      method: "PATCH",
+      headers: auth,
+      body: JSON.stringify({ sort: 9 }),
+    })
+    expect(untouched.status).toBe(200)
+    expect((await prisma.menu.findUnique({ where: { id: createdBody.data.id } }))?.nameEn).toBeNull()
+  })
+
   it("防自挂：PATCH parentId 改到自己/子孙 400、改到合法父/根 200；父不存在 400；不存在的 id 404", async () => {
     const app = createApp()
     const token = await loginAdmin()

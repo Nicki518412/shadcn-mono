@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { PageHeader } from "@/components/business/PageHeader"
+import { roleDisplayName } from "@/localization/menuName"
 import { useMeQuery } from "@/router/guards"
 
 type MenuNode = components["schemas"]["MenuNode"]
@@ -77,7 +78,7 @@ export default function DashboardPage(): JSX.Element {
             {roles.length > 0 ? (
               roles.map((role) => (
                 <Badge key={role.id} variant="secondary">
-                  {role.name}
+                  {roleDisplayName(role)}
                 </Badge>
               ))
             ) : (

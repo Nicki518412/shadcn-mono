@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field"
+import { roleDisplayName } from "@/localization/menuName"
 import { useMenuTreeQuery } from "../menu/useMenus"
 import { useAssignMenusMutation, useRoleMenusQuery } from "./useRoles"
 import type { RoleListItem } from "./useRoles"
@@ -99,7 +100,7 @@ export function MenuGrantDialog({
         <DialogHeader>
           <DialogTitle>{t("assignPermission")}</DialogTitle>
           <DialogDescription>
-            {t("grantDesc", { name: role.name })}
+            {t("grantDesc", { name: roleDisplayName(role) })}
           </DialogDescription>
         </DialogHeader>
         <div className="-mx-6 max-h-[50vh] overflow-y-auto px-6 no-scrollbar">

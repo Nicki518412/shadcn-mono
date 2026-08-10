@@ -29,6 +29,8 @@
   "createDesc": "创建新的系统角色",
   "roleName": "角色名称",
   "roleNamePlaceholder": "角色显示名称",
+  "roleNameEn": "英文名称",
+  "roleNameEnPlaceholder": "英文显示名称（en 语言展示，未填回落中文名）",
   "roleCode": "角色编码",
   "roleCodePlaceholder": "大写编码，如 ADMIN",
   "codeUppercase": "编码保存时自动转为大写",

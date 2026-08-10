@@ -7,6 +7,7 @@ type MenuNode = components["schemas"]["MenuNode"]
 function menu(overrides: Partial<MenuNode> & Pick<MenuNode, "id" | "name" | "type">): MenuNode {
   return {
     parentId: null,
+    nameEn: null,
     path: null,
     component: null,
     icon: null,

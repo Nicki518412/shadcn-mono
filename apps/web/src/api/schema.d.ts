@@ -423,6 +423,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         name: string;
+                        nameEn?: string | null;
                         code: string;
                         description?: string;
                         /** @default 0 */
@@ -677,6 +678,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         name?: string;
+                        nameEn?: string | null;
                         code?: string;
                         description?: string | null;
                         /** @default 0 */
@@ -963,6 +965,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         name: string;
+                        nameEn?: string | null;
                         /** @enum {string} */
                         type: "DIR" | "MENU" | "BUTTON";
                         parentId?: string | null;
@@ -1165,6 +1168,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         name?: string;
+                        nameEn?: string | null;
                         /** @enum {string} */
                         type?: "DIR" | "MENU" | "BUTTON";
                         parentId?: string | null;
@@ -1760,6 +1764,7 @@ export interface components {
             id: string;
             parentId: string | null;
             name: string;
+            nameEn: string | null;
             /** @enum {string} */
             type: "DIR" | "MENU" | "BUTTON";
             path: string | null;
@@ -1795,6 +1800,7 @@ export interface components {
             roles: {
                 id: string;
                 name: string;
+                nameEn: string | null;
                 code: string;
             }[];
             navTree: components["schemas"]["MenuNode"][];
@@ -1803,6 +1809,7 @@ export interface components {
         RoleListItem: {
             id: string;
             name: string;
+            nameEn: string | null;
             code: string;
             description: string | null;
             sort: number;
@@ -1817,6 +1824,7 @@ export interface components {
         UserRole: {
             id: string;
             name: string;
+            nameEn: string | null;
             code: string;
         };
         UserListItem: {

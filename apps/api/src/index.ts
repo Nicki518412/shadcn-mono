@@ -42,6 +42,7 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
       id: { type: "string" },
       parentId: { type: "string", nullable: true },
       name: { type: "string" },
+      nameEn: { type: "string", nullable: true },
       type: { type: "string", enum: ["DIR", "MENU", "BUTTON"] },
       path: { type: "string", nullable: true },
       component: { type: "string", nullable: true },
@@ -51,7 +52,7 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
       status: { type: "boolean" },
       children: { type: "array", items: { $ref: "#/components/schemas/MenuNode" } },
     },
-    required: ["id", "parentId", "name", "type", "path", "component", "icon", "permission", "sort", "status", "children"],
+    required: ["id", "parentId", "name", "nameEn", "type", "path", "component", "icon", "permission", "sort", "status", "children"],
   })
 
   app.route("/", authRoutes(cfg))

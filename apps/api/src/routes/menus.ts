@@ -14,6 +14,7 @@ import { authenticate, requirePermission } from "../middleware/auth.js"
 // 字段级限制：path/component/icon/permission 可显式传 null（清空/无值）；min(1) 拒绝空串（"" 会与真实值撞 permission 唯一索引）
 const menuFieldShape = {
   name: z.string().min(1).max(64),
+  nameEn: z.string().max(64).nullable().optional(),
   type: z.enum(["DIR", "MENU", "BUTTON"]),
   parentId: z.string().nullable().optional(),
   path: z.string().min(1).nullable().optional(),
@@ -101,6 +102,7 @@ function toMenuNode(menu: Menu): MenuNode {
     id: menu.id,
     parentId: menu.parentId,
     name: menu.name,
+    nameEn: menu.nameEn,
     type: menuTypeSchema.parse(menu.type),
     path: menu.path,
     component: menu.component,
@@ -156,7 +158,7 @@ export function menuRoutes(cfg: AppConfig): OpenAPIHono {
       },
     }),
     async (c) => {
-      const { name, type, parentId, path, component, icon, permission, sort, status } = c.req.valid("json")
+      const { name, nameEn, type, parentId, path, component, icon, permission, sort, status } = c.req.valid("json")
       // 挂载校验：无父（null/未传）→ 根约束；有父 → 存在性 + 类型约束
       const parent =
         parentId !== undefined && parentId !== null
@@ -166,6 +168,7 @@ export function menuRoutes(cfg: AppConfig): OpenAPIHono {
       if (!canAttachTo(parent, type)) throw new HttpError(400, "MENU_TYPE_INVALID", "菜单类型与父节点不匹配")
       const data: Prisma.MenuUncheckedCreateInput = { name, type, sort }
       // exactOptionalPropertyTypes：undefined 不传；null 显式存 NULL（根/清空）
+      if (nameEn !== undefined) data.nameEn = nameEn
       if (parentId !== undefined) data.parentId = parentId
       if (path !== undefined) data.path = path
       if (component !== undefined) data.component = component
@@ -259,6 +262,7 @@ export function menuRoutes(cfg: AppConfig): OpenAPIHono {
       }
       const data: Prisma.MenuUncheckedUpdateInput = {}
       if (fields.name !== undefined) data.name = fields.name
+      if (fields.nameEn !== undefined) data.nameEn = fields.nameEn
       if (fields.type !== undefined) data.type = fields.type
       if (fields.parentId !== undefined) data.parentId = fields.parentId
       if (fields.path !== undefined) data.path = fields.path

@@ -17,6 +17,7 @@ const pageQuery = z.object({
 
 const roleCreateSchema = z.object({
   name: z.string().min(1).max(64),
+  nameEn: z.string().max(64).nullable().optional(),
   code: z.string().min(2).max(32).regex(/^[A-Za-z0-9_-]+$/),
   description: z.string().optional(),
   sort: z.number().int().default(0),
@@ -58,6 +59,7 @@ function toRoleDetail(role: RoleDetail) {
   return {
     id: role.id,
     name: role.name,
+    nameEn: role.nameEn,
     code: role.code,
     description: role.description,
     sort: role.sort,
@@ -142,9 +144,10 @@ export function roleRoutes(cfg: AppConfig): OpenAPIHono {
       },
     }),
     async (c) => {
-      const { name, code, description, sort, status } = c.req.valid("json")
+      const { name, nameEn, code, description, sort, status } = c.req.valid("json")
       // code 统一大写存储（程序判断用编码，与大小写输入解耦）；exactOptionalPropertyTypes：undefined 不传
       const data: Prisma.RoleCreateInput = { name, code: code.toUpperCase(), sort }
+      if (nameEn !== undefined) data.nameEn = nameEn
       if (description !== undefined) data.description = description
       if (status !== undefined) data.status = status
       try {
@@ -200,6 +203,7 @@ export function roleRoutes(cfg: AppConfig): OpenAPIHono {
       await fetchRoleDetail(id)
       const data: Prisma.RoleUpdateInput = {}
       if (fields.name !== undefined) data.name = fields.name
+      if (fields.nameEn !== undefined) data.nameEn = fields.nameEn
       if (fields.code !== undefined) data.code = fields.code.toUpperCase()
       if (fields.description !== undefined) data.description = fields.description
       if (fields.sort !== undefined) data.sort = fields.sort

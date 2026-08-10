@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react"
 
 import { Permission } from "@/components/business/Permission"
+import { menuDisplayName } from "@/localization/menuName"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { TableBody, TableCell, TableRow } from "@/components/ui/table"
@@ -80,8 +81,8 @@ export function MenuTreeTable({
                   className="size-6"
                   aria-label={
                     expanded
-                      ? t("collapseNode", { name: node.name })
-                      : t("expandNode", { name: node.name })
+                      ? t("collapseNode", { name: menuDisplayName(node) })
+                      : t("expandNode", { name: menuDisplayName(node) })
                   }
                   aria-expanded={expanded}
                   onClick={() => { toggleExpand(node.id) }}
@@ -95,7 +96,7 @@ export function MenuTreeTable({
               ) : (
                 <span className="inline-block size-6" aria-hidden="true" />
               )}
-              <span className="text-sm">{node.name}</span>
+              <span className="text-sm">{menuDisplayName(node)}</span>
               <Badge variant={badgeVariant(node.type)}>{node.type}</Badge>
             </div>
           </TableCell>
