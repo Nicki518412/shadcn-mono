@@ -51,6 +51,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { ProfileDialog } from "@/features/system/user/ProfileDialog"
+import { APP_NAME } from "@/config"
 import { iconByName } from "@/lib/icons"
 import { cn } from "@/lib/utils"
 import ForbiddenPage from "@/pages/ForbiddenPage"
@@ -257,10 +258,10 @@ export default function AppLayout(): JSX.Element {
         <SidebarHeader className="h-14 justify-center px-3 group-data-[collapsible=icon]:px-0">
           <div className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
             <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary/70 text-primary-foreground">
-              <span className="text-sm font-bold leading-none">P</span>
+              <span className="text-sm font-bold leading-none">{APP_NAME.charAt(0)}</span>
             </div>
             <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-              <p className="truncate text-sm font-semibold leading-tight">Panel</p>
+              <p className="truncate text-sm font-semibold leading-tight">{APP_NAME}</p>
             </div>
           </div>
         </SidebarHeader>

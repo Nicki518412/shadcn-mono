@@ -4,6 +4,7 @@ import { useNavigate } from "react-router"
 
 import { useAuth } from "@/auth/AuthProvider"
 import type { OtpChannel } from "@/auth/types"
+import { APP_NAME } from "@/config"
 import { ThemeToggle } from "@/components/business/ThemeToggle"
 import { Button } from "@/components/ui/button"
 import { Field, FieldContent, FieldGroup, FieldLabel } from "@/components/ui/field"
@@ -215,10 +216,10 @@ export default function LoginPage() {
         <div className="relative flex items-center gap-3">
           {/* 字母 mark：与侧边栏一致的品牌渐变方块 + P（随主题） */}
           <div className="flex size-9 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary/70 text-primary-foreground">
-            <span className="text-sm font-bold leading-none">P</span>
+            <span className="text-sm font-bold leading-none">{APP_NAME.charAt(0)}</span>
           </div>
           <div>
-            <p className="text-sm font-semibold">Panel</p>
+            <p className="text-sm font-semibold">{APP_NAME}</p>
           </div>
         </div>
         {/* 中央品牌水印（装饰性大字母，前景低透明度，随主题） */}
@@ -226,9 +227,9 @@ export default function LoginPage() {
           aria-hidden
           className="pointer-events-none absolute inset-0 flex select-none items-center justify-center"
         >
-          <span className="text-[12rem] font-bold leading-none text-foreground/5">P</span>
+          <span className="text-[12rem] font-bold leading-none text-foreground/5">{APP_NAME.charAt(0)}</span>
         </div>
-        <p className="relative text-xs text-muted-foreground/60">© 2026 Panel</p>
+        <p className="relative text-xs text-muted-foreground/60">© 2026 {APP_NAME}</p>
       </aside>
 
       {/* 表单区：小屏隐藏品牌面板，顶部补品牌 mark；lg 起为独立列 */}
@@ -236,9 +237,9 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           <div className="mb-6 flex items-center justify-center gap-2 lg:hidden">
             <div className="flex size-8 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary/70 text-primary-foreground">
-              <span className="text-sm font-bold leading-none">P</span>
+              <span className="text-sm font-bold leading-none">{APP_NAME.charAt(0)}</span>
             </div>
-            <span className="text-sm font-semibold">Panel</span>
+            <span className="text-sm font-semibold">{APP_NAME}</span>
           </div>
           {/* 标题区：品牌色渐变装饰条 + 渐变文字 + 渐入动效（克制但有设计感） */}
           <div className="mb-8 animate-in fade-in-0 slide-in-from-top-2 duration-500">

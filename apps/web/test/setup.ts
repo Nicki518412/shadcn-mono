@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest"
+import { vi } from "vitest"
 
 // jsdom 未实现 ResizeObserver（input-otp 组件依赖），注入空实现
 class ResizeObserverStub {
@@ -39,3 +40,6 @@ if (typeof window.PointerEvent === "undefined") {
   }
   window.PointerEvent = PointerEventStub as typeof PointerEvent
 }
+
+// 品牌名来自环境变量（config.ts 无内置默认）——测试环境显式 stub 保证断言稳定
+vi.stubEnv("VITE_APP_NAME", "Panel")
