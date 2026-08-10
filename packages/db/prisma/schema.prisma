@@ -40,6 +40,10 @@ model User {
   refreshTokens RefreshToken[]
   /// 动态码记录（邮箱/手机号验证码）
   otpCodes      OtpCode[]
+  /// 登录日志记录（登录成功/失败审计，失败也保留历史）
+  loginLogs     LoginLog[]
+  /// 操作日志记录（写操作审计，用户删除时级联删除）
+  operationLogs OperationLog[]
 }
 
 /// 角色（权限分组，通过 UserRole 关联用户、RoleMenu 关联菜单权限）
@@ -177,4 +181,54 @@ model OtpCode {
 
   /// 复合索引（每次 send/login 按 channel+target 查询最新记录，避免全表扫描）
   @@index([channel, target, createdAt])
+}
+
+/// 登录日志表（登录成功/失败审计；失败也记录尝试的用户名——防枚举场景）
+model LoginLog {
+  /// 主键（cuid 全局唯一）
+  id        String   @id @default(cuid())
+  /// 登录账号（尝试的用户名，失败也记录——防枚举场景）
+  username  String
+  /// 关联用户 ID（成功时有值）
+  userId    String?
+  /// 结果（SUCCESS 成功 / FAILED 失败，字符串 + zod 校验，兼容三方言）
+  status    String
+  /// 来源 IP（x-forwarded-for 首个地址 ?? x-real-ip，取不到存 null）
+  ip        String?
+  /// 浏览器 UA
+  userAgent String?
+  /// 失败原因（如 LOGIN_FAILED 错误码）
+  message   String?
+  /// 创建时间（UTC）
+  createdAt DateTime @default(now())
+  /// 关联用户（用户删除后置空，登录历史保留）
+  user      User?    @relation(fields: [userId], references: [id])
+}
+
+/// 操作日志表（非 GET 写操作审计：操作人 / 接口 / 结果 / 耗时）
+model OperationLog {
+  /// 主键（cuid 全局唯一）
+  id           String   @id @default(cuid())
+  /// 操作用户 ID（未登录操作记录 null）
+  userId       String?
+  /// 操作账号（记录时从上下文取，null 表示未认证）
+  username     String?
+  /// HTTP 方法（POST/PATCH/PUT/DELETE 等）
+  method       String
+  /// 请求路径
+  path         String
+  /// 响应状态码
+  statusCode   Int
+  /// 处理耗时（毫秒）
+  durationMs   Int
+  /// 来源 IP（x-forwarded-for 首个地址 ?? x-real-ip，取不到存 null）
+  ip           String?
+  /// 浏览器 UA
+  userAgent    String?
+  /// 非 2xx 时的响应 message（可选）
+  errorMessage String?
+  /// 创建时间（UTC）
+  createdAt    DateTime @default(now())
+  /// 关联用户（用户删除时级联删除操作日志）
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

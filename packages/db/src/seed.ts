@@ -72,6 +72,10 @@ async function main(): Promise<void> {
     await upsertMenu({ nameZh: "菜单新增", nameEn: "Add Menu", type: "BUTTON", permission: "system:menu:create", sort: 1, parentId: menuMenuId })
     await upsertMenu({ nameZh: "菜单编辑", nameEn: "Edit Menu", type: "BUTTON", permission: "system:menu:update", sort: 2, parentId: menuMenuId })
     await upsertMenu({ nameZh: "菜单删除", nameEn: "Delete Menu", type: "BUTTON", permission: "system:menu:delete", sort: 3, parentId: menuMenuId })
+    await upsertMenu({
+      nameZh: "日志管理", nameEn: "Logs", type: "MENU", path: "/system/log", component: "system/log",
+      permission: "system:log:query", sort: 4, parentId: sysId,
+    })
 
     // 2. 角色：ADMIN 授权全量菜单+按钮；GUEST 仅 Dashboard（deleteMany + createMany 全量覆盖，幂等）
     const allMenuIds = (await prisma.menu.findMany({ select: { id: true } })).map((m) => m.id)

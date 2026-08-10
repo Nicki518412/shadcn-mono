@@ -142,3 +142,40 @@ export const roleDetailSchema = roleListItemSchema.extend({}).openapi("RoleDetai
 export const rolePageResultSchema = z
   .object({ list: z.array(roleListItemSchema), total: z.number() })
   .openapi("RolePageResult")
+
+/** 登录日志列表项（分页列表 data.list 元素；不含 userId 等内部字段） */
+export const loginLogItemSchema = z
+  .object({
+    id: z.string(),
+    username: z.string(),
+    status: z.string(),
+    ip: z.string().nullable(),
+    userAgent: z.string().nullable(),
+    message: z.string().nullable(),
+    createdAt: z.string(),
+  })
+  .openapi("LoginLogItem")
+
+/** 登录日志分页结果 */
+export const loginLogPageResultSchema = z
+  .object({ list: z.array(loginLogItemSchema), total: z.number() })
+  .openapi("LoginLogPageResult")
+
+/** 操作日志列表项（分页列表 data.list 元素；不含 userId/userAgent/errorMessage 等内部字段） */
+export const operationLogItemSchema = z
+  .object({
+    id: z.string(),
+    username: z.string().nullable(),
+    method: z.string(),
+    path: z.string(),
+    statusCode: z.number(),
+    durationMs: z.number(),
+    ip: z.string().nullable(),
+    createdAt: z.string(),
+  })
+  .openapi("OperationLogItem")
+
+/** 操作日志分页结果 */
+export const operationLogPageResultSchema = z
+  .object({ list: z.array(operationLogItemSchema), total: z.number() })
+  .openapi("OperationLogPageResult")

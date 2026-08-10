@@ -7,6 +7,7 @@ import type { AppConfig } from "../config.js"
 import { createSubApp, okBody } from "../lib/openapi.js"
 import { otpSender } from "../lib/otp-sender.js"
 import { errorBodySchema, loginResponseSchema, toPublicUser } from "../lib/schemas.js"
+import { recordLoginLog } from "../lib/request-log.js"
 import { issueTokenPair } from "../lib/tokens.js"
 
 const OTP_TTL_MS = 5 * 60 * 1000
@@ -117,9 +118,11 @@ export function otpRoutes(cfg: AppConfig): OpenAPIHono {
         orderBy: { createdAt: "desc" },
       })
       if (!record || record.expiresAt < new Date()) {
+        recordLoginLog(c, { username: normalized, status: "FAILED", message: "INVALID_OTP" })
         throw new HttpError(401, "INVALID_OTP", "验证码无效或已过期")
       }
       if (record.attempts >= OTP_MAX_ATTEMPTS) {
+        recordLoginLog(c, { username: normalized, status: "FAILED", message: "OTP_LOCKED" })
         throw new HttpError(423, "OTP_LOCKED", "尝试次数过多，请重新获取验证码")
       }
       const hash = createHash("sha256").update(code).digest("hex")
@@ -135,12 +138,17 @@ export function otpRoutes(cfg: AppConfig): OpenAPIHono {
           data: { attempts: { increment: 1 } },
         })
         if (attempted.count !== 1) {
+          recordLoginLog(c, { username: normalized, status: "FAILED", message: "OTP_LOCKED" })
           throw new HttpError(423, "OTP_LOCKED", "尝试次数过多，请重新获取验证码")
         }
+        recordLoginLog(c, { username: normalized, status: "FAILED", message: "INVALID_OTP" })
         throw new HttpError(401, "INVALID_OTP", "验证码错误")
       }
       const user = await prisma.user.findUnique({ where: { id: record.userId ?? "" } })
-      if (!user?.status) throw new HttpError(401, "INVALID_OTP", "账号不可用")
+      if (!user?.status) {
+        recordLoginLog(c, { username: normalized, status: "FAILED", message: "INVALID_OTP" })
+        throw new HttpError(401, "INVALID_OTP", "账号不可用")
+      }
 
       // 原子消费同时约束 attempts/过期时间：错误尝试与正确码并发时也不能越过五次上限。
       const consumed = await prisma.otpCode.updateMany({
@@ -152,8 +160,12 @@ export function otpRoutes(cfg: AppConfig): OpenAPIHono {
         },
         data: { consumedAt: new Date() },
       })
-      if (consumed.count !== 1) throw new HttpError(401, "INVALID_OTP", "验证码无效或已过期")
+      if (consumed.count !== 1) {
+        recordLoginLog(c, { username: normalized, status: "FAILED", message: "INVALID_OTP" })
+        throw new HttpError(401, "INVALID_OTP", "验证码无效或已过期")
+      }
 
+      recordLoginLog(c, { username: normalized, userId: user.id, status: "SUCCESS" })
       const pair = await issueTokenPair(user.id, cfg.jwtSecret)
       return c.json({ code: 0, data: { ...pair, user: toPublicUser(user) }, message: "ok" }, 200)
     },

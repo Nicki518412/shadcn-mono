@@ -8,6 +8,7 @@ import { createSubApp, okBody } from "../lib/openapi.js"
 import { hashPassword, verifyPassword } from "@repo/db"
 import { errorBodySchema, loginResponseSchema, toPublicUser, tokenPairSchema } from "../lib/schemas.js"
 import { hashToken, issueTokenPair } from "../lib/tokens.js"
+import { recordLoginLog } from "../lib/request-log.js"
 import { authenticate } from "../middleware/auth.js"
 
 const loginSchema = z.object({
@@ -35,23 +36,33 @@ export function authRoutes(cfg: AppConfig): OpenAPIHono {
     }),
     async (c) => {
       const { username, password } = c.req.valid("json")
+      const normalized = username.toLowerCase()
       // 规格要求按账号锁定。不能信任客户端可伪造的 X-Forwarded-For，否则更换请求头即可绕过计数。
-      const key = `login:${username.toLowerCase()}`
-      if (!checkThrottle(key)) throw new HttpError(423, "ACCOUNT_LOCKED", "账号已锁定，请 15 分钟后再试")
+      const key = `login:${normalized}`
+      if (!checkThrottle(key)) {
+        recordLoginLog(c, { username: normalized, status: "FAILED", message: "ACCOUNT_LOCKED" })
+        throw new HttpError(423, "ACCOUNT_LOCKED", "账号已锁定，请 15 分钟后再试")
+      }
 
-      const user = await prisma.user.findUnique({ where: { username: username.toLowerCase() } })
+      const user = await prisma.user.findUnique({ where: { username: normalized } })
       // 用户不存在与密码不符同响应（防枚举）；均计入失败
       if (!user) {
         recordFailure(key)
+        recordLoginLog(c, { username: normalized, status: "FAILED", message: "LOGIN_FAILED" })
         throw new HttpError(401, "LOGIN_FAILED", "用户名或密码错误")
       }
       if (!user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
         recordFailure(key)
+        recordLoginLog(c, { username: normalized, status: "FAILED", message: "LOGIN_FAILED" })
         throw new HttpError(401, "LOGIN_FAILED", "用户名或密码错误")
       }
-      if (!user.status) throw new HttpError(403, "ACCOUNT_DISABLED", "账号已被禁用")
+      if (!user.status) {
+        recordLoginLog(c, { username: normalized, status: "FAILED", message: "ACCOUNT_DISABLED" })
+        throw new HttpError(403, "ACCOUNT_DISABLED", "账号已被禁用")
+      }
 
       resetThrottle(key) // 登录成功清除失败计数
+      recordLoginLog(c, { username: normalized, userId: user.id, status: "SUCCESS" })
       const pair = await issueTokenPair(user.id, cfg.jwtSecret)
       return c.json({ code: 0, data: { ...pair, user: toPublicUser(user) }, message: "ok" }, 200)
     },

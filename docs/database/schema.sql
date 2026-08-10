@@ -105,3 +105,34 @@ CREATE TABLE `OtpCode` (
   KEY `idx_channel_target_created` (`channel`, `target`, `createdAt`),
   CONSTRAINT `OtpCode_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='动态码（邮箱/手机号一次性验证码，OTP 登录用）';
+
+-- 登录日志表（登录成功/失败审计；失败也记录尝试的用户名——防枚举场景）
+CREATE TABLE `LoginLog` (
+  `id`        VARCHAR(32)  NOT NULL COMMENT '主键（cuid 全局唯一）',
+  `username`  VARCHAR(255) NOT NULL COMMENT '登录账号（尝试的用户名，失败也记录——防枚举场景）',
+  `userId`    VARCHAR(32)  NULL COMMENT '关联用户 ID（成功时有值；用户删除时置空保留历史）',
+  `status`    VARCHAR(16)  NOT NULL COMMENT '结果（SUCCESS 成功 / FAILED 失败，字符串 + zod 校验）',
+  `ip`        VARCHAR(64)  NULL COMMENT '来源 IP（x-forwarded-for 首个地址 ?? x-real-ip，取不到存 null）',
+  `userAgent` VARCHAR(512) NULL COMMENT '浏览器 UA',
+  `message`   VARCHAR(255) NULL COMMENT '失败原因（如 LOGIN_FAILED 错误码）',
+  `createdAt` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
+  PRIMARY KEY (`id`),
+  CONSTRAINT `LoginLog_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='登录日志表（登录成功/失败审计；失败也记录尝试的用户名——防枚举场景）';
+
+-- 操作日志表（非 GET 写操作审计：操作人 / 接口 / 结果 / 耗时）
+CREATE TABLE `OperationLog` (
+  `id`           VARCHAR(32)  NOT NULL COMMENT '主键（cuid 全局唯一）',
+  `userId`       VARCHAR(32)  NULL COMMENT '操作用户 ID（未登录操作记录 null）',
+  `username`     VARCHAR(255) NULL COMMENT '操作账号（记录时从上下文取，null 表示未认证）',
+  `method`       VARCHAR(16)  NOT NULL COMMENT 'HTTP 方法（POST/PATCH/PUT/DELETE 等）',
+  `path`         VARCHAR(255) NOT NULL COMMENT '请求路径',
+  `statusCode`   INT          NOT NULL COMMENT '响应状态码',
+  `durationMs`   INT          NOT NULL COMMENT '处理耗时（毫秒）',
+  `ip`           VARCHAR(64)  NULL COMMENT '来源 IP（x-forwarded-for 首个地址 ?? x-real-ip，取不到存 null）',
+  `userAgent`    VARCHAR(512) NULL COMMENT '浏览器 UA',
+  `errorMessage` VARCHAR(255) NULL COMMENT '非 2xx 时的响应 message（可选）',
+  `createdAt`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
+  PRIMARY KEY (`id`),
+  CONSTRAINT `OperationLog_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作日志表（非 GET 写操作审计：操作人 / 接口 / 结果 / 耗时）';

@@ -1,13 +1,16 @@
 import { pathToFileURL } from "node:url"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { swaggerUI } from "@hono/swagger-ui"
-import type { Env } from "hono"
+import { prisma } from "@repo/db"
+import type { Context, Env } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { loadConfig, type AppConfig } from "./config.js"
 import { HttpError } from "./lib/http-error.js"
-import { API_INFO } from "./lib/schemas.js"
+import { API_INFO, type PublicUser } from "./lib/schemas.js"
 import { validationHook } from "./lib/validation-hook.js"
+import { requestIp, requestUserAgent } from "./lib/request-log.js"
 import { authRoutes } from "./routes/auth.js"
+import { logRoutes } from "./routes/logs.js"
 import { meRoutes } from "./routes/me.js"
 import { menuRoutes } from "./routes/menus.js"
 import { otpRoutes } from "./routes/otp.js"
@@ -35,6 +38,57 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
     c.json({ code: 0, data: { ok: true }, message: "ok" }),
   )
 
+  // 操作日志：非 GET /api 写操作审计（fire-and-forget，不阻塞响应）。
+  // 跳过登录/OTP/文档/健康检查等路径；GET 属读操作不记录。未匹配路由的写请求（404）也记录。
+  app.use("*", async (c: Context, next) => {
+    const method = c.req.method
+    const path = c.req.path
+    if (
+      method === "GET" ||
+      !path.startsWith("/api/") ||
+      path === "/api/auth/login" ||
+      path.startsWith("/api/auth/otp/") ||
+      path === "/api/auth/refresh" ||
+      path === "/api/docs" ||
+      path === "/api/openapi.json" ||
+      path === "/api/health"
+    ) {
+      return next()
+    }
+
+    const start = Date.now()
+    await next()
+    const statusCode = c.res.status
+    // 认证中间件已跑时 authUser 直接可用；未挂 authenticate 但存在 userId 的场景廉价回查
+    // （ContextVariableMap 声明为非可选，运行时未挂 authenticate 时为 undefined，显式断言）
+    const userId = c.get("userId") as string | undefined
+    let username: string | null = null
+    const authUser = c.get("authUser") as PublicUser | undefined
+    if (authUser !== undefined) {
+      username = authUser.username
+    } else if (userId !== undefined) {
+      const found = await prisma.user.findUnique({ where: { id: userId }, select: { username: true } })
+      username = found?.username ?? null
+    }
+    // Hono compose 在调 onError 前已把抛出的错误写入 c.error，此处取其 message（HttpError.message 即响应 message）
+    const errorMessage = statusCode >= 400 && c.error !== undefined ? c.error.message : null
+    void prisma.operationLog
+      .create({
+        data: {
+          userId: userId ?? null,
+          username,
+          method,
+          path,
+          statusCode,
+          durationMs: Date.now() - start,
+          ip: requestIp(c),
+          userAgent: requestUserAgent(c),
+          errorMessage,
+        },
+      })
+      .catch(() => undefined)
+  })
+
   // MenuNode 递归组件手工注册（实证：zod-to-openapi v7 不支持 z.lazy，schemas.ts menuNodeSchema 仅运行时用）
   app.openAPIRegistry.registerComponent("schemas", "MenuNode", {
     type: "object",
@@ -61,6 +115,7 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
   app.route("/", roleRoutes(cfg))
   app.route("/", menuRoutes(cfg))
   app.route("/", userRoutes(cfg))
+  app.route("/", logRoutes(cfg))
 
   app.notFound((c) =>
     c.json({ code: "NOT_FOUND", message: "接口不存在", data: null }, 404),
