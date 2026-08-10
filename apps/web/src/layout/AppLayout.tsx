@@ -312,7 +312,7 @@ export default function AppLayout(): JSX.Element {
                           {me?.user.nickname ?? "…"}
                         </span>
                         <span className="text-xs font-normal text-muted-foreground">
-                          placeholder
+                          {t("profileEmail", { value: me?.user.email ?? t("unset") })}
                         </span>
                         <span className="text-xs font-normal text-muted-foreground">
                           {t("profilePhone", { value: me?.user.telephone ?? t("unset") })}
