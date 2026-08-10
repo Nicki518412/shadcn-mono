@@ -16,13 +16,22 @@ export interface TokenPair {
   refreshToken: string
 }
 
-export async function issueTokenPair(userId: string, jwtSecret: string): Promise<TokenPair> {
+/** 签发上下文元信息（会话管理展示用；取不到传 null，与 request-log 的 requestIp/requestUserAgent 同源） */
+export interface TokenMeta {
+  ip: string | null
+  userAgent: string | null
+}
+
+export async function issueTokenPair(userId: string, jwtSecret: string, meta?: TokenMeta): Promise<TokenPair> {
   const refreshToken = generateRefreshToken()
   await prisma.refreshToken.create({
     data: {
       userId,
       tokenHash: hashToken(refreshToken),
       expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
+      // exactOptionalPropertyTypes：可选参数 undefined 不可显式赋值，统一转 null
+      ip: meta?.ip ?? null,
+      userAgent: meta?.userAgent ?? null,
     },
   })
   return { accessToken: signAccessToken(userId, jwtSecret), refreshToken }

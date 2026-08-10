@@ -8,6 +8,7 @@ import enLogin from "./locales/en/login.json"
 import enLogs from "./locales/en/logs.json"
 import enMenus from "./locales/en/menus.json"
 import enRoles from "./locales/en/roles.json"
+import enSessions from "./locales/en/sessions.json"
 import enUsers from "./locales/en/users.json"
 import zhCommon from "./locales/zh/common.json"
 import zhDashboard from "./locales/zh/dashboard.json"
@@ -16,6 +17,7 @@ import zhLogin from "./locales/zh/login.json"
 import zhLogs from "./locales/zh/logs.json"
 import zhMenus from "./locales/zh/menus.json"
 import zhRoles from "./locales/zh/roles.json"
+import zhSessions from "./locales/zh/sessions.json"
 import zhUsers from "./locales/zh/users.json"
 
 /** 支持的语言（key 为 i18next 语言码；nativeName 展示名；prefix 为语言切换菜单的简写徽标） */
@@ -45,6 +47,7 @@ declare module "i18next" {
       roles: typeof zhRoles
       menus: typeof zhMenus
       logs: typeof zhLogs
+      sessions: typeof zhSessions
       errors: typeof zhErrors
     }
   }
@@ -52,13 +55,13 @@ declare module "i18next" {
 
 void i18n.use(initReactI18next).init({
   resources: {
-    zh: { common: zhCommon, login: zhLogin, dashboard: zhDashboard, users: zhUsers, roles: zhRoles, menus: zhMenus, logs: zhLogs, errors: zhErrors },
-    en: { common: enCommon, login: enLogin, dashboard: enDashboard, users: enUsers, roles: enRoles, menus: enMenus, logs: enLogs, errors: enErrors },
+    zh: { common: zhCommon, login: zhLogin, dashboard: zhDashboard, users: zhUsers, roles: zhRoles, menus: zhMenus, logs: zhLogs, sessions: zhSessions, errors: zhErrors },
+    en: { common: enCommon, login: enLogin, dashboard: enDashboard, users: enUsers, roles: enRoles, menus: enMenus, logs: enLogs, sessions: enSessions, errors: enErrors },
   },
   lng: detectInitialLanguage(),
   fallbackLng: "zh",
   defaultNS: "common",
-  ns: ["common", "login", "dashboard", "users", "roles", "menus", "logs", "errors"],
+  ns: ["common", "login", "dashboard", "users", "roles", "menus", "logs", "sessions", "errors"],
   interpolation: { escapeValue: false },
 })
 

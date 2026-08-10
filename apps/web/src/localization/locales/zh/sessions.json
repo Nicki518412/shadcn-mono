@@ -1,0 +1,20 @@
+{
+  "title": "会话管理",
+  "desc": "查看在线会话并强制下线",
+  "search": "搜索",
+  "searchPlaceholder": "搜索用户名",
+  "username": "用户名",
+  "ip": "IP",
+  "browser": "浏览器",
+  "createdAt": "会话创建时间",
+  "expiresAt": "过期时间",
+  "actions": "操作",
+  "forceSignout": "强制下线",
+  "forceSignoutConfirm": "确定强制下线该会话？该用户需重新登录",
+  "forceSignoutSuccess": "已强制下线",
+  "revoking": "下线中…",
+  "cancel": "取消",
+  "noData": "暂无数据",
+  "previous": "上一页",
+  "next": "下一页"
+}

@@ -1,0 +1,20 @@
+{
+  "title": "Sessions",
+  "desc": "View online sessions and force sign-out",
+  "search": "Search",
+  "searchPlaceholder": "Search by username",
+  "username": "Username",
+  "ip": "IP",
+  "browser": "Browser",
+  "createdAt": "Created",
+  "expiresAt": "Expires",
+  "actions": "Actions",
+  "forceSignout": "Force Sign-out",
+  "forceSignoutConfirm": "Force sign out this session? The user will need to sign in again.",
+  "forceSignoutSuccess": "Session signed out",
+  "revoking": "Signing out…",
+  "cancel": "Cancel",
+  "noData": "No data",
+  "previous": "Previous",
+  "next": "Next"
+}

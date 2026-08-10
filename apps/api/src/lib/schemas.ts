@@ -179,3 +179,20 @@ export const operationLogItemSchema = z
 export const operationLogPageResultSchema = z
   .object({ list: z.array(operationLogItemSchema), total: z.number() })
   .openapi("OperationLogPageResult")
+
+/** 会话列表项（在线会话 = 未吊销且未过期 refresh token；id 为 RefreshToken.id） */
+export const sessionItemSchema = z
+  .object({
+    id: z.string(),
+    username: z.string(),
+    ip: z.string().nullable(),
+    userAgent: z.string().nullable(),
+    createdAt: z.string(),
+    expiresAt: z.string(),
+  })
+  .openapi("SessionItem")
+
+/** 会话分页结果 */
+export const sessionPageResultSchema = z
+  .object({ list: z.array(sessionItemSchema), total: z.number() })
+  .openapi("SessionPageResult")

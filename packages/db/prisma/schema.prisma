@@ -144,6 +144,10 @@ model RefreshToken {
   id        String    @id @default(cuid())
   /// 所属用户
   userId    String
+  /// 来源 IP（登录/签发时记录，x-forwarded-for 首个地址 ?? x-real-ip，取不到存 null）
+  ip        String?
+  /// 浏览器 UA（登录/签发时记录，取不到存 null）
+  userAgent String?
   /// 令牌哈希（sha256，不存明文）
   tokenHash String    @unique
   /// 过期时间（签发后 7 天）

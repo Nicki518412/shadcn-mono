@@ -8,7 +8,7 @@ import { createSubApp, okBody } from "../lib/openapi.js"
 import { hashPassword, verifyPassword } from "@repo/db"
 import { errorBodySchema, loginResponseSchema, toPublicUser, tokenPairSchema } from "../lib/schemas.js"
 import { hashToken, issueTokenPair } from "../lib/tokens.js"
-import { recordLoginLog } from "../lib/request-log.js"
+import { recordLoginLog, requestIp, requestUserAgent } from "../lib/request-log.js"
 import { authenticate } from "../middleware/auth.js"
 
 const loginSchema = z.object({
@@ -63,7 +63,7 @@ export function authRoutes(cfg: AppConfig): OpenAPIHono {
 
       resetThrottle(key) // 登录成功清除失败计数
       recordLoginLog(c, { username: normalized, userId: user.id, status: "SUCCESS" })
-      const pair = await issueTokenPair(user.id, cfg.jwtSecret)
+      const pair = await issueTokenPair(user.id, cfg.jwtSecret, { ip: requestIp(c), userAgent: requestUserAgent(c) })
       return c.json({ code: 0, data: { ...pair, user: toPublicUser(user) }, message: "ok" }, 200)
     },
   )
@@ -91,7 +91,8 @@ export function authRoutes(cfg: AppConfig): OpenAPIHono {
         data: { revokedAt: new Date() },
       })
       if (revoked.count !== 1) throw unauthorized("登录已过期")
-      const pair = await issueTokenPair(user.id, cfg.jwtSecret)
+      // 轮换携带当前请求的 ip/ua（会话展示以最近一次签发为准）
+      const pair = await issueTokenPair(user.id, cfg.jwtSecret, { ip: requestIp(c), userAgent: requestUserAgent(c) })
       return c.json({ code: 0, data: pair, message: "ok" }, 200)
     },
   )

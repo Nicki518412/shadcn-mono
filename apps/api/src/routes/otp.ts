@@ -7,7 +7,7 @@ import type { AppConfig } from "../config.js"
 import { createSubApp, okBody } from "../lib/openapi.js"
 import { otpSender } from "../lib/otp-sender.js"
 import { errorBodySchema, loginResponseSchema, toPublicUser } from "../lib/schemas.js"
-import { recordLoginLog } from "../lib/request-log.js"
+import { recordLoginLog, requestIp, requestUserAgent } from "../lib/request-log.js"
 import { issueTokenPair } from "../lib/tokens.js"
 
 const OTP_TTL_MS = 5 * 60 * 1000
@@ -166,7 +166,7 @@ export function otpRoutes(cfg: AppConfig): OpenAPIHono {
       }
 
       recordLoginLog(c, { username: normalized, userId: user.id, status: "SUCCESS" })
-      const pair = await issueTokenPair(user.id, cfg.jwtSecret)
+      const pair = await issueTokenPair(user.id, cfg.jwtSecret, { ip: requestIp(c), userAgent: requestUserAgent(c) })
       return c.json({ code: 0, data: { ...pair, user: toPublicUser(user) }, message: "ok" }, 200)
     },
   )

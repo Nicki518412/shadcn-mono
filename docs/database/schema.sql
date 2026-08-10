@@ -79,9 +79,11 @@ CREATE TABLE `RoleMenu` (
 
 -- 刷新令牌（登录后签发，轮换时旧令牌吊销）
 CREATE TABLE `RefreshToken` (
-  `id`        VARCHAR(32) NOT NULL COMMENT '主键（cuid 全局唯一）',
-  `userId`    VARCHAR(32) NOT NULL COMMENT '所属用户',
-  `tokenHash` VARCHAR(64) NOT NULL COMMENT '令牌哈希（sha256，不存明文）',
+  `id`        VARCHAR(32)  NOT NULL COMMENT '主键（cuid 全局唯一）',
+  `userId`    VARCHAR(32)  NOT NULL COMMENT '所属用户',
+  `ip`        VARCHAR(64)  NULL COMMENT '来源 IP（登录/签发时记录，x-forwarded-for 首个地址 ?? x-real-ip，取不到存 null）',
+  `userAgent` VARCHAR(512) NULL COMMENT '浏览器 UA（登录/签发时记录，取不到存 null）',
+  `tokenHash` VARCHAR(64)  NOT NULL COMMENT '令牌哈希（sha256，不存明文）',
   `expiresAt` DATETIME    NOT NULL COMMENT '过期时间（签发后 7 天）',
   `revokedAt` DATETIME    NULL COMMENT '吊销时间（null=有效）',
   `createdAt` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
