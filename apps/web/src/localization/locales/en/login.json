@@ -1,0 +1,23 @@
+{
+  "heading": "Welcome back",
+  "subtitle": "Sign in to continue",
+  "accountTab": "Account",
+  "emailTab": "Email",
+  "phoneTab": "Phone",
+  "username": "Username",
+  "password": "Password",
+  "email": "Email",
+  "phone": "Phone",
+  "verifyCode": "Verification code",
+  "login": "Sign in",
+  "loggingIn": "Signing in…",
+  "sendCode": "Send code",
+  "sending": "Sending…",
+  "resendIn": "Resend in {{seconds}}s",
+  "emailPlaceholder": "name@example.com",
+  "phonePlaceholder": "13800138000",
+  "usernamePlaceholder": "Username",
+  "passwordPlaceholder": "Password",
+  "needEmail": "Please enter an email address",
+  "needPhone": "Please enter a phone number"
+}

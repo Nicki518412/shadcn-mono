@@ -1,0 +1,23 @@
+{
+  "heading": "欢迎回来",
+  "subtitle": "登录以继续",
+  "accountTab": "账号",
+  "emailTab": "邮箱",
+  "phoneTab": "手机",
+  "username": "用户名",
+  "password": "密码",
+  "email": "邮箱",
+  "phone": "手机号",
+  "verifyCode": "验证码",
+  "login": "登录",
+  "loggingIn": "登录中…",
+  "sendCode": "发送验证码",
+  "sending": "发送中…",
+  "resendIn": "重新发送（{{seconds}}s）",
+  "emailPlaceholder": "name@example.com",
+  "phonePlaceholder": "13800138000",
+  "usernamePlaceholder": "用户名",
+  "passwordPlaceholder": "密码",
+  "needEmail": "请输入邮箱地址",
+  "needPhone": "请输入手机号"
+}

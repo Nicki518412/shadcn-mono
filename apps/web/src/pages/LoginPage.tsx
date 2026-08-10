@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react"
 import { SignIn } from "@clerk/clerk-react"
 import { useNavigate } from "react-router"
+import { useTranslation } from "react-i18next"
 
 import { useAuth } from "@/auth/AuthProvider"
 import type { OtpChannel } from "@/auth/types"
 import { APP_NAME } from "@/config"
+import { LanguageToggle } from "@/components/business/LanguageToggle"
 import { ThemeToggle } from "@/components/business/ThemeToggle"
 import { Button } from "@/components/ui/button"
 import { Field, FieldContent, FieldGroup, FieldLabel } from "@/components/ui/field"
@@ -21,13 +23,11 @@ function errorMessage(err: unknown): string {
 }
 
 /**
- * 邮箱 / 手机动态码 Tab 表单（两个 Tab 结构一致，仅 channel 与文案不同）。
+ * 邮箱 / 手机动态码 Tab 表单（两个 Tab 结构一致，仅 channel 与文案不同——文案经 i18n）。
  * 输入状态在本地维护；面板随 Tab 切换卸载，切走再切回需重新输入（可接受）。
  */
 function OtpLoginForm({
   channel,
-  targetLabel,
-  targetPlaceholder,
   cooldown,
   sending,
   pending,
@@ -35,16 +35,17 @@ function OtpLoginForm({
   onLogin,
 }: {
   channel: OtpChannel
-  targetLabel: string
-  targetPlaceholder: string
   cooldown: number
   sending: boolean
   pending: boolean
   onSend: (target: string) => void
   onLogin: (target: string, code: string) => void
 }) {
+  const { t } = useTranslation("login")
   const [target, setTarget] = useState("")
   const [code, setCode] = useState("")
+  const label = channel === "email" ? t("email") : t("phone")
+  const placeholder = channel === "email" ? t("emailPlaceholder") : t("phonePlaceholder")
 
   return (
     <form
@@ -56,7 +57,7 @@ function OtpLoginForm({
     >
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor={`login-otp-${channel}-target`}>{targetLabel}</FieldLabel>
+          <FieldLabel htmlFor={`login-otp-${channel}-target`}>{label}</FieldLabel>
           <FieldContent>
             <div className="flex items-center gap-2">
               <Input
@@ -65,7 +66,7 @@ function OtpLoginForm({
                 onChange={(event) => {
                   setTarget(event.target.value)
                 }}
-                placeholder={targetPlaceholder}
+                placeholder={placeholder}
                 className="h-10"
               />
               <Button
@@ -78,20 +79,20 @@ function OtpLoginForm({
                 className="h-10 w-28 shrink-0"
               >
                 {cooldown > 0 ? (
-                  `重新发送（${String(cooldown)}s）`
+                  t("resendIn", { seconds: cooldown })
                 ) : sending ? (
                   <>
-                    <Spinner /> 发送中…
+                    <Spinner /> {t("sending")}
                   </>
                 ) : (
-                  "发送验证码"
+                  t("sendCode")
                 )}
               </Button>
             </div>
           </FieldContent>
         </Field>
         <Field>
-          <FieldLabel htmlFor={`login-otp-${channel}-code`}>验证码</FieldLabel>
+          <FieldLabel htmlFor={`login-otp-${channel}-code`}>{t("verifyCode")}</FieldLabel>
           <FieldContent>
             <InputOTP
               id={`login-otp-${channel}-code`}
@@ -114,10 +115,10 @@ function OtpLoginForm({
       <Button type="submit" disabled={pending} className="h-10 w-full">
         {pending ? (
           <>
-            <Spinner /> 登录中…
+            <Spinner /> {t("loggingIn")}
           </>
         ) : (
-          "登录"
+          t("login")
         )}
       </Button>
     </form>
@@ -127,6 +128,7 @@ function OtpLoginForm({
 export default function LoginPage() {
   const auth = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation("login")
 
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -177,7 +179,7 @@ export default function LoginPage() {
     setError(null)
     const trimmed = target.trim()
     if (!trimmed) {
-      setError(channel === "email" ? "请输入邮箱地址" : "请输入手机号")
+      setError(channel === "email" ? t("needEmail") : t("needPhone"))
       return
     }
     setSendingChannel(channel)
@@ -203,7 +205,8 @@ export default function LoginPage() {
   return (
     <div className="relative grid min-h-svh lg:grid-cols-2">
       {/* 主题切换（登录页独立路由，无布局顶栏——右上角常驻切换入口） */}
-      <div className="absolute top-4 right-4 z-10">
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5">
+        <LanguageToggle />
         <ThemeToggle />
       </div>
       {/* 品牌面板（lg 起显示）：与表单区同底色（整体随主题明暗一致），
@@ -249,9 +252,9 @@ export default function LoginPage() {
             />
             {/* 渐变应用整段（不拆分 span——拆分会让测试/文本查询无法匹配完整标题） */}
             <h1 className="bg-linear-to-r from-foreground via-foreground to-primary bg-clip-text text-3xl font-semibold tracking-tight text-transparent">
-              欢迎回来
+              {t("heading")}
             </h1>
-            <p className="mt-2 text-sm text-muted-foreground">登录以继续</p>
+            <p className="mt-2 text-sm text-muted-foreground">{t("subtitle")}</p>
           </div>
           {error && (
             <p role="alert" className="mb-4 text-sm text-destructive">
@@ -260,9 +263,9 @@ export default function LoginPage() {
           )}
           <Tabs defaultValue="password">
             <TabsList className="w-full">
-              <TabsTrigger value="password">账号</TabsTrigger>
-              <TabsTrigger value="email">邮箱</TabsTrigger>
-              <TabsTrigger value="telephone">手机</TabsTrigger>
+              <TabsTrigger value="password">{t("accountTab")}</TabsTrigger>
+              <TabsTrigger value="email">{t("emailTab")}</TabsTrigger>
+              <TabsTrigger value="telephone">{t("phoneTab")}</TabsTrigger>
             </TabsList>
             <TabsContent value="password" className="py-5">
               <form
@@ -274,7 +277,7 @@ export default function LoginPage() {
               >
                 <FieldGroup>
                   <Field>
-                    <FieldLabel htmlFor="login-username">用户名</FieldLabel>
+                    <FieldLabel htmlFor="login-username">{t("username")}</FieldLabel>
                     <FieldContent>
                       <Input
                         id="login-username"
@@ -282,14 +285,14 @@ export default function LoginPage() {
                         onChange={(event) => {
                           setUsername(event.target.value)
                         }}
-                        placeholder="用户名"
+                        placeholder={t("usernamePlaceholder")}
                         autoComplete="username"
                         className="h-10"
                       />
                     </FieldContent>
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="login-password">密码</FieldLabel>
+                    <FieldLabel htmlFor="login-password">{t("password")}</FieldLabel>
                     <FieldContent>
                       <Input
                         id="login-password"
@@ -298,7 +301,7 @@ export default function LoginPage() {
                         onChange={(event) => {
                           setPassword(event.target.value)
                         }}
-                        placeholder="密码"
+                        placeholder={t("passwordPlaceholder")}
                         autoComplete="current-password"
                         className="h-10"
                       />
@@ -308,10 +311,10 @@ export default function LoginPage() {
                 <Button type="submit" disabled={pending} className="h-10 w-full">
                   {pending ? (
                     <>
-                      <Spinner /> 登录中…
+                      <Spinner /> {t("loggingIn")}
                     </>
                   ) : (
-                    "登录"
+                    t("login")
                   )}
                 </Button>
               </form>
@@ -319,8 +322,6 @@ export default function LoginPage() {
             <TabsContent value="email" className="py-5">
               <OtpLoginForm
                 channel="email"
-                targetLabel="邮箱"
-                targetPlaceholder="name@example.com"
                 cooldown={otpCooldown}
                 sending={sendingChannel === "email"}
                 pending={pending}
@@ -335,8 +336,6 @@ export default function LoginPage() {
             <TabsContent value="telephone" className="py-5">
               <OtpLoginForm
                 channel="telephone"
-                targetLabel="手机号"
-                targetPlaceholder="13800138000"
                 cooldown={otpCooldown}
                 sending={sendingChannel === "telephone"}
                 pending={pending}

@@ -22,6 +22,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import type { components } from "@/api/schema"
 import { useAuth } from "@/auth/AuthProvider"
 import ErrorBoundary from "@/components/business/ErrorBoundary"
+import { LanguageToggle } from "@/components/business/LanguageToggle"
 import { ThemeToggle } from "@/components/business/ThemeToggle"
 import { Button } from "@/components/ui/button"
 import {
@@ -345,6 +346,7 @@ export default function AppLayout(): JSX.Element {
           <Breadcrumb trail={trail} />
           {/* 消息中心 + 主题切换：固定在顶栏右上角 */}
           <div className="ml-auto flex items-center gap-1.5">
+            <LanguageToggle />
             <Button
               variant="ghost"
               size="icon-sm"
