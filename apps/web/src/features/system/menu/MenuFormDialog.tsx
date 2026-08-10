@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import type { JSX, SyntheticEvent } from "react"
 import { useTranslation } from "react-i18next"
+
+import { menuDisplayName } from "@/localization/menuName"
 import { ChevronsUpDownIcon, ImageIcon } from "lucide-react"
 
 import { collectSelfAndDescendantIds } from "@/components/business/TreeCheckbox"
@@ -55,7 +57,7 @@ function collectParentOptions(
   for (const node of list) {
     if (excludedIds.has(node.id)) continue
     if (ALLOWED_PARENT_TYPES[type].includes(node.type)) {
-      result.push({ id: node.id, name: node.nameZh, depth })
+      result.push({ id: node.id, name: menuDisplayName(node), depth })
     }
     collectParentOptions(node.children, type, excludedIds, depth + 1, result)
   }
