@@ -1,4 +1,5 @@
 import { useTheme } from "next-themes"
+import { useTranslation } from "react-i18next"
 import { MoonIcon, SunIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -12,8 +13,9 @@ const THEME_TRANSITION_MS = 300
  * 过渡结束后移除——只在切换时有动画，不影响日常 hover 等交互性能。 */
 export function ThemeToggle(): React.JSX.Element {
   const { resolvedTheme, setTheme } = useTheme()
+  const { t } = useTranslation()
   const isDark = resolvedTheme === "dark"
-  const label = isDark ? "切换到亮色主题" : "切换到暗色主题"
+  const label = isDark ? t("themeLight") : t("themeDark")
   return (
     <Button
       variant="ghost"

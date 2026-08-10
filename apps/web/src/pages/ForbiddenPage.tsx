@@ -2,6 +2,8 @@ import type { JSX } from "react"
 import { useNavigate } from "react-router"
 import { ShieldAlertIcon } from "lucide-react"
 
+import { useTranslation } from "react-i18next"
+
 import { Button } from "@/components/ui/button"
 
 /**
@@ -10,13 +12,14 @@ import { Button } from "@/components/ui/button"
  */
 export default function ForbiddenPage(): JSX.Element {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   return (
     <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
       <ShieldAlertIcon className="size-8" />
       <p className="text-lg font-medium text-foreground">403</p>
-      <p>无权限访问该页面</p>
+      <p>{t("forbidden")}</p>
       <Button variant="outline" size="sm" onClick={() => void navigate("/")}>
-        返回首页
+        {t("backToHome")}
       </Button>
     </div>
   )

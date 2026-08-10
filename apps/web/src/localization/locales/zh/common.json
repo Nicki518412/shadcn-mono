@@ -18,5 +18,17 @@
   "themeLight": "切换到亮色主题",
   "themeDark": "切换到暗色主题",
   "notifications": "消息中心（即将上线）",
-  "console": "控制台"
+  "console": "控制台",
+  "unset": "未设置",
+  "breadcrumb": "面包屑导航",
+  "switchLanguage": "切换语言",
+  "pageNotFound": "页面不存在",
+  "forbidden": "无权限访问该页面",
+  "errorTitle": "页面出错了",
+  "errorDesc": "应用发生未知错误，请刷新后重试",
+  "refresh": "刷新页面",
+  "emailLabel": "邮箱",
+  "phoneLabel": "手机",
+  "profileEmail": "邮箱：{{value}}",
+  "profilePhone": "手机：{{value}}"
 }

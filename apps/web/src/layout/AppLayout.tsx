@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from "react"
 import type { JSX } from "react"
+import { useTranslation } from "react-i18next"
 import { useQueryClient } from "@tanstack/react-query"
 import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router"
 import {
@@ -198,11 +199,12 @@ function findMenuTrail(
 /** 顶栏面包屑：祖先后缀链（如 系统管理 / 用户管理）；无匹配路径显示 "控制台" 兜底。
  * 每段显示菜单配置的图标（iconByName），未配置时按类型默认（DIR→文件夹、MENU→文件） */
 function Breadcrumb({ trail }: { trail: MenuNode[] | null }): JSX.Element {
+  const { t } = useTranslation()
   if (!trail || trail.length === 0) {
-    return <span className="text-sm font-medium">控制台</span>
+    return <span className="text-sm font-medium">{t("console")}</span>
   }
   return (
-    <nav aria-label="面包屑导航" className="flex min-w-0 items-center gap-1.5 text-sm">
+    <nav aria-label={t("breadcrumb")} className="flex min-w-0 items-center gap-1.5 text-sm">
       {trail.map((node, index) => {
         const isLast = index === trail.length - 1
         const Icon = iconByName(node.icon) ?? (node.type === "DIR" ? FolderIcon : FileIcon)
@@ -228,6 +230,7 @@ function Breadcrumb({ trail }: { trail: MenuNode[] | null }): JSX.Element {
 }
 
 export default function AppLayout(): JSX.Element {
+  const { t } = useTranslation()
   const auth = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -307,10 +310,10 @@ export default function AppLayout(): JSX.Element {
                           {me?.user.nickname ?? "…"}
                         </span>
                         <span className="text-xs font-normal text-muted-foreground">
-                          邮箱：{me?.user.email ?? "未设置"}
+                          placeholder
                         </span>
                         <span className="text-xs font-normal text-muted-foreground">
-                          手机：{me?.user.telephone ?? "未设置"}
+                          {t("profilePhone", { value: me?.user.telephone ?? t("unset") })}
                         </span>
                       </div>
                     </DropdownMenuLabel>
@@ -323,7 +326,7 @@ export default function AppLayout(): JSX.Element {
                     }}
                   >
                     <SettingsIcon />
-                    用户设置
+                    {t("userSettings")}
                   </DropdownMenuItem>
                   {/* 退出登录用主题默认配色（不用 destructive 红色——跟随明暗主题） */}
                   <DropdownMenuItem
@@ -332,7 +335,7 @@ export default function AppLayout(): JSX.Element {
                     }}
                   >
                     <LogOutIcon />
-                    退出登录
+                    {t("logout")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -350,8 +353,8 @@ export default function AppLayout(): JSX.Element {
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="消息中心（即将上线）"
-              title="消息中心（即将上线）"
+              aria-label={t("notifications")}
+              title={t("notifications")}
               disabled
             >
               <BellIcon />

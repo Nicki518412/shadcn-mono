@@ -2,6 +2,7 @@ import { Component } from "react"
 import type { ErrorInfo, ReactNode } from "react"
 import { TriangleAlertIcon } from "lucide-react"
 
+import i18n from "@/localization/i18n"
 import { Button } from "@/components/ui/button"
 
 interface ErrorBoundaryProps {
@@ -32,14 +33,16 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
   }
 
   override render(): ReactNode {
+    // class 组件无法使用 useTranslation hook——直接调 i18n 实例（错误页为异常态，无需即时响应语言切换）
+    const t = i18n.t.bind(i18n)
     if (this.state.hasError) {
       return (
         <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
           <TriangleAlertIcon className="size-8" />
-          <p className="text-lg font-medium text-foreground">页面出错了</p>
-          <p>应用发生未知错误，请刷新后重试</p>
+          <p className="text-lg font-medium text-foreground">{t("errorTitle")}</p>
+          <p>{t("errorDesc")}</p>
           <Button variant="outline" size="sm" onClick={() => { window.location.reload() }}>
-            刷新页面
+            {t("refresh")}
           </Button>
         </div>
       )

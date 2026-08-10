@@ -1,0 +1,14 @@
+{
+  "workspace": "Workspace",
+  "welcome": "Welcome back, {{nickname}}",
+  "accountInfo": "Account Info",
+  "accountInfoDesc": "Details of the currently signed-in account",
+  "username": "Username",
+  "email": "Email",
+  "phone": "Phone",
+  "myRoles": "My Roles",
+  "myRolesDesc": "Roles of this account (permissions are the strict intersection)",
+  "noRoles": "No roles assigned",
+  "permissionCodes": "Button Permissions",
+  "navMenus": "Navigation Menus"
+}

@@ -2,8 +2,10 @@ import i18n from "i18next"
 import { initReactI18next } from "react-i18next"
 
 import enCommon from "./locales/en/common.json"
+import enDashboard from "./locales/en/dashboard.json"
 import enLogin from "./locales/en/login.json"
 import zhCommon from "./locales/zh/common.json"
+import zhDashboard from "./locales/zh/dashboard.json"
 import zhLogin from "./locales/zh/login.json"
 
 /** 支持的语言（key 为 i18next 语言码；nativeName 展示名；prefix 为语言切换菜单的简写徽标） */
@@ -28,19 +30,20 @@ declare module "i18next" {
     resources: {
       common: typeof zhCommon
       login: typeof zhLogin
+      dashboard: typeof zhDashboard
     }
   }
 }
 
 void i18n.use(initReactI18next).init({
   resources: {
-    zh: { common: zhCommon, login: zhLogin },
-    en: { common: enCommon, login: enLogin },
+    zh: { common: zhCommon, login: zhLogin, dashboard: zhDashboard },
+    en: { common: enCommon, login: enLogin, dashboard: enDashboard },
   },
   lng: detectInitialLanguage(),
   fallbackLng: "zh",
   defaultNS: "common",
-  ns: ["common", "login"],
+  ns: ["common", "login", "dashboard"],
   interpolation: { escapeValue: false },
 })
 

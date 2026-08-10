@@ -18,5 +18,17 @@
   "themeLight": "Switch to light theme",
   "themeDark": "Switch to dark theme",
   "notifications": "Notifications (coming soon)",
-  "console": "Console"
+  "console": "Console",
+  "unset": "Not set",
+  "breadcrumb": "Breadcrumb",
+  "switchLanguage": "Switch language",
+  "pageNotFound": "Page not found",
+  "forbidden": "You don't have access to this page",
+  "errorTitle": "Something went wrong",
+  "errorDesc": "An unexpected error occurred. Please refresh and try again.",
+  "refresh": "Refresh",
+  "emailLabel": "Email",
+  "phoneLabel": "Phone",
+  "profileEmail": "Email: {{value}}",
+  "profilePhone": "Phone: {{value}}"
 }

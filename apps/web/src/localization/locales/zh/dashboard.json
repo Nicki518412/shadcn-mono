@@ -1,0 +1,14 @@
+{
+  "workspace": "工作台",
+  "welcome": "欢迎回来，{{nickname}}",
+  "accountInfo": "账号信息",
+  "accountInfoDesc": "当前登录账号的详细信息",
+  "username": "用户名",
+  "email": "邮箱",
+  "phone": "手机号",
+  "myRoles": "我的角色",
+  "myRolesDesc": "当前账号拥有的角色（权限按角色交集计算）",
+  "noRoles": "未分配角色",
+  "permissionCodes": "按钮权限码",
+  "navMenus": "导航菜单"
+}

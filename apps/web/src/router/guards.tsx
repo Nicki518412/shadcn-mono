@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { Navigate, useLocation } from "react-router"
 import type { JSX } from "react"
+import { useTranslation } from "react-i18next"
 
 import { api } from "@/api/client"
 import type { components } from "@/api/schema"
@@ -39,12 +40,13 @@ export function useMeQuery() {
 /** 登录守卫：加载中 → 加载态；无会话/请求失败 → 重定向 /login（携带 from 供后续跳转恢复）；有会话 → 子路由 */
 export function RequireAuth(): JSX.Element {
   const { data, status } = useMeQuery()
+  const { t } = useTranslation()
   const location = useLocation()
 
   if (status === "pending") {
     return (
       <div className="flex min-h-svh items-center justify-center gap-2 text-muted-foreground">
-        <Spinner /> 加载中…
+        <Spinner /> {t("loading")}
       </div>
     )
   }

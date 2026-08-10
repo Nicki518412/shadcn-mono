@@ -1,4 +1,5 @@
 import type { JSX } from "react"
+import { useTranslation } from "react-i18next"
 import { MenuIcon, ShieldCheckIcon } from "lucide-react"
 
 import type { components } from "@/api/schema"
@@ -42,6 +43,7 @@ function InfoItem({ label, value }: { label: string; value: string }): JSX.Eleme
  */
 export default function DashboardPage(): JSX.Element {
   const { data: me } = useMeQuery()
+  const { t } = useTranslation("dashboard")
   const user = me?.user
   const roles = me?.roles ?? []
   const permissionCount = me?.permissionCodes.length ?? 0
@@ -49,18 +51,18 @@ export default function DashboardPage(): JSX.Element {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="工作台" description={`欢迎回来，${user?.nickname ?? "…"}`} />
+      <PageHeader title={t("workspace")} description={t("welcome", { nickname: user?.nickname ?? "…" })} />
 
       <Card>
         <CardHeader>
-          <CardTitle>账号信息</CardTitle>
-          <CardDescription>当前登录账号的详细信息</CardDescription>
+          <CardTitle>{t("accountInfo")}</CardTitle>
+          <CardDescription>{t("accountInfoDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <dl className="grid gap-3 sm:grid-cols-2">
-            <InfoItem label="用户名" value={user?.username ?? "—"} />
-            <InfoItem label="邮箱" value={user?.email ?? "—"} />
-            <InfoItem label="手机号" value={user?.telephone ?? "—"} />
+            <InfoItem label={t("username")} value={user?.username ?? "—"} />
+            <InfoItem label={t("email")} value={user?.email ?? "—"} />
+            <InfoItem label={t("phone")} value={user?.telephone ?? "—"} />
           </dl>
         </CardContent>
       </Card>
@@ -68,8 +70,8 @@ export default function DashboardPage(): JSX.Element {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>我的角色</CardTitle>
-            <CardDescription>当前账号拥有的角色（权限按角色交集计算）</CardDescription>
+            <CardTitle>{t("myRoles")}</CardTitle>
+            <CardDescription>{t("myRolesDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             {roles.length > 0 ? (
@@ -79,14 +81,14 @@ export default function DashboardPage(): JSX.Element {
                 </Badge>
               ))
             ) : (
-              <span className="text-sm text-muted-foreground">未分配角色</span>
+              <span className="text-sm text-muted-foreground">{t("noRoles")}</span>
             )}
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
-              <p className="text-sm text-muted-foreground">按钮权限码</p>
+              <p className="text-sm text-muted-foreground">{t("permissionCodes")}</p>
               <p
                 data-testid="stat-permission-count"
                 className="text-3xl font-semibold tracking-tight tabular-nums"
@@ -102,7 +104,7 @@ export default function DashboardPage(): JSX.Element {
         <Card>
           <CardContent className="flex items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
-              <p className="text-sm text-muted-foreground">导航菜单</p>
+              <p className="text-sm text-muted-foreground">{t("navMenus")}</p>
               <p
                 data-testid="stat-menu-count"
                 className="text-3xl font-semibold tracking-tight tabular-nums"

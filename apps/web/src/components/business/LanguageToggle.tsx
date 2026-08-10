@@ -15,7 +15,7 @@ import { SUPPORTED_LANGUAGES } from "@/localization/i18n"
 
 /** 语言切换：顶栏/登录页右上角（DropdownMenu 列出支持语言，选择即切换并持久化） */
 export function LanguageToggle(): React.JSX.Element {
-  const { i18n } = useTranslation()
+  const { i18n, t } = useTranslation()
   const current =
     SUPPORTED_LANGUAGES.find((lang) => i18n.language.startsWith(lang.key)) ??
     SUPPORTED_LANGUAGES[0]
@@ -23,7 +23,7 @@ export function LanguageToggle(): React.JSX.Element {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" size="icon-sm" aria-label="切换语言" title="切换语言" />
+          <Button variant="ghost" size="icon-sm" aria-label={t("switchLanguage")} title={t("switchLanguage")} />
         }
       >
         <GlobeIcon className="size-4" />
