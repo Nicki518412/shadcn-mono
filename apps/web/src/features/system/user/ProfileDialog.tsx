@@ -1,10 +1,12 @@
 import { useState } from "react"
 import type { JSX, SyntheticEvent } from "react"
 import { useTranslation } from "react-i18next"
+import { useNavigate } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import { api, apiErrorMessage } from "@/api/client"
+import { useAuth } from "@/auth/AuthProvider"
 import type { components, paths } from "@/api/schema"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,6 +24,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
 import { ME_QUERY_KEY } from "@/router/guards"
 
 /** PATCH /api/users/me 请求体（openapi-typescript 生成类型，随 schema.d.ts 自动同步） */
@@ -43,16 +46,24 @@ export function ProfileDialog({
 }): JSX.Element {
   const { t } = useTranslation("users")
   const queryClient = useQueryClient()
+  const auth = useAuth()
+  const navigate = useNavigate()
   const [nickname, setNickname] = useState(user.nickname)
   const [email, setEmail] = useState(user.email ?? "")
   const [telephone, setTelephone] = useState(user.telephone ?? "")
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
-  function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
+  async function handleSubmit(event: SyntheticEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
     if (!nickname.trim()) {
       setError(t("nicknameRequired"))
+      return
+    }
+    if (newPassword && !currentPassword) {
+      setError(t("currentPasswordRequired"))
       return
     }
     setError(null)
@@ -62,18 +73,27 @@ export function ProfileDialog({
       email: email.trim() === "" ? null : email.trim(),
       telephone: telephone.trim() === "" ? null : telephone.trim(),
     }
-    api<unknown>("/users/me", { method: "PATCH", body: JSON.stringify(body) })
-      .then(() => {
-        toast.success(t("profileUpdated"))
-        void queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY })
-        onClose()
-      })
-      .catch((err: unknown) => {
-        setError(apiErrorMessage(err))
-      })
-      .finally(() => {
-        setPending(false)
-      })
+    try {
+      await api<unknown>("/users/me", { method: "PATCH", body: JSON.stringify(body) })
+      if (newPassword) {
+        // 改密码成功后后端吊销全部 refresh token——主动登出并提示重新登录
+        await api<unknown>("/auth/change-password", {
+          method: "POST",
+          body: JSON.stringify({ currentPassword, newPassword }),
+        })
+        await auth.logout()
+        toast.success(t("passwordChangedReLogin"))
+        void navigate("/login")
+        return
+      }
+      toast.success(t("profileUpdated"))
+      void queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY })
+      onClose()
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err))
+    } finally {
+      setPending(false)
+    }
   }
 
   return (
@@ -88,7 +108,7 @@ export function ProfileDialog({
           <DialogTitle>{t("userSettings")}</DialogTitle>
           <DialogDescription>{t("profileDesc")}</DialogDescription>
         </DialogHeader>
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+        <form className="flex flex-col gap-4" onSubmit={(event) => { void handleSubmit(event) }}>
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}
@@ -132,6 +152,40 @@ export function ProfileDialog({
                     setTelephone(event.target.value)
                   }}
                   placeholder="13800138000"
+                />
+              </FieldContent>
+            </Field>
+          </FieldGroup>
+          {/* 修改密码：留空不修改；填写新密码则必须验证当前密码 */}
+          <Separator />
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="profile-current-password">{t("currentPassword")}</FieldLabel>
+              <FieldContent>
+                <Input
+                  id="profile-current-password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(event) => {
+                    setCurrentPassword(event.target.value)
+                  }}
+                  placeholder={t("currentPasswordPlaceholder")}
+                  autoComplete="current-password"
+                />
+              </FieldContent>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="profile-new-password">{t("newPassword")}</FieldLabel>
+              <FieldContent>
+                <Input
+                  id="profile-new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(event) => {
+                    setNewPassword(event.target.value)
+                  }}
+                  placeholder={t("newPasswordPlaceholder")}
+                  autoComplete="new-password"
                 />
               </FieldContent>
             </Field>

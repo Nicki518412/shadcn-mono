@@ -17,5 +17,7 @@
   "BAD_REQUEST": "请求参数错误",
   "CONFLICT": "数据冲突",
   "FORBIDDEN": "无权限访问",
-  "NOT_FOUND": "资源不存在"
+  "NOT_FOUND": "资源不存在",
+  "INVALID_CURRENT_PASSWORD": "当前密码不正确",
+  "SAME_PASSWORD": "新密码不能与当前密码相同"
 }

@@ -17,5 +17,7 @@
   "BAD_REQUEST": "Invalid request parameters",
   "CONFLICT": "Data conflict",
   "FORBIDDEN": "Access denied",
-  "NOT_FOUND": "Resource not found"
+  "NOT_FOUND": "Resource not found",
+  "INVALID_CURRENT_PASSWORD": "Current password is incorrect",
+  "SAME_PASSWORD": "New password cannot be the same as the current one"
 }

@@ -49,5 +49,11 @@
   "createSuccess": "User created successfully",
   "updateSuccess": "User updated successfully",
   "deleteSuccess": "User deleted",
-  "assignRolesSuccess": "Roles assigned successfully"
+  "assignRolesSuccess": "Roles assigned successfully",
+  "currentPassword": "Current password",
+  "currentPasswordPlaceholder": "Verify your identity",
+  "newPassword": "New password",
+  "newPasswordPlaceholder": "At least 8 characters; leave blank to keep",
+  "currentPasswordRequired": "Current password is required when setting a new one",
+  "passwordChangedReLogin": "Password changed. Please sign in again"
 }

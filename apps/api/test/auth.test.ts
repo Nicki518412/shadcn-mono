@@ -111,4 +111,49 @@ describe("auth", () => {
     const r = await refreshRequest(app, refreshToken)
     expect(r.status).toBe(401)
   })
+
+  it("修改密码：旧密码验证；成功后旧密码失效、refresh 全吊销", async () => {
+    // 独立用户（避免影响其他用例的 auth_test）
+    await createTestUser({ username: "change_pw_test", password: "Passw0rd!" })
+    const app = createApp()
+    const login = await loginRequest(app, "change_pw_test", "Passw0rd!")
+    const { accessToken, refreshToken } = ((await login.json()) as LoginBody).data
+
+    const change = await app.request("/api/auth/change-password", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ currentPassword: "Passw0rd!", newPassword: "NewPassw0rd!" }),
+    })
+    expect(change.status).toBe(200)
+
+    // 旧密码登录失败、新密码登录成功
+    expect((await loginRequest(app, "change_pw_test", "Passw0rd!")).status).toBe(401)
+    expect((await loginRequest(app, "change_pw_test", "NewPassw0rd!")).status).toBe(200)
+    // 修改前的 refresh token 已被吊销
+    expect((await refreshRequest(app, refreshToken)).status).toBe(401)
+  })
+
+  it("修改密码：旧密码错误 401（INVALID_CURRENT_PASSWORD）；新旧相同 400（SAME_PASSWORD）", async () => {
+    await createTestUser({ username: "change_pw_bad", password: "Passw0rd!" })
+    const app = createApp()
+    const login = await loginRequest(app, "change_pw_bad", "Passw0rd!")
+    const { accessToken } = ((await login.json()) as LoginBody).data
+    const headers = { "content-type": "application/json", authorization: `Bearer ${accessToken}` }
+
+    const wrong = await app.request("/api/auth/change-password", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ currentPassword: "WrongPass!", newPassword: "NewPassw0rd!" }),
+    })
+    expect(wrong.status).toBe(401)
+    expect(((await wrong.json()) as { code: string }).code).toBe("INVALID_CURRENT_PASSWORD")
+
+    const same = await app.request("/api/auth/change-password", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ currentPassword: "Passw0rd!", newPassword: "Passw0rd!" }),
+    })
+    expect(same.status).toBe(400)
+    expect(((await same.json()) as { code: string }).code).toBe("SAME_PASSWORD")
+  })
 })

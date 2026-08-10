@@ -49,5 +49,11 @@
   "createSuccess": "用户创建成功",
   "updateSuccess": "用户更新成功",
   "deleteSuccess": "用户已删除",
-  "assignRolesSuccess": "角色分配成功"
+  "assignRolesSuccess": "角色分配成功",
+  "currentPassword": "当前密码",
+  "currentPasswordPlaceholder": "验证身份用",
+  "newPassword": "新密码",
+  "newPasswordPlaceholder": "至少 8 个字符，留空不修改",
+  "currentPasswordRequired": "填写新密码时必须输入当前密码",
+  "passwordChangedReLogin": "密码已修改，请重新登录"
 }

@@ -5,9 +5,10 @@ import type { AppConfig } from "../config.js"
 import { HttpError, unauthorized } from "../lib/http-error.js"
 import { checkThrottle, recordFailure, resetThrottle } from "../lib/login-throttle.js"
 import { createSubApp, okBody } from "../lib/openapi.js"
-import { verifyPassword } from "@repo/db"
+import { hashPassword, verifyPassword } from "@repo/db"
 import { errorBodySchema, loginResponseSchema, toPublicUser, tokenPairSchema } from "../lib/schemas.js"
 import { hashToken, issueTokenPair } from "../lib/tokens.js"
+import { authenticate } from "../middleware/auth.js"
 
 const loginSchema = z.object({
   username: z.string().min(1).max(64),
@@ -103,5 +104,42 @@ export function authRoutes(cfg: AppConfig): OpenAPIHono {
     },
   )
 
+  // 修改密码：旧密码验证 + 新密码设置；成功后吊销该用户全部 refresh token（其他会话强制下线）
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/api/auth/change-password",
+      middleware: [authenticate(cfg)],
+      request: { body: { content: { "application/json": { schema: changePasswordSchema } } } },
+      responses: {
+        200: { description: "修改成功", ...okBody(z.null()) },
+        400: { description: "参数错误", content: { "application/json": { schema: errorBodySchema } } },
+        401: { description: "旧密码错误或未登录", content: { "application/json": { schema: errorBodySchema } } },
+      },
+    }),
+    async (c) => {
+      const userId = c.get("userId")
+      const { currentPassword, newPassword } = c.req.valid("json")
+      const user = await prisma.user.findUnique({ where: { id: userId } })
+      // verifyPassword 为 async——必须 await，否则 Promise 恒真（旧密码校验被跳过 / 新密码恒判相同）
+      if (!user?.passwordHash || !(await verifyPassword(currentPassword, user.passwordHash))) {
+        throw new HttpError(401, "INVALID_CURRENT_PASSWORD", "当前密码不正确")
+      }
+      if (await verifyPassword(newPassword, user.passwordHash)) {
+        throw new HttpError(400, "SAME_PASSWORD", "新密码不能与当前密码相同")
+      }
+      await prisma.$transaction([
+        prisma.user.update({ where: { id: userId }, data: { passwordHash: await hashPassword(newPassword) } }),
+        prisma.refreshToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } }),
+      ])
+      return c.json({ code: 0, data: null, message: "ok" }, 200)
+    },
+  )
+
   return app
 }
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1).max(128),
+  newPassword: z.string().min(8).max(128),
+})
