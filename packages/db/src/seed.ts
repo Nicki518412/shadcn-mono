@@ -81,6 +81,20 @@ async function main(): Promise<void> {
       permission: "system:session:query", sort: 5, parentId: sysId,
     })
     await upsertMenu({ nameZh: "强制下线", nameEn: "Force Sign-out", type: "BUTTON", permission: "system:session:revoke", sort: 1, parentId: sessionMenuId })
+    const dictMenuId = await upsertMenu({
+      nameZh: "数据字典", nameEn: "Dictionary", type: "MENU", path: "/system/dict", component: "system/dict",
+      permission: "system:dict:query", sort: 6, parentId: sysId,
+    })
+    await upsertMenu({ nameZh: "字典新增", nameEn: "Add Dict Type", type: "BUTTON", permission: "system:dict:create", sort: 1, parentId: dictMenuId })
+    await upsertMenu({ nameZh: "字典编辑", nameEn: "Edit Dict Type", type: "BUTTON", permission: "system:dict:update", sort: 2, parentId: dictMenuId })
+    await upsertMenu({ nameZh: "字典删除", nameEn: "Delete Dict Type", type: "BUTTON", permission: "system:dict:delete", sort: 3, parentId: dictMenuId })
+    const configMenuId = await upsertMenu({
+      nameZh: "参数配置", nameEn: "Parameters", type: "MENU", path: "/system/config", component: "system/config",
+      permission: "system:config:query", sort: 7, parentId: sysId,
+    })
+    await upsertMenu({ nameZh: "参数新增", nameEn: "Add Config", type: "BUTTON", permission: "system:config:create", sort: 1, parentId: configMenuId })
+    await upsertMenu({ nameZh: "参数编辑", nameEn: "Edit Config", type: "BUTTON", permission: "system:config:update", sort: 2, parentId: configMenuId })
+    await upsertMenu({ nameZh: "参数删除", nameEn: "Delete Config", type: "BUTTON", permission: "system:config:delete", sort: 3, parentId: configMenuId })
 
     // 2. 角色：ADMIN 授权全量菜单+按钮；GUEST 仅 Dashboard（deleteMany + createMany 全量覆盖，幂等）
     const allMenuIds = (await prisma.menu.findMany({ select: { id: true } })).map((m) => m.id)
@@ -126,11 +140,35 @@ async function main(): Promise<void> {
       prisma.userRole.create({ data: { userId: adminUser.id, roleId: adminRole.id } }),
     ])
 
-    // 4. 摘要
+    // 4. 演示数据：字典类型 user_status + 系统参数 user.password.minLength
+    // 字典类型按 typeCode 幂等 upsert；字典项全量替换（deleteMany + createMany），重复运行不产生重复项
+    const userStatusType = await prisma.dictType.upsert({
+      where: { typeCode: "user_status" },
+      update: { nameZh: "用户状态", nameEn: "User Status", description: "用户账号状态字典（示例数据，供演示数据字典用法）", sort: 0 },
+      create: { typeCode: "user_status", nameZh: "用户状态", nameEn: "User Status", description: "用户账号状态字典（示例数据，供演示数据字典用法）", sort: 0 },
+    })
+    await prisma.$transaction([
+      prisma.dictItem.deleteMany({ where: { typeId: userStatusType.id } }),
+      prisma.dictItem.createMany({
+        data: [
+          { typeId: userStatusType.id, labelZh: "启用", labelEn: "Enabled", value: "enabled", sort: 1 },
+          { typeId: userStatusType.id, labelZh: "禁用", labelEn: "Disabled", value: "disabled", sort: 2 },
+        ],
+      }),
+    ])
+    await prisma.config.upsert({
+      where: { configKey: "user.password.minLength" },
+      update: { configValue: "8", nameZh: "密码最小长度", nameEn: "Min Password Length", description: "登录/修改密码时密码的最小长度（示例数据，供演示参数配置用法）" },
+      create: { configKey: "user.password.minLength", configValue: "8", nameZh: "密码最小长度", nameEn: "Min Password Length", description: "登录/修改密码时密码的最小长度（示例数据，供演示参数配置用法）" },
+    })
+
+    // 5. 摘要
     const menuCount = await prisma.menu.count()
     const roleCount = await prisma.role.count()
     const userCount = await prisma.user.count()
-    console.log(`seed done: 菜单 ${String(menuCount)} 条 / 角色 ${String(roleCount)} 个 / 用户 ${String(userCount)} 个`)
+    const dictTypeCount = await prisma.dictType.count()
+    const configCount = await prisma.config.count()
+    console.log(`seed done: 菜单 ${String(menuCount)} 条 / 角色 ${String(roleCount)} 个 / 用户 ${String(userCount)} 个 / 字典类型 ${String(dictTypeCount)} 个 / 参数 ${String(configCount)} 个`)
     console.log("默认账号: admin / Admin@123（角色 ADMIN，已授权全部菜单）")
   } finally {
     await prisma.$disconnect()

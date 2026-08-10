@@ -11,6 +11,8 @@
   "EMAIL_TAKEN": "Email already in use",
   "PHONE_TAKEN": "Phone number already in use",
   "ROLE_CODE_TAKEN": "Role code already exists",
+  "DICT_CODE_TAKEN": "Dict type code already exists",
+  "CONFIG_KEY_TAKEN": "Config key already exists",
   "MENU_PERMISSION_TAKEN": "Permission code already exists",
   "SELF_DELETE": "You cannot delete yourself",
   "MENU_TYPE_INVALID": "Invalid menu type or hierarchy",

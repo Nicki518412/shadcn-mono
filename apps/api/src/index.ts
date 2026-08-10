@@ -10,6 +10,8 @@ import { API_INFO, type PublicUser } from "./lib/schemas.js"
 import { validationHook } from "./lib/validation-hook.js"
 import { requestIp, requestUserAgent } from "./lib/request-log.js"
 import { authRoutes } from "./routes/auth.js"
+import { configRoutes } from "./routes/configs.js"
+import { dictRoutes } from "./routes/dicts.js"
 import { logRoutes } from "./routes/logs.js"
 import { meRoutes } from "./routes/me.js"
 import { menuRoutes } from "./routes/menus.js"
@@ -118,6 +120,8 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
   app.route("/", userRoutes(cfg))
   app.route("/", logRoutes(cfg))
   app.route("/", sessionRoutes(cfg))
+  app.route("/", dictRoutes(cfg))
+  app.route("/", configRoutes(cfg))
 
   app.notFound((c) =>
     c.json({ code: "NOT_FOUND", message: "接口不存在", data: null }, 404),

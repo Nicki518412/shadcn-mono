@@ -209,6 +209,79 @@ model LoginLog {
   user      User?    @relation(fields: [userId], references: [id])
 }
 
+/// 字典类型表（数据字典的类型定义，如 user_status；字典项见 DictItem）
+model DictType {
+  /// 主键（cuid 全局唯一）
+  id          String    @id @default(cuid())
+  /// 类型编码（程序引用用，如 user_status）
+  typeCode    String    @unique
+  /// 类型中文名称
+  nameZh      String
+  /// 类型英文名称（en 界面展示，未填回落 nameZh）
+  nameEn      String?
+  /// 类型描述
+  description String?
+  /// 启用状态（false=禁用）
+  status      Boolean   @default(true)
+  /// 排序值（列表展示顺序）
+  sort        Int       @default(0)
+  /// 创建时间（UTC）
+  createdAt   DateTime  @default(now())
+  /// 更新时间（UTC）
+  updatedAt   DateTime  @updatedAt
+  /// 字典项（删除类型时级联删除）
+  items       DictItem[]
+}
+
+/// 字典项表（字典类型下的具体选项，如 user_status 的 enabled/disabled）
+model DictItem {
+  /// 主键（cuid 全局唯一）
+  id        String   @id @default(cuid())
+  /// 所属字典类型 ID
+  typeId    String
+  /// 项中文标签（界面展示）
+  labelZh   String
+  /// 项英文标签（en 界面展示，未填回落 labelZh）
+  labelEn   String?
+  /// 项值（程序使用）
+  value     String
+  /// 排序值（列表展示顺序）
+  sort      Int      @default(0)
+  /// 启用状态（false=禁用，禁用的项 options 接口不返回）
+  status    Boolean  @default(true)
+  /// 创建时间（UTC）
+  createdAt DateTime @default(now())
+  /// 更新时间（UTC）
+  updatedAt DateTime @updatedAt
+  /// 所属字典类型（级联删除）
+  type      DictType @relation(fields: [typeId], references: [id], onDelete: Cascade)
+
+  /// 复合索引（按类型查询/排序字典项）
+  @@index([typeId, sort])
+}
+
+/// 系统参数表（key-value 配置，如 user.password.minLength；程序运行时读取）
+model Config {
+  /// 主键（cuid 全局唯一）
+  id          String   @id @default(cuid())
+  /// 参数键（程序引用用，如 user.password.minLength）
+  configKey   String   @unique
+  /// 参数值
+  configValue String
+  /// 参数中文名称
+  nameZh      String
+  /// 参数英文名称（en 界面展示，未填回落 nameZh）
+  nameEn      String?
+  /// 参数说明
+  description String?
+  /// 启用状态（false=禁用）
+  status      Boolean  @default(true)
+  /// 创建时间（UTC）
+  createdAt   DateTime @default(now())
+  /// 更新时间（UTC）
+  updatedAt   DateTime @updatedAt
+}
+
 /// 操作日志表（非 GET 写操作审计：操作人 / 接口 / 结果 / 耗时）
 model OperationLog {
   /// 主键（cuid 全局唯一）

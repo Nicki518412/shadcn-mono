@@ -196,3 +196,72 @@ export const sessionItemSchema = z
 export const sessionPageResultSchema = z
   .object({ list: z.array(sessionItemSchema), total: z.number() })
   .openapi("SessionPageResult")
+
+/** 字典项（字典类型详情 items 数组元素） */
+export const dictItemSchema = z
+  .object({
+    id: z.string(),
+    labelZh: z.string(),
+    labelEn: z.string().nullable(),
+    value: z.string(),
+    sort: z.number(),
+    status: z.boolean(),
+  })
+  .openapi("DictItem")
+
+/** 字典类型列表项（分页列表 data.list 元素；itemCount 为该类型字典项总数） */
+export const dictTypeListItemSchema = z
+  .object({
+    id: z.string(),
+    typeCode: z.string(),
+    nameZh: z.string(),
+    nameEn: z.string().nullable(),
+    description: z.string().nullable(),
+    status: z.boolean(),
+    sort: z.number(),
+    itemCount: z.number(),
+  })
+  .openapi("DictTypeListItem")
+
+/** 字典类型详情（含字典项数组，按 sort 升序） */
+export const dictTypeDetailSchema = dictTypeListItemSchema
+  .omit({ itemCount: true })
+  .extend({ items: z.array(dictItemSchema) })
+  .openapi("DictTypeDetail")
+
+/** 字典类型分页结果 */
+export const dictTypePageResultSchema = z
+  .object({ list: z.array(dictTypeListItemSchema), total: z.number() })
+  .openapi("DictTypePageResult")
+
+/** 字典选项（GET /api/dicts/types/{typeCode}/options 的 data 元素；仅启用项，供下拉/程序引用） */
+export const dictOptionSchema = z
+  .object({
+    value: z.string(),
+    labelZh: z.string(),
+    labelEn: z.string().nullable(),
+    sort: z.number(),
+  })
+  .openapi("DictOption")
+
+/** 系统参数列表项（分页列表 data.list 元素） */
+export const configListItemSchema = z
+  .object({
+    id: z.string(),
+    configKey: z.string(),
+    configValue: z.string(),
+    nameZh: z.string(),
+    nameEn: z.string().nullable(),
+    description: z.string().nullable(),
+    status: z.boolean(),
+    createdAt: z.string(),
+  })
+  .openapi("ConfigListItem")
+
+/** 系统参数详情（结构同列表项） */
+export const configDetailSchema = configListItemSchema.extend({}).openapi("ConfigDetail")
+
+/** 系统参数分页结果 */
+export const configPageResultSchema = z
+  .object({ list: z.array(configListItemSchema), total: z.number() })
+  .openapi("ConfigPageResult")

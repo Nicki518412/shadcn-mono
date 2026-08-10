@@ -138,3 +138,49 @@ CREATE TABLE `OperationLog` (
   PRIMARY KEY (`id`),
   CONSTRAINT `OperationLog_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作日志表（非 GET 写操作审计：操作人 / 接口 / 结果 / 耗时）';
+
+-- 字典类型表（数据字典的类型定义，如 user_status；字典项见 DictItem）
+CREATE TABLE `DictType` (
+  `id`          VARCHAR(32)  NOT NULL COMMENT '主键（cuid 全局唯一）',
+  `typeCode`    VARCHAR(255) NOT NULL COMMENT '类型编码（程序引用用，如 user_status）',
+  `nameZh`      VARCHAR(255) NOT NULL COMMENT '类型中文名称',
+  `nameEn`      VARCHAR(255) NULL COMMENT '类型英文名称（en 界面展示，未填回落 nameZh）',
+  `description` VARCHAR(255) NULL COMMENT '类型描述',
+  `status`      BOOLEAN      NOT NULL DEFAULT TRUE COMMENT '启用状态（false=禁用）',
+  `sort`        INT          NOT NULL DEFAULT 0 COMMENT '排序值（列表展示顺序）',
+  `createdAt`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
+  `updatedAt`   DATETIME     NOT NULL COMMENT '更新时间（UTC）',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `DictType_typeCode_key` (`typeCode`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='字典类型表（数据字典的类型定义，如 user_status；字典项见 DictItem）';
+
+-- 字典项表（字典类型下的具体选项，如 user_status 的 enabled/disabled）
+CREATE TABLE `DictItem` (
+  `id`        VARCHAR(32)  NOT NULL COMMENT '主键（cuid 全局唯一）',
+  `typeId`    VARCHAR(32)  NOT NULL COMMENT '所属字典类型 ID',
+  `labelZh`   VARCHAR(255) NOT NULL COMMENT '项中文标签（界面展示）',
+  `labelEn`   VARCHAR(255) NULL COMMENT '项英文标签（en 界面展示，未填回落 labelZh）',
+  `value`     VARCHAR(255) NOT NULL COMMENT '项值（程序使用）',
+  `sort`      INT          NOT NULL DEFAULT 0 COMMENT '排序值（列表展示顺序）',
+  `status`    BOOLEAN      NOT NULL DEFAULT TRUE COMMENT '启用状态（false=禁用，禁用的项 options 接口不返回）',
+  `createdAt` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
+  `updatedAt` DATETIME     NOT NULL COMMENT '更新时间（UTC）',
+  PRIMARY KEY (`id`),
+  KEY `DictItem_typeId_sort_idx` (`typeId`, `sort`),
+  CONSTRAINT `DictItem_typeId_fkey` FOREIGN KEY (`typeId`) REFERENCES `DictType` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='字典项表（字典类型下的具体选项，如 user_status 的 enabled/disabled）';
+
+-- 系统参数表（key-value 配置，如 user.password.minLength；程序运行时读取）
+CREATE TABLE `Config` (
+  `id`          VARCHAR(32)   NOT NULL COMMENT '主键（cuid 全局唯一）',
+  `configKey`   VARCHAR(255)  NOT NULL COMMENT '参数键（程序引用用，如 user.password.minLength）',
+  `configValue` VARCHAR(1024) NOT NULL COMMENT '参数值',
+  `nameZh`      VARCHAR(255)  NOT NULL COMMENT '参数中文名称',
+  `nameEn`      VARCHAR(255)  NULL COMMENT '参数英文名称（en 界面展示，未填回落 nameZh）',
+  `description` VARCHAR(255)  NULL COMMENT '参数说明',
+  `status`      BOOLEAN       NOT NULL DEFAULT TRUE COMMENT '启用状态（false=禁用）',
+  `createdAt`   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
+  `updatedAt`   DATETIME      NOT NULL COMMENT '更新时间（UTC）',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `Config_configKey_key` (`configKey`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统参数表（key-value 配置，如 user.password.minLength；程序运行时读取）';

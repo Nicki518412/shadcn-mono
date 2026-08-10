@@ -11,6 +11,8 @@
   "EMAIL_TAKEN": "邮箱已被使用",
   "PHONE_TAKEN": "手机号已被使用",
   "ROLE_CODE_TAKEN": "角色编码已存在",
+  "DICT_CODE_TAKEN": "字典类型编码已存在",
+  "CONFIG_KEY_TAKEN": "参数键已存在",
   "MENU_PERMISSION_TAKEN": "权限码已存在",
   "SELF_DELETE": "不能删除自己",
   "MENU_TYPE_INVALID": "菜单类型或层级关系不合法",
