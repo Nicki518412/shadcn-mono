@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import type { JSX, SyntheticEvent } from "react"
+import { useTranslation } from "react-i18next"
 import { ChevronsUpDownIcon, ImageIcon } from "lucide-react"
 
 import { collectSelfAndDescendantIds } from "@/components/business/TreeCheckbox"
@@ -86,6 +87,7 @@ export function MenuFormDialog({
   menu?: MenuNode | null
   onClose: () => void
 }): JSX.Element {
+  const { t } = useTranslation("menus")
   const isEdit = Boolean(menu)
   const menuTreeQuery = useMenuTreeQuery()
   const createMutation = useCreateMenuMutation()
@@ -120,11 +122,11 @@ export function MenuFormDialog({
   }, [type, parentId, menuTreeQuery.data])
 
   function validate(): string | null {
-    if (name.trim().length < 2) return "菜单名称至少 2 个字符"
+    if (name.trim().length < 2) return t("menuNameMinLength")
     if (type === "MENU" && (!path.trim() || !component.trim())) {
-      return "MENU 类型必须填写 path 和 component"
+      return t("menuRequiresPath")
     }
-    if (type === "BUTTON" && parentId === "") return "BUTTON 类型必须选择父菜单"
+    if (type === "BUTTON" && parentId === "") return t("buttonRequiresParent")
     return null
   }
 
@@ -163,11 +165,9 @@ export function MenuFormDialog({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "编辑菜单" : "新增菜单"}</DialogTitle>
+          <DialogTitle>{isEdit ? t("editTitle") : t("addMenu")}</DialogTitle>
           <DialogDescription>
-            {isEdit
-              ? "修改菜单信息；类型或父节点变更需满足树结构约束"
-              : "创建新的系统菜单（目录/菜单/按钮）"}
+            {isEdit ? t("editDesc") : t("createDesc")}
           </DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -184,7 +184,7 @@ export function MenuFormDialog({
           )}
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="menu-form-name">菜单名称</FieldLabel>
+              <FieldLabel htmlFor="menu-form-name">{t("menuName")}</FieldLabel>
               <FieldContent>
                 <Input
                   id="menu-form-name"
@@ -192,12 +192,12 @@ export function MenuFormDialog({
                   onChange={(event) => {
                     setName(event.target.value)
                   }}
-                  placeholder="菜单显示名称"
+                  placeholder={t("menuNamePlaceholder")}
                 />
               </FieldContent>
             </Field>
             <Field>
-              <FieldLabel htmlFor="menu-form-type">类型</FieldLabel>
+              <FieldLabel htmlFor="menu-form-type">{t("type")}</FieldLabel>
               <FieldContent>
                 <Select
                   value={type}
@@ -208,7 +208,7 @@ export function MenuFormDialog({
                   }}
                 >
                   <SelectTrigger id="menu-form-type" className="w-full">
-                    <SelectValue placeholder="选择类型" />
+                    <SelectValue placeholder={t("typePlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="DIR">DIR</SelectItem>
@@ -216,11 +216,11 @@ export function MenuFormDialog({
                     <SelectItem value="BUTTON">BUTTON</SelectItem>
                   </SelectContent>
                 </Select>
-                <FieldDescription>类型决定可挂载的子节点（BUTTON 只能挂在 MENU 下）</FieldDescription>
+                <FieldDescription>{t("typeDesc")}</FieldDescription>
               </FieldContent>
             </Field>
             <Field>
-              <FieldLabel htmlFor="menu-form-parent">父节点</FieldLabel>
+              <FieldLabel htmlFor="menu-form-parent">{t("parent")}</FieldLabel>
               <FieldContent>
                 <Select
                   value={parentId}
@@ -234,12 +234,12 @@ export function MenuFormDialog({
                     <SelectValue>
                       {(value) =>
                         parentOptions.find((option) => option.id === value)?.name ??
-                        "无（根目录）"
+                        t("noParent")
                       }
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {type !== "BUTTON" && <SelectItem value="">无（根目录）</SelectItem>}
+                    {type !== "BUTTON" && <SelectItem value="">{t("noParent")}</SelectItem>}
                     {parentOptions.map((option) => (
                       // label 显式传给 Base UI（ItemText 内是 span 缩进结构，文本提取会失败
                       // 回退显示 value——显式 label 保证 trigger 显示菜单名称）
@@ -253,17 +253,17 @@ export function MenuFormDialog({
                 </Select>
                 <FieldDescription>
                   {type === "BUTTON"
-                    ? "按钮必须挂在 MENU 下"
+                    ? t("parentDescButton")
                     : isEdit
-                      ? "自身及全部子节点不可选（防自挂）"
-                      : "不选即为根节点（目录/菜单可为根）"}
+                      ? t("parentDescEdit")
+                      : t("parentDescCreate")}
                 </FieldDescription>
               </FieldContent>
             </Field>
             {type === "MENU" && (
               <>
                 <Field>
-                  <FieldLabel htmlFor="menu-form-path">路由路径</FieldLabel>
+                  <FieldLabel htmlFor="menu-form-path">{t("routePath")}</FieldLabel>
                   <FieldContent>
                     <Input
                       id="menu-form-path"
@@ -271,12 +271,12 @@ export function MenuFormDialog({
                       onChange={(event) => {
                         setPath(event.target.value)
                       }}
-                      placeholder="如 /system/menu"
+                      placeholder={t("routePathPlaceholder")}
                     />
                   </FieldContent>
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="menu-form-component">组件</FieldLabel>
+                  <FieldLabel htmlFor="menu-form-component">{t("component")}</FieldLabel>
                   <FieldContent>
                     <Input
                       id="menu-form-component"
@@ -284,7 +284,7 @@ export function MenuFormDialog({
                       onChange={(event) => {
                         setComponent(event.target.value)
                       }}
-                      placeholder="如 system/menu"
+                      placeholder={t("componentPlaceholder")}
                     />
                   </FieldContent>
                 </Field>
@@ -293,7 +293,7 @@ export function MenuFormDialog({
             {/* BUTTON 无图标（不进入导航树，图标无意义）——仅 DIR/MENU 显示图标选择器 */}
             {type !== "BUTTON" && (
             <Field>
-              <FieldLabel>图标</FieldLabel>
+              <FieldLabel>{t("icon")}</FieldLabel>
               <FieldContent>
                 {/* 图标选择器：Popover + lucide 常用图标网格（icon 字段存图标名，DIR/MENU 用） */}
                 <Popover
@@ -314,7 +314,7 @@ export function MenuFormDialog({
                       <ImageIcon className="size-4 shrink-0 text-muted-foreground" />
                     )}
                     <span className="truncate text-muted-foreground">
-                      {icon || "选择图标"}
+                      {icon || t("selectIcon")}
                     </span>
                     <ChevronsUpDownIcon className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
                   </PopoverTrigger>
@@ -322,8 +322,8 @@ export function MenuFormDialog({
                     <div className="grid grid-cols-6 gap-1">
                       <button
                         type="button"
-                        aria-label="清除图标"
-                        title="清除图标"
+                        aria-label={t("clearIcon")}
+                        title={t("clearIcon")}
                         onClick={() => {
                           setIcon("")
                           setIconPickerOpen(false)
@@ -353,12 +353,12 @@ export function MenuFormDialog({
                     </div>
                   </PopoverContent>
                 </Popover>
-                <FieldDescription>图标显示在侧边栏与菜单列表（可选）</FieldDescription>
+                <FieldDescription>{t("iconDesc")}</FieldDescription>
               </FieldContent>
             </Field>
             )}
             <Field>
-              <FieldLabel htmlFor="menu-form-permission">权限码</FieldLabel>
+              <FieldLabel htmlFor="menu-form-permission">{t("permission")}</FieldLabel>
               <FieldContent>
                 <Input
                   id="menu-form-permission"
@@ -366,12 +366,12 @@ export function MenuFormDialog({
                   onChange={(event) => {
                     setPermission(event.target.value)
                   }}
-                  placeholder="如 system:menu:create（唯一）"
+                  placeholder={t("permissionPlaceholder")}
                 />
               </FieldContent>
             </Field>
             <Field>
-              <FieldLabel htmlFor="menu-form-sort">排序</FieldLabel>
+              <FieldLabel htmlFor="menu-form-sort">{t("sort")}</FieldLabel>
               <FieldContent>
                 <Input
                   id="menu-form-sort"
@@ -390,7 +390,7 @@ export function MenuFormDialog({
                 checked={status}
                 onCheckedChange={setStatus}
               />
-              <FieldLabel htmlFor="menu-form-status">启用</FieldLabel>
+              <FieldLabel htmlFor="menu-form-status">{t("enabled")}</FieldLabel>
             </Field>
           </FieldGroup>
           </div>
@@ -402,10 +402,10 @@ export function MenuFormDialog({
               disabled={pending}
               className="h-9"
             >
-              取消
+              {t("cancel")}
             </Button>
             <Button type="submit" disabled={pending} className="h-9">
-              {pending ? "保存中…" : "保存"}
+              {pending ? t("saving") : t("save")}
             </Button>
           </DialogFooter>
         </form>

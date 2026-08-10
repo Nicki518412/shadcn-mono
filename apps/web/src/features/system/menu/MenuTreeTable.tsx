@@ -1,5 +1,6 @@
 import { useState } from "react"
 import type { JSX, ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react"
 
@@ -46,6 +47,7 @@ export function MenuTreeTable({
   onEdit: (node: MenuNode) => void
   onDelete: (node: MenuNode) => void
 }): JSX.Element {
+  const { t } = useTranslation("menus")
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => collectDirIds(nodes))
 
   function toggleExpand(id: string): void {
@@ -76,7 +78,11 @@ export function MenuTreeTable({
                   variant="ghost"
                   size="icon"
                   className="size-6"
-                  aria-label={`${expanded ? "收起" : "展开"}${node.name}`}
+                  aria-label={
+                    expanded
+                      ? t("collapseNode", { name: node.name })
+                      : t("expandNode", { name: node.name })
+                  }
                   aria-expanded={expanded}
                   onClick={() => { toggleExpand(node.id) }}
                 >
@@ -99,7 +105,7 @@ export function MenuTreeTable({
           <TableCell>{node.sort}</TableCell>
           <TableCell>
             <Badge variant={node.status ? "default" : "destructive"}>
-              {node.status ? "启用" : "禁用"}
+              {node.status ? t("enabled") : t("disabled")}
             </Badge>
           </TableCell>
           <TableCell>
@@ -111,7 +117,7 @@ export function MenuTreeTable({
                   size="sm"
                   onClick={() => { onEdit(node) }}
                 >
-                  编辑
+                  {t("edit")}
                 </Button>
               </Permission>
               <Permission code="system:menu:delete">
@@ -121,7 +127,7 @@ export function MenuTreeTable({
                   size="sm"
                   onClick={() => { onDelete(node) }}
                 >
-                  删除
+                  {t("delete")}
                 </Button>
               </Permission>
             </div>

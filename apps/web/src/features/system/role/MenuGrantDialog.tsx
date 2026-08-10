@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import type { JSX } from "react"
+import { useTranslation } from "react-i18next"
 
 import {
   collectAncestorIds,
@@ -35,6 +36,7 @@ export function MenuGrantDialog({
   role: RoleListItem
   onClose: () => void
 }): JSX.Element {
+  const { t } = useTranslation("roles")
   const menuTreeQuery = useMenuTreeQuery()
   const roleMenusQuery = useRoleMenusQuery(role.id)
   const assignMutation = useAssignMenusMutation()
@@ -95,10 +97,9 @@ export function MenuGrantDialog({
       {/* p-6 加宽左右内边距 + max-w-xl 加宽弹窗（树形授权内容较宽，右缘留足空间）；滚动容器与 Footer 用 -mx-6 匹配 */}
       <DialogContent className="p-6 sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>分配权限</DialogTitle>
+          <DialogTitle>{t("assignPermission")}</DialogTitle>
           <DialogDescription>
-            为角色「{role.name}」配置菜单权限（勾选自动带上父目录与全部子项，取消自动
-            级联取消并清理空授权目录），保存后将覆盖原有权限
+            {t("grantDesc", { name: role.name })}
           </DialogDescription>
         </DialogHeader>
         <div className="-mx-6 max-h-[50vh] overflow-y-auto px-6 no-scrollbar">
@@ -108,13 +109,13 @@ export function MenuGrantDialog({
           </p>
         )}
         <Field>
-          <FieldLabel>菜单权限</FieldLabel>
+          <FieldLabel>{t("menuPermission")}</FieldLabel>
           <FieldContent>
             {menuTreeQuery.isPending || roleMenusQuery.isPending ? (
-              <span className="text-sm text-muted-foreground">菜单加载中…</span>
+              <span className="text-sm text-muted-foreground">{t("menusLoading")}</span>
             ) : menuTreeQuery.isError || roleMenusQuery.isError ? (
               <span className="text-sm text-destructive">
-                {(menuTreeQuery.error ?? roleMenusQuery.error)?.message ?? "菜单加载失败"}
+                {(menuTreeQuery.error ?? roleMenusQuery.error)?.message ?? t("menusLoadError")}
               </span>
             ) : (
               <div className="pr-1">
@@ -133,7 +134,7 @@ export function MenuGrantDialog({
             disabled={assignMutation.isPending}
             className="h-9"
           >
-            取消
+            {t("cancel")}
           </Button>
           <Button
             type="button"
@@ -143,7 +144,7 @@ export function MenuGrantDialog({
             disabled={assignMutation.isPending || !menuTreeQuery.data || !roleMenusQuery.data}
             className="h-9"
           >
-            {assignMutation.isPending ? "保存中…" : "保存"}
+            {assignMutation.isPending ? t("saving") : t("save")}
           </Button>
         </DialogFooter>
       </DialogContent>

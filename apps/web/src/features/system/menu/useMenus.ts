@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { api, apiErrorMessage } from "@/api/client"
@@ -38,12 +39,13 @@ function invalidateMenuDependents(queryClient: ReturnType<typeof useQueryClient>
 /** 创建菜单（POST /api/menus，后端校验类型约束与权限码唯一 409——错误 message 直接展示） */
 export function useCreateMenuMutation() {
   const queryClient = useQueryClient()
+  const { t } = useTranslation("menus")
   return useMutation({
     mutationFn: (input: MenuCreateInput) =>
       api<MenuNode>("/menus", { method: "POST", body: JSON.stringify(input) }),
     onSuccess: () => {
       invalidateMenuDependents(queryClient)
-      toast.success("菜单创建成功")
+      toast.success(t("createSuccess"))
     },
     onError: (error) => {
       toast.error(apiErrorMessage(error))
@@ -54,12 +56,13 @@ export function useCreateMenuMutation() {
 /** 更新菜单（PATCH /api/menus/{id}；改父节点/类型时后端校验防自挂与子节点兼容，400 message 直接展示） */
 export function useUpdateMenuMutation() {
   const queryClient = useQueryClient()
+  const { t } = useTranslation("menus")
   return useMutation({
     mutationFn: (input: { id: string; body: MenuUpdateInput }) =>
       api<MenuNode>(`/menus/${input.id}`, { method: "PATCH", body: JSON.stringify(input.body) }),
     onSuccess: () => {
       invalidateMenuDependents(queryClient)
-      toast.success("菜单更新成功")
+      toast.success(t("updateSuccess"))
     },
     onError: (error) => {
       toast.error(apiErrorMessage(error))
@@ -70,11 +73,12 @@ export function useUpdateMenuMutation() {
 /** 删除菜单（DELETE /api/menus/{id}，服务端级联删除子树并清理 RoleMenu 关联） */
 export function useDeleteMenuMutation() {
   const queryClient = useQueryClient()
+  const { t } = useTranslation("menus")
   return useMutation({
     mutationFn: (id: string) => api<null>(`/menus/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       invalidateMenuDependents(queryClient)
-      toast.success("菜单已删除")
+      toast.success(t("deleteSuccess"))
     },
     onError: (error) => {
       toast.error(apiErrorMessage(error))

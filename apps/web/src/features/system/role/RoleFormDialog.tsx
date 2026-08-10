@@ -1,5 +1,6 @@
 import { useState } from "react"
 import type { JSX, SyntheticEvent } from "react"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -35,6 +36,7 @@ export function RoleFormDialog({
   role?: RoleListItem | null
   onClose: () => void
 }): JSX.Element {
+  const { t } = useTranslation("roles")
   const isEdit = Boolean(role)
   const createMutation = useCreateRoleMutation()
   const updateMutation = useUpdateRoleMutation()
@@ -49,8 +51,8 @@ export function RoleFormDialog({
   const mutationError = createMutation.error ?? updateMutation.error
 
   function validate(): string | null {
-    if (name.trim().length < 2) return "角色名称至少 2 个字符"
-    if (!code.trim()) return "请输入角色编码"
+    if (name.trim().length < 2) return t("roleNameMinLength")
+    if (!code.trim()) return t("roleCodeRequired")
     return null
   }
 
@@ -88,9 +90,9 @@ export function RoleFormDialog({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "编辑角色" : "新增角色"}</DialogTitle>
+          <DialogTitle>{isEdit ? t("editTitle") : t("addRole")}</DialogTitle>
           <DialogDescription>
-            {isEdit ? "修改角色信息" : "创建新的系统角色"}
+            {isEdit ? t("editDesc") : t("createDesc")}
           </DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -107,7 +109,7 @@ export function RoleFormDialog({
           )}
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="role-form-name">角色名称</FieldLabel>
+              <FieldLabel htmlFor="role-form-name">{t("roleName")}</FieldLabel>
               <FieldContent>
                 <Input
                   id="role-form-name"
@@ -115,12 +117,12 @@ export function RoleFormDialog({
                   onChange={(event) => {
                     setName(event.target.value)
                   }}
-                  placeholder="角色显示名称"
+                  placeholder={t("roleNamePlaceholder")}
                 />
               </FieldContent>
             </Field>
             <Field>
-              <FieldLabel htmlFor="role-form-code">角色编码</FieldLabel>
+              <FieldLabel htmlFor="role-form-code">{t("roleCode")}</FieldLabel>
               <FieldContent>
                 <Input
                   id="role-form-code"
@@ -128,13 +130,13 @@ export function RoleFormDialog({
                   onChange={(event) => {
                     setCode(event.target.value)
                   }}
-                  placeholder="大写编码，如 ADMIN"
+                  placeholder={t("roleCodePlaceholder")}
                 />
-                <FieldDescription>编码保存时自动转为大写</FieldDescription>
+                <FieldDescription>{t("codeUppercase")}</FieldDescription>
               </FieldContent>
             </Field>
             <Field>
-              <FieldLabel htmlFor="role-form-description">描述</FieldLabel>
+              <FieldLabel htmlFor="role-form-description">{t("description")}</FieldLabel>
               <FieldContent>
                 <Input
                   id="role-form-description"
@@ -142,12 +144,12 @@ export function RoleFormDialog({
                   onChange={(event) => {
                     setDescription(event.target.value)
                   }}
-                  placeholder="角色说明（可选）"
+                  placeholder={t("descriptionPlaceholder")}
                 />
               </FieldContent>
             </Field>
             <Field>
-              <FieldLabel htmlFor="role-form-sort">排序</FieldLabel>
+              <FieldLabel htmlFor="role-form-sort">{t("sort")}</FieldLabel>
               <FieldContent>
                 <Input
                   id="role-form-sort"
@@ -166,7 +168,7 @@ export function RoleFormDialog({
                 checked={status}
                 onCheckedChange={setStatus}
               />
-              <FieldLabel htmlFor="role-form-status">启用</FieldLabel>
+              <FieldLabel htmlFor="role-form-status">{t("enabled")}</FieldLabel>
             </Field>
           </FieldGroup>
           </div>
@@ -178,10 +180,10 @@ export function RoleFormDialog({
               disabled={pending}
               className="h-9"
             >
-              取消
+              {t("cancel")}
             </Button>
             <Button type="submit" disabled={pending} className="h-9">
-              {pending ? "保存中…" : "保存"}
+              {pending ? t("saving") : t("save")}
             </Button>
           </DialogFooter>
         </form>

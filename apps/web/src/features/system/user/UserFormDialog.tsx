@@ -1,5 +1,6 @@
 import { useState } from "react"
 import type { JSX, SyntheticEvent } from "react"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -39,6 +40,7 @@ export function UserFormDialog({
   user?: UserListItem | null
   onClose: () => void
 }): JSX.Element {
+  const { t } = useTranslation("users")
   const isEdit = Boolean(user)
   const rolesQuery = useRolesListQuery()
   const createMutation = useCreateUserMutation()
@@ -67,9 +69,9 @@ export function UserFormDialog({
   }
 
   function validate(): string | null {
-    if (username.trim().length < 2) return "用户名至少 2 个字符"
-    if (!nickname.trim()) return "请输入昵称"
-    if (!isEdit && password.length < 8) return "密码至少 8 个字符"
+    if (username.trim().length < 2) return t("usernameMinLength")
+    if (!nickname.trim()) return t("nicknameRequired")
+    if (!isEdit && password.length < 8) return t("passwordMinLength")
     return null
   }
 
@@ -115,9 +117,9 @@ export function UserFormDialog({
           内容区独立滚动（max-h-[50vh] + no-scrollbar 隐藏滚动条），弹窗不再整窗滚动 */}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "编辑用户" : "新增用户"}</DialogTitle>
+          <DialogTitle>{isEdit ? t("editTitle") : t("addUser")}</DialogTitle>
           <DialogDescription>
-            {isEdit ? "修改用户信息；密码留空则不修改" : "创建新的系统用户"}
+            {isEdit ? t("editDesc") : t("createDesc")}
           </DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -134,7 +136,7 @@ export function UserFormDialog({
           )}
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="user-form-username">用户名</FieldLabel>
+              <FieldLabel htmlFor="user-form-username">{t("username")}</FieldLabel>
               <FieldContent>
                 <Input
                   id="user-form-username"
@@ -143,13 +145,13 @@ export function UserFormDialog({
                     setUsername(event.target.value)
                   }}
                   disabled={isEdit}
-                  placeholder="登录用户名"
+                  placeholder={t("usernamePlaceholder")}
                 />
-                {isEdit && <FieldDescription>用户名创建后不可修改</FieldDescription>}
+                {isEdit && <FieldDescription>{t("usernameImmutable")}</FieldDescription>}
               </FieldContent>
             </Field>
             <Field>
-              <FieldLabel htmlFor="user-form-nickname">昵称</FieldLabel>
+              <FieldLabel htmlFor="user-form-nickname">{t("nickname")}</FieldLabel>
               <FieldContent>
                 <Input
                   id="user-form-nickname"
@@ -157,12 +159,12 @@ export function UserFormDialog({
                   onChange={(event) => {
                     setNickname(event.target.value)
                   }}
-                  placeholder="显示昵称"
+                  placeholder={t("nicknamePlaceholder")}
                 />
               </FieldContent>
             </Field>
             <Field>
-              <FieldLabel htmlFor="user-form-email">邮箱</FieldLabel>
+              <FieldLabel htmlFor="user-form-email">{t("email")}</FieldLabel>
               <FieldContent>
                 <Input
                   id="user-form-email"
@@ -176,7 +178,7 @@ export function UserFormDialog({
               </FieldContent>
             </Field>
             <Field>
-              <FieldLabel htmlFor="user-form-telephone">手机号</FieldLabel>
+              <FieldLabel htmlFor="user-form-telephone">{t("telephone")}</FieldLabel>
               <FieldContent>
                 <Input
                   id="user-form-telephone"
@@ -189,7 +191,7 @@ export function UserFormDialog({
               </FieldContent>
             </Field>
             <Field>
-              <FieldLabel htmlFor="user-form-password">密码</FieldLabel>
+              <FieldLabel htmlFor="user-form-password">{t("password")}</FieldLabel>
               <FieldContent>
                 <Input
                   id="user-form-password"
@@ -198,7 +200,7 @@ export function UserFormDialog({
                   onChange={(event) => {
                     setPassword(event.target.value)
                   }}
-                  placeholder={isEdit ? "留空则不修改" : "至少 8 个字符"}
+                  placeholder={isEdit ? t("passwordPlaceholderEdit") : t("passwordPlaceholderCreate")}
                   autoComplete="new-password"
                 />
               </FieldContent>
@@ -209,15 +211,15 @@ export function UserFormDialog({
                 checked={status}
                 onCheckedChange={setStatus}
               />
-              <FieldLabel htmlFor="user-form-status">启用</FieldLabel>
+              <FieldLabel htmlFor="user-form-status">{t("enabled")}</FieldLabel>
             </Field>
             <Field>
-              <FieldLabel>角色</FieldLabel>
+              <FieldLabel>{t("roles")}</FieldLabel>
               <FieldContent>
                 {rolesQuery.isPending ? (
-                  <span className="text-sm text-muted-foreground">角色加载中…</span>
+                  <span className="text-sm text-muted-foreground">{t("rolesLoading")}</span>
                 ) : rolesQuery.isError ? (
-                  <span className="text-sm text-destructive">角色加载失败</span>
+                  <span className="text-sm text-destructive">{t("rolesLoadError")}</span>
                 ) : (
                   <div className="flex flex-col gap-2">
                     {rolesQuery.data.map((role) => (
@@ -249,10 +251,10 @@ export function UserFormDialog({
               disabled={pending}
               className="h-9"
             >
-              取消
+              {t("cancel")}
             </Button>
             <Button type="submit" disabled={pending} className="h-9">
-              {pending ? "保存中…" : "保存"}
+              {pending ? t("saving") : t("save")}
             </Button>
           </DialogFooter>
         </form>

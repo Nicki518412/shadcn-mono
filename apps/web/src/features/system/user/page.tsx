@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import type { JSX } from "react"
+import { useTranslation } from "react-i18next"
 
 import { UsersIcon } from "lucide-react"
 
@@ -44,6 +45,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { usePagination } from "@/hooks/usePagination"
+import i18n from "@/localization/i18n"
 import { RoleAssignDialog } from "./RoleAssignDialog"
 import { UserFormDialog } from "./UserFormDialog"
 import { useDeleteUserMutation, useUsersQuery } from "./useUsers"
@@ -54,7 +56,9 @@ const PAGE_SIZE = 10
 /** 后端返回 ISO 时间字符串；非法值原样展示（兜底，正常不会走到） */
 function formatDateTime(value: string): string {
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString("zh-CN", { hour12: false })
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString(i18n.language === "zh" ? "zh-CN" : "en-US", { hour12: false })
 }
 
 /**
@@ -62,6 +66,7 @@ function formatDateTime(value: string): string {
  * 分配角色 Dialog；所有操作按钮由 <Permission> 按按钮级权限码门控。
  */
 export default function UserPage(): JSX.Element {
+  const { t } = useTranslation("users")
   const { page, pageSize, totalPages, setPage, setTotalPages } = usePagination(1, PAGE_SIZE)
   const [keywordInput, setKeywordInput] = useState("")
   const [keyword, setKeyword] = useState("")
@@ -97,7 +102,7 @@ export default function UserPage(): JSX.Element {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="用户管理" description="管理系统用户账号、状态与角色分配" />
+      <PageHeader title={t("title")} description={t("desc")} />
 
       {/* 工具栏：搜索居左、操作按钮居右 */}
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -110,11 +115,11 @@ export default function UserPage(): JSX.Element {
             onKeyDown={(event) => {
               if (event.key === "Enter") applyKeyword()
             }}
-            placeholder="搜索用户名/昵称/邮箱/手机号"
+            placeholder={t("searchPlaceholder")}
             className="h-9 w-64"
           />
           <Button variant="outline" type="button" onClick={applyKeyword} className="h-9">
-            搜索
+            {t("search")}
           </Button>
         </div>
         <Permission code="system:user:create">
@@ -126,7 +131,7 @@ export default function UserPage(): JSX.Element {
             }}
             className="h-9"
           >
-            新增用户
+            {t("addUser")}
           </Button>
         </Permission>
       </div>
@@ -141,11 +146,9 @@ export default function UserPage(): JSX.Element {
             <UsersIcon />
           </EmptyMedia>
           <EmptyContent>
-            <EmptyTitle>暂无用户</EmptyTitle>
+            <EmptyTitle>{t("emptyTitle")}</EmptyTitle>
             <EmptyDescription>
-              {keyword
-                ? "未找到匹配的用户，请调整搜索关键词"
-                : "点击右上角「新增用户」创建第一个用户"}
+              {keyword ? t("emptyKeyword") : t("emptyCreate")}
             </EmptyDescription>
           </EmptyContent>
         </Empty>
@@ -153,14 +156,14 @@ export default function UserPage(): JSX.Element {
         <Table className="[&_th]:h-11 [&_th]:px-4 [&_th]:text-muted-foreground [&_tr]:h-12 [&_td]:px-4">
           <TableHeader>
             <TableRow>
-              <TableHead>用户名</TableHead>
-              <TableHead>昵称</TableHead>
-              <TableHead>邮箱</TableHead>
-              <TableHead>手机号</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>角色</TableHead>
-              <TableHead>创建时间</TableHead>
-              <TableHead className="text-right">操作</TableHead>
+              <TableHead>{t("username")}</TableHead>
+              <TableHead>{t("nickname")}</TableHead>
+              <TableHead>{t("email")}</TableHead>
+              <TableHead>{t("telephone")}</TableHead>
+              <TableHead>{t("status")}</TableHead>
+              <TableHead>{t("roles")}</TableHead>
+              <TableHead>{t("createdAt")}</TableHead>
+              <TableHead className="text-right">{t("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -182,7 +185,7 @@ export default function UserPage(): JSX.Element {
                     <TableCell>{user.telephone ?? "-"}</TableCell>
                     <TableCell>
                       <Badge variant={user.status ? "default" : "destructive"}>
-                        {user.status ? "启用" : "禁用"}
+                        {user.status ? t("enabled") : t("disabled")}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -211,7 +214,7 @@ export default function UserPage(): JSX.Element {
                               setFormOpen(true)
                             }}
                           >
-                            编辑
+                            {t("edit")}
                           </Button>
                         </Permission>
                         <Permission code="system:user:assign-role">
@@ -223,7 +226,7 @@ export default function UserPage(): JSX.Element {
                               setAssignUser(user)
                             }}
                           >
-                            分配角色
+                            {t("assignRoles")}
                           </Button>
                         </Permission>
                         <Permission code="system:user:delete">
@@ -235,7 +238,7 @@ export default function UserPage(): JSX.Element {
                               setDeleteUser(user)
                             }}
                           >
-                            删除
+                            {t("delete")}
                           </Button>
                         </Permission>
                       </div>
@@ -252,8 +255,8 @@ export default function UserPage(): JSX.Element {
             <PaginationItem>
               <PaginationPrevious
                 href="#"
-                text="上一页"
-                aria-label="上一页"
+                text={t("previous")}
+                aria-label={t("previous")}
                 onClick={(event) => {
                   event.preventDefault()
                   if (page > 1) gotoPage(page - 1)
@@ -310,8 +313,8 @@ export default function UserPage(): JSX.Element {
             <PaginationItem>
               <PaginationNext
                 href="#"
-                text="下一页"
-                aria-label="下一页"
+                text={t("next")}
+                aria-label={t("next")}
                 onClick={(event) => {
                   event.preventDefault()
                   if (page < totalPages) gotoPage(page + 1)
@@ -350,19 +353,19 @@ export default function UserPage(): JSX.Element {
         >
           <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
             <AlertDialogHeader>
-              <AlertDialogTitle>删除用户</AlertDialogTitle>
+              <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
               <AlertDialogDescription>
-                确定删除用户「{deleteUser.username}」？该操作不可恢复。
+                {t("deleteUserConfirm", { name: deleteUser.username })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
               <AlertDialogAction
                 variant="destructive"
                 onClick={confirmDelete}
                 disabled={deleteMutation.isPending}
               >
-                {deleteMutation.isPending ? "删除中…" : "删除"}
+                {deleteMutation.isPending ? t("deleting") : t("delete")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

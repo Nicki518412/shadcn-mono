@@ -4,9 +4,15 @@ import { initReactI18next } from "react-i18next"
 import enCommon from "./locales/en/common.json"
 import enDashboard from "./locales/en/dashboard.json"
 import enLogin from "./locales/en/login.json"
+import enMenus from "./locales/en/menus.json"
+import enRoles from "./locales/en/roles.json"
+import enUsers from "./locales/en/users.json"
 import zhCommon from "./locales/zh/common.json"
 import zhDashboard from "./locales/zh/dashboard.json"
 import zhLogin from "./locales/zh/login.json"
+import zhMenus from "./locales/zh/menus.json"
+import zhRoles from "./locales/zh/roles.json"
+import zhUsers from "./locales/zh/users.json"
 
 /** 支持的语言（key 为 i18next 语言码；nativeName 展示名；prefix 为语言切换菜单的简写徽标） */
 export const SUPPORTED_LANGUAGES = [
@@ -31,19 +37,22 @@ declare module "i18next" {
       common: typeof zhCommon
       login: typeof zhLogin
       dashboard: typeof zhDashboard
+      users: typeof zhUsers
+      roles: typeof zhRoles
+      menus: typeof zhMenus
     }
   }
 }
 
 void i18n.use(initReactI18next).init({
   resources: {
-    zh: { common: zhCommon, login: zhLogin, dashboard: zhDashboard },
-    en: { common: enCommon, login: enLogin, dashboard: enDashboard },
+    zh: { common: zhCommon, login: zhLogin, dashboard: zhDashboard, users: zhUsers, roles: zhRoles, menus: zhMenus },
+    en: { common: enCommon, login: enLogin, dashboard: enDashboard, users: enUsers, roles: enRoles, menus: enMenus },
   },
   lng: detectInitialLanguage(),
   fallbackLng: "zh",
   defaultNS: "common",
-  ns: ["common", "login", "dashboard"],
+  ns: ["common", "login", "dashboard", "users", "roles", "menus"],
   interpolation: { escapeValue: false },
 })
 

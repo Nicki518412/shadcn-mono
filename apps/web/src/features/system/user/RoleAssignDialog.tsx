@@ -1,5 +1,6 @@
 import { useState } from "react"
 import type { JSX } from "react"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -28,6 +29,7 @@ export function RoleAssignDialog({
   user: UserListItem
   onClose: () => void
 }): JSX.Element {
+  const { t } = useTranslation("users")
   const rolesQuery = useRolesListQuery()
   const assignMutation = useAssignRolesMutation()
   const [roleIds, setRoleIds] = useState<Set<string>>(
@@ -56,9 +58,9 @@ export function RoleAssignDialog({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>分配角色</DialogTitle>
+          <DialogTitle>{t("assignRoles")}</DialogTitle>
           <DialogDescription>
-            为用户「{user.nickname}」配置角色（可多选），保存后将覆盖原有角色
+            {t("assignRolesDesc", { name: user.nickname })}
           </DialogDescription>
         </DialogHeader>
         <div className="-mx-4 max-h-[50vh] overflow-y-auto px-4 no-scrollbar">
@@ -68,12 +70,12 @@ export function RoleAssignDialog({
           </p>
         )}
         <Field>
-          <FieldLabel>角色</FieldLabel>
+          <FieldLabel>{t("roles")}</FieldLabel>
           <FieldContent>
             {rolesQuery.isPending ? (
-              <span className="text-sm text-muted-foreground">角色加载中…</span>
+              <span className="text-sm text-muted-foreground">{t("rolesLoading")}</span>
             ) : rolesQuery.isError ? (
-              <span className="text-sm text-destructive">角色加载失败</span>
+              <span className="text-sm text-destructive">{t("rolesLoadError")}</span>
             ) : (
               <div className="flex flex-col gap-2">
                 {rolesQuery.data.map((role) => (
@@ -104,7 +106,7 @@ export function RoleAssignDialog({
             disabled={assignMutation.isPending}
             className="h-9"
           >
-            取消
+            {t("cancel")}
           </Button>
           <Button
             type="button"
@@ -112,7 +114,7 @@ export function RoleAssignDialog({
             disabled={assignMutation.isPending}
             className="h-9"
           >
-            {assignMutation.isPending ? "保存中…" : "保存"}
+            {assignMutation.isPending ? t("saving") : t("save")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,5 +1,6 @@
 import { useState } from "react"
 import type { JSX } from "react"
+import { useTranslation } from "react-i18next"
 
 import { useQueryClient } from "@tanstack/react-query"
 
@@ -47,6 +48,7 @@ import type { MenuNode } from "./useMenus"
  * 分支不进入表格组件，保证默认展开态正确）。
  */
 export default function MenuPage(): JSX.Element {
+  const { t } = useTranslation("menus")
   const queryClient = useQueryClient()
   const { data, isLoading, isError, error } = useMenuTreeQuery()
   const deleteMutation = useDeleteMenuMutation()
@@ -68,13 +70,13 @@ export default function MenuPage(): JSX.Element {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="菜单管理" description="维护导航菜单树与按钮权限" />
+      <PageHeader title={t("title")} description={t("desc")} />
 
       {/* 工具栏：操作按钮居右（菜单树无搜索，与其余管理页保持同构） */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Button variant="outline" type="button" onClick={refresh} className="h-9">
-            刷新
+            {t("refresh")}
           </Button>
           <Permission code="system:menu:create">
             <Button
@@ -85,7 +87,7 @@ export default function MenuPage(): JSX.Element {
               }}
               className="h-9"
             >
-              新增菜单
+              {t("addMenu")}
             </Button>
           </Permission>
         </div>
@@ -101,9 +103,9 @@ export default function MenuPage(): JSX.Element {
             <ListTreeIcon />
           </EmptyMedia>
           <EmptyContent>
-            <EmptyTitle>暂无菜单</EmptyTitle>
+            <EmptyTitle>{t("emptyTitle")}</EmptyTitle>
             <EmptyDescription>
-              点击右上角「新增菜单」创建第一个菜单（目录或菜单）
+              {t("emptyCreate")}
             </EmptyDescription>
           </EmptyContent>
         </Empty>
@@ -111,13 +113,13 @@ export default function MenuPage(): JSX.Element {
         <Table className="[&_th]:h-11 [&_th]:px-4 [&_th]:text-muted-foreground [&_tr]:h-12 [&_td]:px-4">
           <TableHeader>
             <TableRow>
-              <TableHead>名称</TableHead>
-              <TableHead>路径</TableHead>
-              <TableHead>组件</TableHead>
-              <TableHead>权限码</TableHead>
-              <TableHead>排序</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead className="text-right">操作</TableHead>
+              <TableHead>{t("name")}</TableHead>
+              <TableHead>{t("path")}</TableHead>
+              <TableHead>{t("component")}</TableHead>
+              <TableHead>{t("permission")}</TableHead>
+              <TableHead>{t("sort")}</TableHead>
+              <TableHead>{t("status")}</TableHead>
+              <TableHead className="text-right">{t("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           {isLoading ? (
@@ -166,19 +168,19 @@ export default function MenuPage(): JSX.Element {
         >
           <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
             <AlertDialogHeader>
-              <AlertDialogTitle>删除菜单</AlertDialogTitle>
+              <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
               <AlertDialogDescription>
-                确定删除菜单「{deleteMenu.name}」？将删除该菜单及其全部子节点，该操作不可恢复。
+                {t("deleteMenuConfirm", { name: deleteMenu.name })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
               <AlertDialogAction
                 variant="destructive"
                 onClick={confirmDelete}
                 disabled={deleteMutation.isPending}
               >
-                {deleteMutation.isPending ? "删除中…" : "删除"}
+                {deleteMutation.isPending ? t("deleting") : t("delete")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

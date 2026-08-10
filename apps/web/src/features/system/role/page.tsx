@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import type { JSX } from "react"
+import { useTranslation } from "react-i18next"
 
 import { ShieldIcon } from "lucide-react"
 
@@ -56,6 +57,7 @@ const PAGE_SIZE = 10
  * 分配权限 Dialog（树形勾选授权）；所有操作按钮由 <Permission> 按按钮级权限码门控。
  */
 export default function RolePage(): JSX.Element {
+  const { t } = useTranslation("roles")
   const { page, pageSize, totalPages, setPage, setTotalPages } = usePagination(1, PAGE_SIZE)
   const [keywordInput, setKeywordInput] = useState("")
   const [keyword, setKeyword] = useState("")
@@ -91,7 +93,7 @@ export default function RolePage(): JSX.Element {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="角色管理" description="管理角色及其菜单权限分配" />
+      <PageHeader title={t("title")} description={t("desc")} />
 
       {/* 工具栏：搜索居左、操作按钮居右 */}
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -104,11 +106,11 @@ export default function RolePage(): JSX.Element {
             onKeyDown={(event) => {
               if (event.key === "Enter") applyKeyword()
             }}
-            placeholder="搜索角色名称/编码"
+            placeholder={t("searchPlaceholder")}
             className="h-9 w-64"
           />
           <Button variant="outline" type="button" onClick={applyKeyword} className="h-9">
-            搜索
+            {t("search")}
           </Button>
         </div>
         <Permission code="system:role:create">
@@ -120,7 +122,7 @@ export default function RolePage(): JSX.Element {
             }}
             className="h-9"
           >
-            新增角色
+            {t("addRole")}
           </Button>
         </Permission>
       </div>
@@ -135,11 +137,9 @@ export default function RolePage(): JSX.Element {
             <ShieldIcon />
           </EmptyMedia>
           <EmptyContent>
-            <EmptyTitle>暂无角色</EmptyTitle>
+            <EmptyTitle>{t("emptyTitle")}</EmptyTitle>
             <EmptyDescription>
-              {keyword
-                ? "未找到匹配的角色，请调整搜索关键词"
-                : "点击右上角「新增角色」创建第一个角色"}
+              {keyword ? t("emptyKeyword") : t("emptyCreate")}
             </EmptyDescription>
           </EmptyContent>
         </Empty>
@@ -147,12 +147,12 @@ export default function RolePage(): JSX.Element {
         <Table className="[&_th]:h-11 [&_th]:px-4 [&_th]:text-muted-foreground [&_tr]:h-12 [&_td]:px-4">
           <TableHeader>
             <TableRow>
-              <TableHead>名称</TableHead>
-              <TableHead>编码</TableHead>
-              <TableHead>排序</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>描述</TableHead>
-              <TableHead className="text-right">操作</TableHead>
+              <TableHead>{t("name")}</TableHead>
+              <TableHead>{t("code")}</TableHead>
+              <TableHead>{t("sort")}</TableHead>
+              <TableHead>{t("status")}</TableHead>
+              <TableHead>{t("description")}</TableHead>
+              <TableHead className="text-right">{t("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -175,7 +175,7 @@ export default function RolePage(): JSX.Element {
                     <TableCell>{role.sort}</TableCell>
                     <TableCell>
                       <Badge variant={role.status ? "default" : "destructive"}>
-                        {role.status ? "启用" : "禁用"}
+                        {role.status ? t("enabled") : t("disabled")}
                       </Badge>
                     </TableCell>
                     <TableCell>{role.description ?? "-"}</TableCell>
@@ -190,7 +190,7 @@ export default function RolePage(): JSX.Element {
                               setGrantRole(role)
                             }}
                           >
-                            分配权限
+                            {t("assignPermission")}
                           </Button>
                         </Permission>
                         <Permission code="system:role:update">
@@ -203,7 +203,7 @@ export default function RolePage(): JSX.Element {
                               setFormOpen(true)
                             }}
                           >
-                            编辑
+                            {t("edit")}
                           </Button>
                         </Permission>
                         <Permission code="system:role:delete">
@@ -215,7 +215,7 @@ export default function RolePage(): JSX.Element {
                               setDeleteRole(role)
                             }}
                           >
-                            删除
+                            {t("delete")}
                           </Button>
                         </Permission>
                       </div>
@@ -232,8 +232,8 @@ export default function RolePage(): JSX.Element {
             <PaginationItem>
               <PaginationPrevious
                 href="#"
-                text="上一页"
-                aria-label="上一页"
+                text={t("previous")}
+                aria-label={t("previous")}
                 onClick={(event) => {
                   event.preventDefault()
                   if (page > 1) gotoPage(page - 1)
@@ -290,8 +290,8 @@ export default function RolePage(): JSX.Element {
             <PaginationItem>
               <PaginationNext
                 href="#"
-                text="下一页"
-                aria-label="下一页"
+                text={t("next")}
+                aria-label={t("next")}
                 onClick={(event) => {
                   event.preventDefault()
                   if (page < totalPages) gotoPage(page + 1)
@@ -330,19 +330,19 @@ export default function RolePage(): JSX.Element {
         >
           <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
             <AlertDialogHeader>
-              <AlertDialogTitle>删除角色</AlertDialogTitle>
+              <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
               <AlertDialogDescription>
-                确定删除角色「{deleteRole.name}」？该操作不可恢复。
+                {t("deleteRoleConfirm", { name: deleteRole.name })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
               <AlertDialogAction
                 variant="destructive"
                 onClick={confirmDelete}
                 disabled={deleteMutation.isPending}
               >
-                {deleteMutation.isPending ? "删除中…" : "删除"}
+                {deleteMutation.isPending ? t("deleting") : t("delete")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

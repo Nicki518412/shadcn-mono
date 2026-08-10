@@ -1,5 +1,6 @@
 import { useState } from "react"
 import type { JSX, SyntheticEvent } from "react"
+import { useTranslation } from "react-i18next"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
@@ -40,6 +41,7 @@ export function ProfileDialog({
   user: components["schemas"]["UserPublic"]
   onClose: () => void
 }): JSX.Element {
+  const { t } = useTranslation("users")
   const queryClient = useQueryClient()
   const [nickname, setNickname] = useState(user.nickname)
   const [email, setEmail] = useState(user.email ?? "")
@@ -50,7 +52,7 @@ export function ProfileDialog({
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault()
     if (!nickname.trim()) {
-      setError("请输入昵称")
+      setError(t("nicknameRequired"))
       return
     }
     setError(null)
@@ -62,7 +64,7 @@ export function ProfileDialog({
     }
     api<unknown>("/users/me", { method: "PATCH", body: JSON.stringify(body) })
       .then(() => {
-        toast.success("资料已更新")
+        toast.success(t("profileUpdated"))
         void queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY })
         onClose()
       })
@@ -83,8 +85,8 @@ export function ProfileDialog({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>用户设置</DialogTitle>
-          <DialogDescription>修改你的个人资料（昵称 / 邮箱 / 手机号）</DialogDescription>
+          <DialogTitle>{t("userSettings")}</DialogTitle>
+          <DialogDescription>{t("profileDesc")}</DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           {error && (
@@ -94,7 +96,7 @@ export function ProfileDialog({
           )}
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="profile-nickname">昵称</FieldLabel>
+              <FieldLabel htmlFor="profile-nickname">{t("nickname")}</FieldLabel>
               <FieldContent>
                 <Input
                   id="profile-nickname"
@@ -102,12 +104,12 @@ export function ProfileDialog({
                   onChange={(event) => {
                     setNickname(event.target.value)
                   }}
-                  placeholder="显示昵称"
+                  placeholder={t("nicknamePlaceholder")}
                 />
               </FieldContent>
             </Field>
             <Field>
-              <FieldLabel htmlFor="profile-email">邮箱</FieldLabel>
+              <FieldLabel htmlFor="profile-email">{t("email")}</FieldLabel>
               <FieldContent>
                 <Input
                   id="profile-email"
@@ -121,7 +123,7 @@ export function ProfileDialog({
               </FieldContent>
             </Field>
             <Field>
-              <FieldLabel htmlFor="profile-telephone">手机号</FieldLabel>
+              <FieldLabel htmlFor="profile-telephone">{t("telephone")}</FieldLabel>
               <FieldContent>
                 <Input
                   id="profile-telephone"
@@ -142,10 +144,10 @@ export function ProfileDialog({
               disabled={pending}
               className="h-9"
             >
-              取消
+              {t("cancel")}
             </Button>
             <Button type="submit" disabled={pending} className="h-9">
-              {pending ? "保存中…" : "保存"}
+              {pending ? t("saving") : t("save")}
             </Button>
           </DialogFooter>
         </form>

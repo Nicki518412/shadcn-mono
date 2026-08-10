@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { api, apiErrorMessage } from "@/api/client"
@@ -58,12 +59,13 @@ export function useRoleMenusQuery(roleId: string) {
 /** 创建角色（POST /api/roles） */
 export function useCreateRoleMutation() {
   const queryClient = useQueryClient()
+  const { t } = useTranslation("roles")
   return useMutation({
     mutationFn: (input: RoleCreateInput) =>
       api<RoleDetail>("/roles", { method: "POST", body: JSON.stringify(input) }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEY })
-      toast.success("角色创建成功")
+      toast.success(t("createSuccess"))
     },
     onError: (error) => {
       toast.error(apiErrorMessage(error))
@@ -74,12 +76,13 @@ export function useCreateRoleMutation() {
 /** 更新角色（PATCH /api/roles/{id}） */
 export function useUpdateRoleMutation() {
   const queryClient = useQueryClient()
+  const { t } = useTranslation("roles")
   return useMutation({
     mutationFn: (input: { id: string; body: RoleUpdateInput }) =>
       api<RoleDetail>(`/roles/${input.id}`, { method: "PATCH", body: JSON.stringify(input.body) }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEY })
-      toast.success("角色更新成功")
+      toast.success(t("updateSuccess"))
     },
     onError: (error) => {
       toast.error(apiErrorMessage(error))
@@ -90,11 +93,12 @@ export function useUpdateRoleMutation() {
 /** 删除角色（DELETE /api/roles/{id}，服务端自动清理 UserRole） */
 export function useDeleteRoleMutation() {
   const queryClient = useQueryClient()
+  const { t } = useTranslation("roles")
   return useMutation({
     mutationFn: (id: string) => api<null>(`/roles/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEY })
-      toast.success("角色已删除")
+      toast.success(t("deleteSuccess"))
     },
     onError: (error) => {
       toast.error(apiErrorMessage(error))
@@ -105,6 +109,7 @@ export function useDeleteRoleMutation() {
 /** 分配菜单权限（PUT /api/roles/{id}/menus，全量替换，含按钮节点） */
 export function useAssignMenusMutation() {
   const queryClient = useQueryClient()
+  const { t } = useTranslation("roles")
   return useMutation({
     mutationFn: (input: { id: string; menuIds: string[] }) =>
       api<null>(`/roles/${input.id}/menus`, {
@@ -113,7 +118,7 @@ export function useAssignMenusMutation() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEY })
-      toast.success("权限分配成功")
+      toast.success(t("grantSuccess"))
     },
     onError: (error) => {
       toast.error(apiErrorMessage(error))

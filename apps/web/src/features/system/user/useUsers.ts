@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { api, apiErrorMessage } from "@/api/client"
@@ -31,12 +32,13 @@ export function useUsersQuery(page: number, pageSize: number, keyword: string) {
 /** 创建用户（POST /api/users） */
 export function useCreateUserMutation() {
   const queryClient = useQueryClient()
+  const { t } = useTranslation("users")
   return useMutation({
     mutationFn: (input: UserCreateInput) =>
       api<UserDetail>("/users", { method: "POST", body: JSON.stringify(input) }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY })
-      toast.success("用户创建成功")
+      toast.success(t("createSuccess"))
     },
     onError: (error) => {
       toast.error(apiErrorMessage(error))
@@ -47,12 +49,13 @@ export function useCreateUserMutation() {
 /** 更新用户（PATCH /api/users/{id}） */
 export function useUpdateUserMutation() {
   const queryClient = useQueryClient()
+  const { t } = useTranslation("users")
   return useMutation({
     mutationFn: (input: { id: string; body: UserUpdateInput }) =>
       api<UserDetail>(`/users/${input.id}`, { method: "PATCH", body: JSON.stringify(input.body) }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY })
-      toast.success("用户更新成功")
+      toast.success(t("updateSuccess"))
     },
     onError: (error) => {
       toast.error(apiErrorMessage(error))
@@ -63,11 +66,12 @@ export function useUpdateUserMutation() {
 /** 删除用户（DELETE /api/users/{id}） */
 export function useDeleteUserMutation() {
   const queryClient = useQueryClient()
+  const { t } = useTranslation("users")
   return useMutation({
     mutationFn: (id: string) => api<null>(`/users/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY })
-      toast.success("用户已删除")
+      toast.success(t("deleteSuccess"))
     },
     onError: (error) => {
       toast.error(apiErrorMessage(error))
@@ -78,6 +82,7 @@ export function useDeleteUserMutation() {
 /** 分配角色（PUT /api/users/{id}/roles，全量替换） */
 export function useAssignRolesMutation() {
   const queryClient = useQueryClient()
+  const { t } = useTranslation("users")
   return useMutation({
     mutationFn: (input: { id: string; roleIds: string[] }) =>
       api<UserDetail>(`/users/${input.id}/roles`, {
@@ -86,7 +91,7 @@ export function useAssignRolesMutation() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY })
-      toast.success("角色分配成功")
+      toast.success(t("assignRolesSuccess"))
     },
     onError: (error) => {
       toast.error(apiErrorMessage(error))
