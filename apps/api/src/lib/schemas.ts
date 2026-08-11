@@ -286,3 +286,11 @@ export const notificationPageResultSchema = z
 
 /** 未读通知数（顶栏铃铛徽标） */
 export const unreadCountSchema = z.object({ count: z.number() }).openapi("UnreadCount")
+
+/** 批量导入结果（成功条数 + 失败行明细；row 为 CSV 行号，1 为表头） */
+export const importResultSchema = z
+  .object({
+    successCount: z.number(),
+    failedRows: z.array(z.object({ row: z.number(), message: z.string() })),
+  })
+  .openapi("ImportResult")

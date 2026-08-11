@@ -49,7 +49,8 @@ import i18n from "@/localization/i18n"
 import { roleDisplayName } from "@/localization/menuName"
 import { RoleAssignDialog } from "./RoleAssignDialog"
 import { UserFormDialog } from "./UserFormDialog"
-import { useDeleteUserMutation, useUsersQuery } from "./useUsers"
+import { ImportDialog } from "./ImportDialog"
+import { useDeleteUserMutation, useExportUsersMutation, useUsersQuery } from "./useUsers"
 import type { UserListItem } from "./useUsers"
 
 const PAGE_SIZE = 10
@@ -75,7 +76,9 @@ export default function UserPage(): JSX.Element {
   const [editingUser, setEditingUser] = useState<UserListItem | null>(null)
   const [assignUser, setAssignUser] = useState<UserListItem | null>(null)
   const [deleteUser, setDeleteUser] = useState<UserListItem | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
   const deleteMutation = useDeleteUserMutation()
+  const exportMutation = useExportUsersMutation(keyword)
 
   const { data, isLoading, isError, error } = useUsersQuery(page, pageSize, keyword)
   const users = data?.list ?? []
@@ -123,18 +126,42 @@ export default function UserPage(): JSX.Element {
             {t("search")}
           </Button>
         </div>
-        <Permission code="system:user:create">
+        <div className="flex items-center gap-2">
+          {/* 导出 CSV（下载当前 keyword 过滤结果；与导入模板同构） */}
           <Button
             type="button"
+            variant="outline"
             onClick={() => {
-              setEditingUser(null)
-              setFormOpen(true)
+              exportMutation.mutate()
             }}
+            disabled={exportMutation.isPending}
             className="h-9"
           >
-            {t("addUser")}
+            {t("export")}
           </Button>
-        </Permission>
+          <Permission code="system:user:create">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setImportOpen(true)
+              }}
+              className="h-9"
+            >
+              {t("import")}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setEditingUser(null)
+                setFormOpen(true)
+              }}
+              className="h-9"
+            >
+              {t("addUser")}
+            </Button>
+          </Permission>
+        </div>
       </div>
 
       {isError ? (
@@ -332,6 +359,14 @@ export default function UserPage(): JSX.Element {
           onClose={() => {
             setFormOpen(false)
             setEditingUser(null)
+          }}
+        />
+      )}
+
+      {importOpen && (
+        <ImportDialog
+          onClose={() => {
+            setImportOpen(false)
           }}
         />
       )}

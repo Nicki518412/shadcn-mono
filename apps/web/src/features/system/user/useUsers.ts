@@ -2,8 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import { api, apiErrorMessage } from "@/api/client"
+import { api, apiDownload, apiErrorMessage, apiFormData } from "@/api/client"
 import type { components, paths } from "@/api/schema"
+import { downloadBlob } from "@/lib/download"
 
 type UserPageResult = components["schemas"]["UserPageResult"]
 export type UserListItem = components["schemas"]["UserListItem"]
@@ -92,6 +93,46 @@ export function useAssignRolesMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY })
       toast.success(t("assignRolesSuccess"))
+    },
+    onError: (error) => {
+      toast.error(apiErrorMessage(error))
+    },
+  })
+}
+
+type ImportResult = components["schemas"]["ImportResult"]
+
+/** 用户 CSV 导出（keyword 与列表一致；下载 users.csv） */
+export function useExportUsersMutation(keyword: string) {
+  const { t } = useTranslation("users")
+  return useMutation({
+    mutationFn: async () => {
+      const query = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ""
+      return apiDownload(`/users/export${query}`)
+    },
+    onSuccess: (blob) => {
+      downloadBlob(blob, "users.csv")
+      toast.success(t("exportSuccess"))
+    },
+    onError: (error) => {
+      toast.error(apiErrorMessage(error))
+    },
+  })
+}
+
+/** 用户 CSV 导入（multipart；返回成功/失败明细，由弹窗展示） */
+export function useImportUsersMutation() {
+  const queryClient = useQueryClient()
+  const { t } = useTranslation("users")
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData()
+      formData.append("file", file)
+      return apiFormData<ImportResult>("/users/import", formData)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY })
+      toast.success(t("importDone"))
     },
     onError: (error) => {
       toast.error(apiErrorMessage(error))

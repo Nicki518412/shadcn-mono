@@ -7,7 +7,8 @@ import type { AppConfig } from "../config.js"
 import { bearerSecurity, createSubApp, okBody } from "../lib/openapi.js"
 import { hashPassword } from "@repo/db"
 import { p2002Conflict } from "../lib/prisma-error.js"
-import { errorBodySchema, idParamSchema, userDetailSchema, userPageResultSchema } from "../lib/schemas.js"
+import { errorBodySchema, idParamSchema, importResultSchema, userDetailSchema, userPageResultSchema } from "../lib/schemas.js"
+import { parseCsv, toCsv } from "../lib/csv.js"
 import { authenticate, requirePermission } from "../middleware/auth.js"
 
 const pageQuery = z.object({
@@ -49,6 +50,71 @@ const USER_UNIQUE_FIELDS = {
   email: { code: "EMAIL_TAKEN", message: "邮箱已被使用" },
   telephone: { code: "PHONE_TAKEN", message: "手机号已被使用" },
 } as const
+
+// CSV 导入导出（模板与导出文件同构，导出文件填上密码即可重新导入）：
+// 列顺序固定，前 5 列为导入必读列（与 userCreateSchema 校验规则同步），多余列导入时忽略
+const CSV_HEADERS = ["用户名", "密码", "昵称", "邮箱", "手机号", "状态", "角色"] as const
+const CSV_REQUIRED_COLUMNS = CSV_HEADERS.slice(0, 5) as readonly string[]
+const MAX_IMPORT_ROWS = 200
+const MAX_IMPORT_FILE_SIZE = 1024 * 1024 // 1MB
+
+/** 导入行校验（规则与 userCreateSchema 同步，文案中文化；返回错误信息或 null） */
+function validateImportRow(username: string, password: string, nickname: string, email?: string, telephone?: string): string | null {
+  if (!/^[a-zA-Z0-9_.-]{2,64}$/.test(username)) return "用户名需为 2-64 位字母/数字/下划线/点/连字符"
+  if (password.length < 8 || password.length > 128) return "密码长度需为 8-128 位"
+  if (nickname.length < 1 || nickname.length > 64) return "昵称需为 1-64 个字符"
+  if (email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "邮箱格式不正确"
+  if (telephone !== undefined && (telephone.length < 5 || telephone.length > 32)) return "手机号长度需为 5-32 位"
+  return null
+}
+
+/**
+ * 解析导入 CSV 文本并逐行创建用户（部分失败不中断，失败行收集明细）：
+ * 表头校验（前 5 列必须与模板一致，多余列忽略）→ 空行跳过 → 每行独立校验/落库。
+ * 返回成功条数与失败行列表（row 为 CSV 行号，1 为表头）。
+ */
+async function importUsersFromCsv(text: string): Promise<{ successCount: number; failedRows: { row: number; message: string }[] }> {
+  const rows = parseCsv(text)
+  if (rows.length === 0) throw badRequest("CSV 内容为空")
+  const header = rows[0]?.map((cell) => cell.trim()) ?? []
+  const requiredHeader = header.slice(0, 5)
+  if (requiredHeader.length !== 5 || requiredHeader.some((h, i) => h !== CSV_REQUIRED_COLUMNS[i])) {
+    throw badRequest(`CSV 表头必须为：${CSV_REQUIRED_COLUMNS.join(",")}`)
+  }
+  const dataRows = rows.slice(1)
+  if (dataRows.length === 0) throw badRequest("CSV 没有数据行")
+  if (dataRows.length > MAX_IMPORT_ROWS) throw badRequest(`单次最多导入 ${String(MAX_IMPORT_ROWS)} 行`)
+
+  const failedRows: { row: number; message: string }[] = []
+  let successCount = 0
+  for (const [index, raw] of dataRows.entries()) {
+    const rowNumber = index + 2 // 表头占第 1 行
+    if (raw.every((cell) => cell.trim() === "")) continue // 空行跳过
+    const [usernameRaw, passwordRaw, nicknameRaw, emailRaw, telephoneRaw] = raw
+    const username = (usernameRaw ?? "").trim()
+    const password = passwordRaw ?? ""
+    const nickname = (nicknameRaw ?? "").trim()
+    const email = (emailRaw ?? "").trim()
+    const telephone = (telephoneRaw ?? "").trim()
+    const message = validateImportRow(username, password, nickname, email || undefined, telephone || undefined)
+    if (message !== null) {
+      failedRows.push({ row: rowNumber, message })
+      continue
+    }
+    try {
+      const passwordHash = await hashPassword(password)
+      const data: Prisma.UserCreateInput = { username: username.toLowerCase(), passwordHash, nickname }
+      if (email !== "") data.email = email.toLowerCase()
+      if (telephone !== "") data.telephone = telephone
+      await prisma.user.create({ data })
+      successCount += 1
+    } catch (err) {
+      const hit = p2002Conflict(err, USER_UNIQUE_FIELDS)
+      failedRows.push({ row: rowNumber, message: hit !== null ? hit.message : "创建失败" })
+    }
+  }
+  return { successCount, failedRows }
+}
 
 /** 角色存在性校验 + 去重（不存在 → 400）；事务内调用，保证校验与写入原子（须在 $transaction 回调中使用 tx） */
 async function resolveRoleIds(tx: Prisma.TransactionClient, roleIds: string[]): Promise<string[]> {
@@ -166,6 +232,61 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
         if (hit !== null) throw new HttpError(409, hit.code, hit.message)
         throw err
       }
+    },
+  )
+
+  // 用户 CSV 导出（keyword 过滤与列表一致；响应为 text/csv，非 JSON 契约体）。
+  // 路径字面量 export 必须注册在 /users/{id} 之前（Hono 顺序匹配，否则被 {id} 捕获 → 404）
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/api/users/export",
+      middleware: [authenticate(cfg), requirePermission("system:user:query")],
+      security: bearerSecurity,
+      request: { query: z.object({ keyword: z.string().optional() }) },
+      responses: {
+        200: {
+          description: "用户 CSV（UTF-8 BOM；与导入模板同构，密码列为空）",
+          content: { "text/csv; charset=utf-8": { schema: z.string() } },
+        },
+        401: { description: "未登录", content: { "application/json": { schema: errorBodySchema } } },
+        403: { description: "无权限", content: { "application/json": { schema: errorBodySchema } } },
+      },
+    }),
+    async (c) => {
+      const { keyword } = c.req.valid("query")
+      const where = keyword
+        ? {
+            OR: [
+              { username: { contains: keyword } },
+              { nickname: { contains: keyword } },
+              { email: { contains: keyword } },
+              { telephone: { contains: keyword } },
+            ],
+          }
+        : {}
+      const users = await prisma.user.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: { roles: { include: { role: true } } },
+      })
+      const rows = [
+        [...CSV_HEADERS],
+        ...users.map((user) => [
+          user.username,
+          "",
+          user.nickname,
+          user.email ?? "",
+          user.telephone ?? "",
+          user.status ? "启用" : "禁用",
+          user.roles.map((r) => r.role.nameZh).join(";"),
+        ]),
+      ]
+      // UTF-8 BOM：Excel 打开中文不乱码（\uFEFF 显式转义，字面 BOM 字符会被编译器剥离）
+      return c.body(`\uFEFF${toCsv(rows)}`, 200, {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": 'attachment; filename="users.csv"',
+      })
     },
   )
 
@@ -328,6 +449,39 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
         }
       })
       return c.json({ code: 0, data: toUserDetail(await fetchUserDetail(id)), message: "ok" }, 200)
+    },
+  )
+
+  // 用户 CSV 导入（multipart 文件上传；逐行创建，部分失败不中断，返回成功/失败明细）
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/api/users/import",
+      middleware: [authenticate(cfg), requirePermission("system:user:create")],
+      security: bearerSecurity,
+      request: {
+        body: {
+          content: {
+            "multipart/form-data": {
+              schema: z.object({ file: z.any().openapi({ type: "string", format: "binary" }) }),
+            },
+          },
+        },
+      },
+      responses: {
+        200: { description: "导入完成（含失败行明细）", ...okBody(importResultSchema) },
+        400: { description: "CSV 格式/表头/大小不合法", content: { "application/json": { schema: errorBodySchema } } },
+        401: { description: "未登录", content: { "application/json": { schema: errorBodySchema } } },
+        403: { description: "无权限", content: { "application/json": { schema: errorBodySchema } } },
+      },
+    }),
+    async (c) => {
+      const body = await c.req.parseBody()
+      const file = body.file
+      if (!(file instanceof File)) throw badRequest("请上传 CSV 文件")
+      if (file.size > MAX_IMPORT_FILE_SIZE) throw badRequest("文件大小不能超过 1MB")
+      const result = await importUsersFromCsv(await file.text())
+      return c.json({ code: 0, data: result, message: "ok" }, 200)
     },
   )
 
