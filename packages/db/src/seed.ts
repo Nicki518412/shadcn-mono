@@ -46,7 +46,7 @@ async function upsertMenu(input: MenuSeedInput): Promise<string> {
 async function main(): Promise<void> {
   try {
     // 1. 菜单树（与设计文档 §9 一致；nameEn 为英文展示名，en 语言时优先展示，未填回落 nameZh）
-    const dashboardId = await upsertMenu({ nameZh: "Dashboard", nameEn: "Dashboard", type: "MENU", path: "/", component: "dashboard", sort: 0 })
+    const dashboardId = await upsertMenu({ nameZh: "概览", nameEn: "Dashboard", type: "MENU", path: "/", component: "dashboard", sort: 0 })
     // 系统管理无 permission/path 稳定键，按 nameZh+parentId 匹配：种子源码改名会静默新建（旧节点残留，需人工清理）；菜单管理页创建同名根节点会被误命中
     const sysId = await upsertMenu({ nameZh: "系统管理", nameEn: "System", type: "DIR", sort: 100 })
     const userMenuId = await upsertMenu({
