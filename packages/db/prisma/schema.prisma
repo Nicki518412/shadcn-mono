@@ -44,6 +44,8 @@ model User {
   loginLogs     LoginLog[]
   /// 操作日志记录（写操作审计，用户删除时级联删除）
   operationLogs OperationLog[]
+  /// 站内通知记录（用户删除时级联删除）
+  notifications Notification[]
 }
 
 /// 角色（权限分组，通过 UserRole 关联用户、RoleMenu 关联菜单权限）
@@ -308,4 +310,29 @@ model OperationLog {
   createdAt    DateTime @default(now())
   /// 关联用户（用户删除时级联删除操作日志）
   user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// 站内通知表（系统/管理员发送，按接收用户隔离；发送方不落库，仅接收方可见）
+model Notification {
+  /// 主键（cuid 全局唯一）
+  id        String   @id @default(cuid())
+  /// 接收用户 ID
+  userId    String
+  /// 通知类型（预留分类，当前统一 SYSTEM）
+  type      String   @default("SYSTEM")
+  /// 通知标题
+  title     String
+  /// 通知内容
+  content   String
+  /// 是否已读（false=未读，顶栏徽标计数）
+  isRead    Boolean  @default(false)
+  /// 已读时间（标记已读时记录，未读为 null）
+  readAt    DateTime?
+  /// 创建时间（UTC）
+  createdAt DateTime @default(now())
+  /// 接收用户（用户删除时级联删除通知）
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// 复合索引（按用户分页查询 + 未读数统计）
+  @@index([userId, isRead, createdAt])
 }

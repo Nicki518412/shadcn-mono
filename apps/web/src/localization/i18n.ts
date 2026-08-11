@@ -9,6 +9,7 @@ import enErrors from "./locales/en/errors.json"
 import enLogin from "./locales/en/login.json"
 import enLogs from "./locales/en/logs.json"
 import enMenus from "./locales/en/menus.json"
+import enNotifications from "./locales/en/notifications.json"
 import enRoles from "./locales/en/roles.json"
 import enSessions from "./locales/en/sessions.json"
 import enUsers from "./locales/en/users.json"
@@ -20,6 +21,7 @@ import zhErrors from "./locales/zh/errors.json"
 import zhLogin from "./locales/zh/login.json"
 import zhLogs from "./locales/zh/logs.json"
 import zhMenus from "./locales/zh/menus.json"
+import zhNotifications from "./locales/zh/notifications.json"
 import zhRoles from "./locales/zh/roles.json"
 import zhSessions from "./locales/zh/sessions.json"
 import zhUsers from "./locales/zh/users.json"
@@ -54,6 +56,7 @@ declare module "i18next" {
       sessions: typeof zhSessions
       dict: typeof zhDict
       config: typeof zhConfig
+      notifications: typeof zhNotifications
       errors: typeof zhErrors
     }
   }
@@ -61,13 +64,13 @@ declare module "i18next" {
 
 void i18n.use(initReactI18next).init({
   resources: {
-    zh: { common: zhCommon, login: zhLogin, dashboard: zhDashboard, users: zhUsers, roles: zhRoles, menus: zhMenus, logs: zhLogs, sessions: zhSessions, dict: zhDict, config: zhConfig, errors: zhErrors },
-    en: { common: enCommon, login: enLogin, dashboard: enDashboard, users: enUsers, roles: enRoles, menus: enMenus, logs: enLogs, sessions: enSessions, dict: enDict, config: enConfig, errors: enErrors },
+    zh: { common: zhCommon, login: zhLogin, dashboard: zhDashboard, users: zhUsers, roles: zhRoles, menus: zhMenus, logs: zhLogs, sessions: zhSessions, dict: zhDict, config: zhConfig, notifications: zhNotifications, errors: zhErrors },
+    en: { common: enCommon, login: enLogin, dashboard: enDashboard, users: enUsers, roles: enRoles, menus: enMenus, logs: enLogs, sessions: enSessions, dict: enDict, config: enConfig, notifications: enNotifications, errors: enErrors },
   },
   lng: detectInitialLanguage(),
   fallbackLng: "zh",
   defaultNS: "common",
-  ns: ["common", "login", "dashboard", "users", "roles", "menus", "logs", "sessions", "dict", "config", "errors"],
+  ns: ["common", "login", "dashboard", "users", "roles", "menus", "logs", "sessions", "dict", "config", "notifications", "errors"],
   interpolation: { escapeValue: false },
 })
 

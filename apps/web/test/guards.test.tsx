@@ -97,7 +97,8 @@ describe("RequireAuth", () => {
     await waitFor(() => {
       expect(screen.getByText("Panel")).toBeInTheDocument()
     })
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    // me 守卫查询 + 顶栏铃铛两个查询（未读数 + 最近 5 条）
+    expect(fetchMock).toHaveBeenCalledTimes(3)
   })
 
   it("me 查询失败（网络错误）：重定向到 /login", async () => {

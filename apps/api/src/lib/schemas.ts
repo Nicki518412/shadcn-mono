@@ -265,3 +265,24 @@ export const configDetailSchema = configListItemSchema.extend({}).openapi("Confi
 export const configPageResultSchema = z
   .object({ list: z.array(configListItemSchema), total: z.number() })
   .openapi("ConfigPageResult")
+
+/** 通知列表项（分页列表 data.list 元素；站内通知，按接收用户隔离） */
+export const notificationItemSchema = z
+  .object({
+    id: z.string(),
+    type: z.string(),
+    title: z.string(),
+    content: z.string(),
+    isRead: z.boolean(),
+    readAt: z.string().nullable(),
+    createdAt: z.string(),
+  })
+  .openapi("NotificationItem")
+
+/** 通知分页结果 */
+export const notificationPageResultSchema = z
+  .object({ list: z.array(notificationItemSchema), total: z.number() })
+  .openapi("NotificationPageResult")
+
+/** 未读通知数（顶栏铃铛徽标） */
+export const unreadCountSchema = z.object({ count: z.number() }).openapi("UnreadCount")

@@ -184,3 +184,17 @@ CREATE TABLE `Config` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `Config_configKey_key` (`configKey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统参数表（key-value 配置，如 user.password.minLength；程序运行时读取）';
+
+CREATE TABLE `Notification` (
+  `id`        VARCHAR(32) NOT NULL COMMENT '主键（cuid 全局唯一）',
+  `userId`    VARCHAR(32) NOT NULL COMMENT '接收用户 ID',
+  `type`      VARCHAR(32) NOT NULL DEFAULT 'SYSTEM' COMMENT '通知类型（预留分类，当前统一 SYSTEM）',
+  `title`     VARCHAR(64) NOT NULL COMMENT '通知标题',
+  `content`   VARCHAR(500) NOT NULL COMMENT '通知内容',
+  `isRead`    BOOLEAN     NOT NULL DEFAULT FALSE COMMENT '是否已读（false=未读，顶栏徽标计数）',
+  `readAt`    DATETIME    NULL COMMENT '已读时间（标记已读时记录，未读为 null）',
+  `createdAt` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
+  PRIMARY KEY (`id`),
+  KEY `Notification_userId_isRead_createdAt_idx` (`userId`, `isRead`, `createdAt`),
+  CONSTRAINT `Notification_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站内通知表（系统/管理员发送，按接收用户隔离；发送方不落库，仅接收方可见）';

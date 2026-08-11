@@ -9,7 +9,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import {
-  BellIcon,
   ChevronRightIcon,
   ChevronsUpDownIcon,
   FileIcon,
@@ -24,8 +23,8 @@ import type { components } from "@/api/schema"
 import { useAuth } from "@/auth/AuthProvider"
 import ErrorBoundary from "@/components/business/ErrorBoundary"
 import { LanguageToggle } from "@/components/business/LanguageToggle"
+import { NotificationBell } from "@/components/business/NotificationBell"
 import { ThemeToggle } from "@/components/business/ThemeToggle"
-import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -352,15 +351,7 @@ export default function AppLayout(): JSX.Element {
           {/* 消息中心 + 主题切换：固定在顶栏右上角 */}
           <div className="ml-auto flex items-center gap-1.5">
             <LanguageToggle />
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t("notifications")}
-              title={t("notifications")}
-              disabled
-            >
-              <BellIcon />
-            </Button>
+            <NotificationBell />
             <ThemeToggle />
           </div>
         </header>

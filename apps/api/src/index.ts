@@ -15,6 +15,7 @@ import { dictRoutes } from "./routes/dicts.js"
 import { logRoutes } from "./routes/logs.js"
 import { meRoutes } from "./routes/me.js"
 import { menuRoutes } from "./routes/menus.js"
+import { notificationRoutes } from "./routes/notifications.js"
 import { otpRoutes } from "./routes/otp.js"
 import { roleRoutes } from "./routes/roles.js"
 import { sessionRoutes } from "./routes/sessions.js"
@@ -122,6 +123,7 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
   app.route("/", sessionRoutes(cfg))
   app.route("/", dictRoutes(cfg))
   app.route("/", configRoutes(cfg))
+  app.route("/", notificationRoutes(cfg))
 
   app.notFound((c) =>
     c.json({ code: "NOT_FOUND", message: "接口不存在", data: null }, 404),

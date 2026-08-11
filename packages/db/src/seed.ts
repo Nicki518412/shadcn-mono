@@ -95,6 +95,12 @@ async function main(): Promise<void> {
     await upsertMenu({ nameZh: "参数新增", nameEn: "Add Config", type: "BUTTON", permission: "system:config:create", sort: 1, parentId: configMenuId })
     await upsertMenu({ nameZh: "参数编辑", nameEn: "Edit Config", type: "BUTTON", permission: "system:config:update", sort: 2, parentId: configMenuId })
     await upsertMenu({ nameZh: "参数删除", nameEn: "Delete Config", type: "BUTTON", permission: "system:config:delete", sort: 3, parentId: configMenuId })
+    // 通知中心为个人页面（查自己的通知，无查询权限码，同 Dashboard 先例）；发送通知按钮单独挂码
+    const notificationMenuId = await upsertMenu({
+      nameZh: "通知中心", nameEn: "Notifications", type: "MENU", path: "/system/notification", component: "system/notifications",
+      sort: 8, parentId: sysId,
+    })
+    await upsertMenu({ nameZh: "发送通知", nameEn: "Send Notification", type: "BUTTON", permission: "system:notification:create", sort: 1, parentId: notificationMenuId })
 
     // 2. 角色：ADMIN 授权全量菜单+按钮；GUEST 仅 Dashboard（deleteMany + createMany 全量覆盖，幂等）
     const allMenuIds = (await prisma.menu.findMany({ select: { id: true } })).map((m) => m.id)
@@ -162,13 +168,24 @@ async function main(): Promise<void> {
       create: { configKey: "user.password.minLength", configValue: "8", nameZh: "密码最小长度", nameEn: "Min Password Length", description: "登录/修改密码时密码的最小长度（示例数据，供演示参数配置用法）" },
     })
 
+    // 4.1 演示通知：仅表空时插入（通知是用户数据，重复 seed 不得覆盖已读状态；已存在则不追加）
+    if ((await prisma.notification.count()) === 0) {
+      await prisma.notification.createMany({
+        data: [
+          { userId: adminUser.id, title: "欢迎使用", content: "欢迎使用本平台（示例通知，可在通知中心标记已读）" },
+          { userId: adminUser.id, title: "系统维护提醒", content: "系统将于每周日凌晨 02:00-03:00 进行例行维护，期间服务可能短暂不可用（示例通知）" },
+        ],
+      })
+    }
+
     // 5. 摘要
     const menuCount = await prisma.menu.count()
     const roleCount = await prisma.role.count()
     const userCount = await prisma.user.count()
     const dictTypeCount = await prisma.dictType.count()
     const configCount = await prisma.config.count()
-    console.log(`seed done: 菜单 ${String(menuCount)} 条 / 角色 ${String(roleCount)} 个 / 用户 ${String(userCount)} 个 / 字典类型 ${String(dictTypeCount)} 个 / 参数 ${String(configCount)} 个`)
+    const notificationCount = await prisma.notification.count()
+    console.log(`seed done: 菜单 ${String(menuCount)} 条 / 角色 ${String(roleCount)} 个 / 用户 ${String(userCount)} 个 / 字典类型 ${String(dictTypeCount)} 个 / 参数 ${String(configCount)} 个 / 通知 ${String(notificationCount)} 条`)
     console.log("默认账号: admin / Admin@123（角色 ADMIN，已授权全部菜单）")
   } finally {
     await prisma.$disconnect()
