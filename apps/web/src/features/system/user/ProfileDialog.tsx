@@ -1,13 +1,16 @@
 import { useState } from "react"
-import type { JSX, SyntheticEvent } from "react"
+import type { ChangeEvent, JSX, SyntheticEvent } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
-import { api, apiErrorMessage } from "@/api/client"
+import { UploadIcon, UserRoundIcon } from "lucide-react"
+
+import { api, apiErrorMessage, apiFormData } from "@/api/client"
 import { useAuth } from "@/auth/AuthProvider"
 import type { components, paths } from "@/api/schema"
+import { avatarUrl } from "@/lib/avatar"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -53,8 +56,39 @@ export function ProfileDialog({
   const [telephone, setTelephone] = useState(user.telephone ?? "")
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
+  // 新头像：选中文件后立即上传得服务端文件名 + 本地预览 URL；removeAvatar 标记移除旧头像
+  const [avatarFile, setAvatarFile] = useState<{ filename: string; preview: string } | null>(null)
+  const [removeAvatar, setRemoveAvatar] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+
+  /** 选择头像文件：立即上传（POST /api/files）→ 暂存文件名供保存时提交 */
+  async function handleAvatarChange(event: ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = event.target.files?.[0]
+    event.target.value = "" // 允许重复选择同一文件
+    if (!file) return
+    setUploadingAvatar(true)
+    setError(null)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      const detail = await apiFormData<{ filename: string; size: number; mimeType: string }>(
+        "/files",
+        formData,
+      )
+      setAvatarFile({ filename: detail.filename, preview: URL.createObjectURL(file) })
+      setRemoveAvatar(false)
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err))
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
+  /** 当前头像展示：新选文件本地预览 > 移除标记时为空 > 已保存头像 URL */
+  const currentAvatarSrc =
+    avatarFile?.preview ?? (removeAvatar ? null : avatarUrl(user.avatar))
 
   async function handleSubmit(event: SyntheticEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
@@ -73,6 +107,9 @@ export function ProfileDialog({
       email: email.trim() === "" ? null : email.trim(),
       telephone: telephone.trim() === "" ? null : telephone.trim(),
     }
+    // 头像变更：移除 → null；新上传 → 文件名；未操作 → 不传（undefined 不修改）
+    if (removeAvatar) body.avatar = null
+    else if (avatarFile) body.avatar = avatarFile.filename
     try {
       await api<unknown>("/users/me", { method: "PATCH", body: JSON.stringify(body) })
       if (newPassword) {
@@ -114,6 +151,47 @@ export function ProfileDialog({
               {error}
             </p>
           )}
+          {/* 头像区：预览 + 上传/移除（上传即时完成，保存时随个人资料提交） */}
+          <div className="flex items-center gap-4">
+            {currentAvatarSrc ? (
+              <img
+                src={currentAvatarSrc}
+                alt={t("avatar")}
+                className="size-14 rounded-full border object-cover"
+              />
+            ) : (
+              <div className="flex size-14 items-center justify-center rounded-full border bg-muted text-muted-foreground">
+                <UserRoundIcon className="size-6" />
+              </div>
+            )}
+            <div className="flex gap-2">
+              <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input px-3 text-sm font-medium transition-colors hover:bg-accent">
+                <UploadIcon className="size-4" />
+                {uploadingAvatar ? t("avatarUploading") : t("avatarUpload")}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  disabled={uploadingAvatar}
+                  onChange={(event) => { void handleAvatarChange(event) }}
+                />
+              </label>
+              {(avatarFile ?? user.avatar) && !removeAvatar && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9"
+                  disabled={uploadingAvatar}
+                  onClick={() => {
+                    setRemoveAvatar(true)
+                    setAvatarFile(null)
+                  }}
+                >
+                  {t("avatarRemove")}
+                </Button>
+              )}
+            </div>
+          </div>
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="profile-nickname">{t("nickname")}</FieldLabel>

@@ -14,6 +14,7 @@ export const publicUserSchema = z
     nickname: z.string(),
     email: z.string().nullable(),
     telephone: z.string().nullable(),
+    avatar: z.string().nullable(),
   })
   .openapi("UserPublic")
 
@@ -49,8 +50,8 @@ export type PublicUser = z.infer<typeof publicUserSchema>
 export type TokenPair = z.infer<typeof tokenPairSchema>
 
 /** 选 Prisma User 子集（字段均为非可选，避免 exactOptionalPropertyTypes 下 undefined 不可赋问题） */
-export function toPublicUser(user: Pick<User, "id" | "username" | "nickname" | "email" | "telephone">): PublicUser {
-  return { id: user.id, username: user.username, nickname: user.nickname, email: user.email, telephone: user.telephone }
+export function toPublicUser(user: Pick<User, "id" | "username" | "nickname" | "email" | "telephone" | "avatar">): PublicUser {
+  return { id: user.id, username: user.username, nickname: user.nickname, email: user.email, telephone: user.telephone, avatar: user.avatar }
 }
 
 /**
@@ -106,6 +107,7 @@ export const userListItemSchema = z
     nickname: z.string(),
     email: z.string().nullable(),
     telephone: z.string().nullable(),
+    avatar: z.string().nullable(),
     status: z.boolean(),
     createdAt: z.string(),
     roles: z.array(userRoleSchema),
@@ -294,3 +296,12 @@ export const importResultSchema = z
     failedRows: z.array(z.object({ row: z.number(), message: z.string() })),
   })
   .openapi("ImportResult")
+
+/** 上传文件详情（filename 为服务端生成名，访问路径 /api/files/{filename}） */
+export const fileDetailSchema = z
+  .object({
+    filename: z.string(),
+    size: z.number(),
+    mimeType: z.string(),
+  })
+  .openapi("FileDetail")

@@ -52,6 +52,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { ProfileDialog } from "@/features/system/user/ProfileDialog"
+import { avatarUrl } from "@/lib/avatar"
 import { menuDisplayName } from "@/localization/menuName"
 import { APP_NAME } from "@/config"
 import { iconByName } from "@/lib/icons"
@@ -288,6 +289,14 @@ export default function AppLayout(): JSX.Element {
                   }
                 >
                   <Avatar className="size-8 shrink-0">
+                    {/* 有头像显示图片，否则回退昵称首字 */}
+                    {me?.user.avatar && (
+                      <img
+                        src={avatarUrl(me.user.avatar) ?? undefined}
+                        alt={me.user.nickname}
+                        className="size-full rounded-full object-cover"
+                      />
+                    )}
                     <AvatarFallback className="text-xs">
                       {me?.user.nickname.slice(0, 1) ?? "?"}
                     </AvatarFallback>

@@ -26,6 +26,8 @@ model User {
   email         String?        @unique
   /// 手机号（可空）
   telephone     String?        @unique
+  /// 头像文件名（上传到 /api/files，访问路径 /api/files/{avatar}）
+  avatar        String?
   /// Clerk 用户 ID 映射（Clerk 登录时关联）
   clerkId       String?        @unique
   /// 启用状态（false=禁用）

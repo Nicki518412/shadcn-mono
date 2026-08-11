@@ -1745,6 +1745,7 @@ export interface paths {
                         /** Format: email */
                         email?: string | null;
                         telephone?: string | null;
+                        avatar?: string | null;
                     };
                 };
             };
@@ -3426,6 +3427,134 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        file?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 上传成功（返回文件名，访问路径 /api/files/{filename}） */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: number;
+                            data: components["schemas"]["FileDetail"];
+                            message: string;
+                        };
+                    };
+                };
+                /** @description 非图片类型/超大小 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorBody"];
+                    };
+                };
+                /** @description 未登录 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorBody"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/files/{filename}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    filename: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 文件内容（图片） */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/*": unknown;
+                    };
+                };
+                /** @description 文件名不合法 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorBody"];
+                    };
+                };
+                /** @description 未登录 */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorBody"];
+                    };
+                };
+                /** @description 文件不存在 */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorBody"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3451,6 +3580,7 @@ export interface components {
             nickname: string;
             email: string | null;
             telephone: string | null;
+            avatar: string | null;
         };
         TokenPair: {
             accessToken: string;
@@ -3503,6 +3633,7 @@ export interface components {
             nickname: string;
             email: string | null;
             telephone: string | null;
+            avatar: string | null;
             status: boolean;
             createdAt: string;
             roles: components["schemas"]["UserRole"][];
@@ -3626,6 +3757,11 @@ export interface components {
         };
         UnreadCount: {
             count: number;
+        };
+        FileDetail: {
+            filename: string;
+            size: number;
+            mimeType: string;
         };
     };
     responses: never;

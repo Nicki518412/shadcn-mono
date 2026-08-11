@@ -22,6 +22,7 @@ const userList: components["schemas"]["UserListItem"][] = [
     nickname: "系统管理员",
     email: "admin@example.com",
     telephone: "13800138000",
+    avatar: null,
     status: true,
     createdAt: "2026-08-01T02:00:00.000Z",
     roles: [{ id: "r1", nameZh: "管理员", nameEn: "Administrator", code: "ADMIN" }],
@@ -32,6 +33,7 @@ const userList: components["schemas"]["UserListItem"][] = [
     nickname: "张三",
     email: null,
     telephone: null,
+    avatar: null,
     status: false,
     createdAt: "2026-08-02T02:00:00.000Z",
     roles: [],
@@ -139,7 +141,7 @@ function renderUserPage(
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   })
   queryClient.setQueryData<components["schemas"]["MeResponse"]>(ME_QUERY_KEY, {
-    user: { id: "u1", username: "admin", nickname: "系统管理员", email: null, telephone: null },
+    user: { id: "u1", username: "admin", nickname: "系统管理员", email: null, telephone: null, avatar: null },
     roles: [{ id: "r1", nameZh: "管理员", nameEn: "Administrator", code: "ADMIN" }],
     navTree: [],
     permissionCodes,

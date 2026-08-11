@@ -16,6 +16,7 @@ services:
       AUTH_PROVIDER: "local"
       NODE_ENV: "production"
       PORT: "3001"
+      UPLOAD_DIR: "/app/data/uploads"
     volumes:
       - db-data:/app/data
     ports:

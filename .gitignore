@@ -12,3 +12,4 @@ coverage/
 *.log
 pnpm-debug.log*
 .eslintcache
+uploads/

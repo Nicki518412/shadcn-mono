@@ -12,6 +12,7 @@ CREATE TABLE `User` (
   `nickname`     VARCHAR(255) NOT NULL COMMENT '显示昵称',
   `email`        VARCHAR(255) NULL COMMENT '邮箱（可空，邮箱动态码登录用；统一小写存储）',
   `telephone`    VARCHAR(255) NULL COMMENT '手机号（可空）',
+  `avatar`       VARCHAR(255) NULL COMMENT '头像文件名（上传到 /api/files，访问路径 /api/files/{avatar}）',
   `clerkId`      VARCHAR(255) NULL COMMENT 'Clerk 用户 ID 映射（Clerk 登录时关联）',
   `status`       BOOLEAN      NOT NULL DEFAULT TRUE COMMENT '启用状态（false=禁用）',
   `createdAt`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',

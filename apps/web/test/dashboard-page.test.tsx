@@ -23,6 +23,7 @@ const me: MeResponse = {
     nickname: "系统管理员",
     email: "admin@example.com",
     telephone: "13800138000",
+    avatar: null,
   },
   roles: [{ id: "r1", nameZh: "管理员", nameEn: "Administrator", code: "ADMIN" }],
   navTree: [

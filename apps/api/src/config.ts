@@ -3,6 +3,7 @@ export interface AppConfig {
   jwtSecret: string
   authProvider: "local" | "clerk"
   port: number
+  uploadDir: string
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -28,5 +29,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     jwtSecret,
     authProvider: provider,
     port,
+    // 上传目录（相对 cwd=apps/api；容器部署经环境变量指到卷挂载点）
+    uploadDir: env.UPLOAD_DIR ?? "./uploads",
   }
 }

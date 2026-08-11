@@ -142,7 +142,7 @@ function renderMenuPage(
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   })
   queryClient.setQueryData<components["schemas"]["MeResponse"]>(ME_QUERY_KEY, {
-    user: { id: "u1", username: "admin", nickname: "系统管理员", email: null, telephone: null },
+    user: { id: "u1", username: "admin", nickname: "系统管理员", email: null, telephone: null, avatar: null },
     roles: [{ id: "r1", nameZh: "管理员", nameEn: "Administrator", code: "ADMIN" }],
     navTree: [],
     permissionCodes,
