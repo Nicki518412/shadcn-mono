@@ -1,6 +1,7 @@
 // 种子数据（幂等可重跑）：菜单树 / 角色授权 / admin 账号（设计文档 §9）
 // upsert 策略：有 permission 的按 permission findUnique；无 permission 的按 nameZh+parentId+path findFirst；
 // 存在则更新 nameEn（多语言展示字段，种子变更需同步存量行），其余字段不更新；不存在创建——重复运行不产生重复数据、不触发唯一约束冲突
+import { pathToFileURL } from "node:url"
 import { prisma } from "./client.js"
 import { hashPassword } from "./lib/password.js"
 
@@ -43,7 +44,7 @@ async function upsertMenu(input: MenuSeedInput): Promise<string> {
   return created.id
 }
 
-async function main(): Promise<void> {
+export async function runSeed(): Promise<void> {
   try {
     // 1. 菜单树（与设计文档 §9 一致；nameEn 为英文展示名，en 语言时优先展示，未填回落 nameZh）
     const dashboardId = await upsertMenu({ nameZh: "概览", nameEn: "Dashboard", type: "MENU", path: "/", component: "dashboard", sort: 0 })
@@ -192,10 +193,12 @@ async function main(): Promise<void> {
   }
 }
 
-try {
-  await main()
-} catch (err) {
-  const message = err instanceof Error ? err.stack ?? err.message : String(err)
-  console.error("[seed] 失败:", message)
-  process.exit(1)
+// 仅直接运行时执行种子（tsx src/seed.ts）；容器首启经 init.ts 条件调用（User 表空才 seed，避免重置 admin 密码）
+const entry = process.argv[1]
+if (entry !== undefined && import.meta.url === pathToFileURL(entry).href) {
+  runSeed().catch((err: unknown) => {
+    const message = err instanceof Error ? err.stack ?? err.message : String(err)
+    console.error("[seed] 失败:", message)
+    process.exit(1)
+  })
 }

@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+**/.turbo
+.git
+.github
+*.log
+**/*.db
+**/*.db-journal
+**/dev.db*
+**/test.db*
+apps/web/coverage
