@@ -509,6 +509,14 @@
             "type": "string",
             "nullable": true
           },
+          "requestBody": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
           "createdAt": {
             "type": "string"
           }
@@ -521,6 +529,8 @@
           "statusCode",
           "durationMs",
           "ip",
+          "requestBody",
+          "errorMessage",
           "createdAt"
         ]
       },

@@ -163,7 +163,7 @@ export const loginLogPageResultSchema = z
   .object({ list: z.array(loginLogItemSchema), total: z.number() })
   .openapi("LoginLogPageResult")
 
-/** 操作日志列表项（分页列表 data.list 元素；不含 userId/userAgent/errorMessage 等内部字段） */
+/** 操作日志列表项（分页列表 data.list 元素；不含 userId/userAgent 等内部字段） */
 export const operationLogItemSchema = z
   .object({
     id: z.string(),
@@ -173,6 +173,8 @@ export const operationLogItemSchema = z
     statusCode: z.number(),
     durationMs: z.number(),
     ip: z.string().nullable(),
+    requestBody: z.string().nullable(),
+    errorMessage: z.string().nullable(),
     createdAt: z.string(),
   })
   .openapi("OperationLogItem")

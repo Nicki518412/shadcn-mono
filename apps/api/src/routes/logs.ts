@@ -34,6 +34,8 @@ const operationSelect = {
   statusCode: true,
   durationMs: true,
   ip: true,
+  requestBody: true,
+  errorMessage: true,
   createdAt: true,
 } as const
 

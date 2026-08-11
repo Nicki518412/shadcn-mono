@@ -125,7 +125,7 @@ describe("audit logs", () => {
     expect(failed?.userId).toBeNull()
   })
 
-  it("POST /api/users 写操作产生 OperationLog（操作账号 / 方法 / 路径 / 状态码 / 耗时）", async () => {
+  it("POST /api/users 写操作产生 OperationLog（操作账号 / 方法 / 路径 / 状态码 / 耗时 / 请求体快照脱敏）", async () => {
     const app = createApp()
     const token = await login(ADMIN_USERNAME, ADMIN_PASSWORD)
     const res = await app.request("/api/users", {
@@ -144,6 +144,33 @@ describe("audit logs", () => {
     expect(op?.username).toBe(ADMIN_USERNAME)
     expect(op?.statusCode).toBe(200)
     expect(typeof op?.durationMs).toBe("number")
+    // 请求体快照：记录用户名等常规字段，password 脱敏为 ***（不留明文）
+    expect(op?.requestBody).toContain("log_created")
+    expect(op?.requestBody).toContain('"password":"***"')
+    expect(op?.requestBody).not.toContain("Passw0rd!")
+  })
+
+  it("敏感路径：change-password 的请求体快照为 null（跳过快照）；refresh 不产生操作日志", async () => {
+    const app = createApp()
+    // 独立用户改密，避免影响 ADMIN_PASSWORD
+    await prisma.user.create({
+      data: { username: "log_changepw", passwordHash: await hashPassword("OldPassw0rd!"), nickname: "改密测试" },
+    })
+    const token = await login("log_changepw", "OldPassw0rd!")
+    const res = await app.request("/api/auth/change-password", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ currentPassword: "OldPassw0rd!", newPassword: "NewPassw0rd!" }),
+    })
+    expect(res.status).toBe(200)
+    await waitForCount(() => prisma.operationLog.count({ where: { path: "/api/auth/change-password" } }))
+    const op = await prisma.operationLog.findFirst({
+      where: { path: "/api/auth/change-password" },
+      orderBy: { createdAt: "desc" },
+    })
+    expect(op?.requestBody).toBeNull()
+    // refresh 在中间件整条跳过列表（登录态续期不审计）
+    expect(await prisma.operationLog.count({ where: { path: "/api/auth/refresh" } })).toBe(0)
   })
 
   it("GET /api/logs/login：无 system:log:query 权限 403，有则 200 返回分页列表", async () => {

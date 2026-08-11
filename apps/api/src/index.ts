@@ -9,6 +9,7 @@ import { HttpError } from "./lib/http-error.js"
 import { API_INFO, type PublicUser } from "./lib/schemas.js"
 import { validationHook } from "./lib/validation-hook.js"
 import { requestIp, requestUserAgent } from "./lib/request-log.js"
+import { redactJson } from "./lib/redact.js"
 import { authRoutes } from "./routes/auth.js"
 import { configRoutes } from "./routes/configs.js"
 import { dictRoutes } from "./routes/dicts.js"
@@ -45,6 +46,8 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
 
   // 操作日志：非 GET /api 写操作审计（fire-and-forget，不阻塞响应）。
   // 跳过登录/OTP/文档/健康检查等路径；GET 属读操作不记录。未匹配路由的写请求（404）也记录。
+  // 敏感路径（登录/OTP/改密）不记录请求体快照；application/json 请求体截断 2KB 落库。
+  const SENSITIVE_PATHS = ["/api/auth/login", "/api/auth/change-password", "/api/auth/otp/"]
   app.use("*", async (c: Context, next) => {
     const method = c.req.method
     const path = c.req.path
@@ -60,6 +63,12 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
     ) {
       return next()
     }
+
+    // 请求体快照：application/json 写操作（Hono c.req.text() 有缓存，多次读取安全）；
+    // multipart（文件上传）与敏感路径跳过
+    const contentType = c.req.header("content-type") ?? ""
+    const sensitive = SENSITIVE_PATHS.some((prefix) => path === prefix || path.startsWith(prefix))
+    const requestBody = !sensitive && contentType.includes("application/json") ? (await c.req.text()) : undefined
 
     const start = Date.now()
     await next()
@@ -89,6 +98,12 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
           ip: requestIp(c),
           userAgent: requestUserAgent(c),
           errorMessage,
+          // 快照：先脱敏敏感字段（password/token/code → ***），再截断 180 字符
+          // （详情展示 + 兼容 MySQL 默认 VARCHAR(191)，超长写入会 data too long）
+          requestBody:
+            requestBody === undefined
+              ? null
+              : redactJson(requestBody).slice(0, 180),
         },
       })
       .catch(() => undefined)

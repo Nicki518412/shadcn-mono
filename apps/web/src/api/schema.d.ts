@@ -3671,6 +3671,8 @@ export interface components {
             statusCode: number;
             durationMs: number;
             ip: string | null;
+            requestBody: string | null;
+            errorMessage: string | null;
             createdAt: string;
         };
         OperationLogPageResult: {

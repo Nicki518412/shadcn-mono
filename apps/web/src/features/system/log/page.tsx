@@ -2,12 +2,19 @@ import { useEffect, useState } from "react"
 import type { JSX, ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 
-import { ScrollTextIcon } from "lucide-react"
+import { EyeIcon, ScrollTextIcon } from "lucide-react"
 
 import { apiErrorMessage } from "@/api/client"
 import { PageHeader } from "@/components/business/PageHeader"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Empty, EmptyContent, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Input } from "@/components/ui/input"
 import {
@@ -41,6 +48,15 @@ function formatDateTime(value: string): string {
   return Number.isNaN(date.getTime())
     ? value
     : date.toLocaleString(i18n.language === "zh" ? "zh-CN" : "en-US", { hour12: false })
+}
+
+/** 请求体快照美化：合法 JSON 缩进格式化，截断/非 JSON 原样展示 */
+function formatJson(value: string): string {
+  try {
+    return JSON.stringify(JSON.parse(value), null, 2)
+  } catch {
+    return value
+  }
 }
 
 interface Column<T extends { id: string }> {
@@ -231,6 +247,7 @@ export default function LogPage(): JSX.Element {
   } = usePagination(1, PAGE_SIZE)
   const [opKeywordInput, setOpKeywordInput] = useState("")
   const [opKeyword, setOpKeyword] = useState("")
+  const [detailRow, setDetailRow] = useState<OperationLogItem | null>(null)
 
   const loginQuery = useLoginLogsQuery(loginPage, PAGE_SIZE, loginKeyword)
   const opQuery = useOperationLogsQuery(opPage, PAGE_SIZE, opKeyword)
@@ -302,6 +319,26 @@ export default function LogPage(): JSX.Element {
     },
     { key: "ip", header: t("ip"), render: (row) => row.ip ?? "-" },
     { key: "createdAt", header: t("time"), render: (row) => formatDateTime(row.createdAt) },
+    {
+      key: "actions",
+      header: t("actions"),
+      render: (row) =>
+        row.requestBody || row.errorMessage ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setDetailRow(row)
+            }}
+          >
+            <EyeIcon />
+            {t("details")}
+          </Button>
+        ) : (
+          "-"
+        ),
+    },
   ]
 
   return (
@@ -352,6 +389,55 @@ export default function LogPage(): JSX.Element {
           />
         </TabsContent>
       </Tabs>
+
+      {/* 操作日志详情：请求体快照 + 错误信息（无快照记录时按钮不显示） */}
+      {detailRow && (
+        <Dialog
+          defaultOpen
+          onOpenChange={(open) => {
+            if (!open) setDetailRow(null)
+          }}
+        >
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{t("detailsTitle")}</DialogTitle>
+              <DialogDescription>
+                {detailRow.method} {detailRow.path}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4 text-sm">
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground">
+                <span>
+                  {t("username")}：{detailRow.username ?? "-"}
+                </span>
+                <span>
+                  {t("statusCode")}：{detailRow.statusCode}
+                </span>
+                <span>
+                  {t("time")}：{formatDateTime(detailRow.createdAt)}
+                </span>
+              </div>
+              {detailRow.errorMessage && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">{t("errorMessage")}</span>
+                  <pre className="whitespace-pre-wrap break-all rounded-md bg-muted p-3 font-mono text-xs text-destructive">
+                    {detailRow.errorMessage}
+                  </pre>
+                </div>
+              )}
+              {detailRow.requestBody && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">{t("requestBody")}</span>
+                  {/* 请求体为服务端截断的 JSON 文本，尝试格式化展示，失败原样展示 */}
+                  <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all rounded-md bg-muted p-3 font-mono text-xs">
+                    {formatJson(detailRow.requestBody)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

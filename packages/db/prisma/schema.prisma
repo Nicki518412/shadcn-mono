@@ -308,6 +308,9 @@ model OperationLog {
   userAgent    String?
   /// 非 2xx 时的响应 message（可选）
   errorMessage String?
+  /// 请求体 JSON 快照（仅 application/json 写操作；180 字符截断——兼容 MySQL 默认 VARCHAR(191)；
+  /// 登录/OTP/改密等敏感路径不记录；切 MySQL 如需更大容量改 @db.Text）
+  requestBody  String?
   /// 创建时间（UTC）
   createdAt    DateTime @default(now())
   /// 关联用户（用户删除时级联删除操作日志）

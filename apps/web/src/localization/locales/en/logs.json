@@ -21,5 +21,10 @@
   "ms": "ms",
   "noData": "No data",
   "previous": "Previous",
-  "next": "Next"
+  "next": "Next",
+  "actions": "Actions",
+  "details": "Details",
+  "detailsTitle": "Operation Log Details",
+  "requestBody": "Request Body",
+  "errorMessage": "Error Message"
 }

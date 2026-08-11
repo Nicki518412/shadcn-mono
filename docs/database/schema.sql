@@ -135,6 +135,7 @@ CREATE TABLE `OperationLog` (
   `ip`           VARCHAR(64)  NULL COMMENT '来源 IP（x-forwarded-for 首个地址 ?? x-real-ip，取不到存 null）',
   `userAgent`    VARCHAR(512) NULL COMMENT '浏览器 UA',
   `errorMessage` VARCHAR(255) NULL COMMENT '非 2xx 时的响应 message（可选）',
+  `requestBody`  TEXT         NULL COMMENT '请求体 JSON 快照（仅 application/json 写操作；180 字符截断；登录/OTP/改密等敏感路径不记录）',
   `createdAt`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
   PRIMARY KEY (`id`),
   CONSTRAINT `OperationLog_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
