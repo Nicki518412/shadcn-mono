@@ -156,4 +156,7 @@ if (entry !== undefined && import.meta.url === pathToFileURL(entry).href) {
   serve({ fetch: createApp(cfg).fetch, port: cfg.port }, (info) => {
     console.log(`api listening on http://localhost:${String(info.port)}`)
   })
+  // 定时清理任务随服务启动（测试环境走 createApp 不触发）
+  const { startCleanupScheduler } = await import("./lib/scheduler.js")
+  startCleanupScheduler()
 }
