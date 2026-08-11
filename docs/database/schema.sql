@@ -13,6 +13,7 @@ CREATE TABLE `User` (
   `email`        VARCHAR(255) NULL COMMENT '邮箱（可空，邮箱动态码登录用；统一小写存储）',
   `telephone`    VARCHAR(255) NULL COMMENT '手机号（可空）',
   `avatar`       VARCHAR(255) NULL COMMENT '头像文件名（上传到 /api/files，访问路径 /api/files/{avatar}）',
+  `departmentId` VARCHAR(32)  NULL COMMENT '所属部门 ID（组织归属；不参与权限计算，null=未分配）',
   `clerkId`      VARCHAR(255) NULL COMMENT 'Clerk 用户 ID 映射（Clerk 登录时关联）',
   `status`       BOOLEAN      NOT NULL DEFAULT TRUE COMMENT '启用状态（false=禁用）',
   `createdAt`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
@@ -23,6 +24,20 @@ CREATE TABLE `User` (
   UNIQUE KEY `User_telephone_key` (`telephone`),
   UNIQUE KEY `User_clerkId_key` (`clerkId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户账号（统一认证主体：账号密码 / Clerk / 动态码三种登录方式共用）';
+
+-- 部门表（组织架构树；仅组织归属，不参与权限交集计算）
+CREATE TABLE `Department` (
+  `id`        VARCHAR(32)  NOT NULL COMMENT '主键（cuid 全局唯一）',
+  `nameZh`    VARCHAR(255) NOT NULL COMMENT '中文名称（zh 界面展示）',
+  `nameEn`    VARCHAR(255) NULL COMMENT '英文名称（en 界面展示，未填回落 nameZh）',
+  `parentId`  VARCHAR(32)  NULL COMMENT '上级部门 ID（null=根部门）',
+  `sort`      INT          NOT NULL DEFAULT 0 COMMENT '排序值（同层展示顺序）',
+  `status`    BOOLEAN      NOT NULL DEFAULT TRUE COMMENT '启用状态（false=禁用）',
+  `createdAt` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
+  `updatedAt` DATETIME     NOT NULL COMMENT '更新时间（UTC）',
+  PRIMARY KEY (`id`),
+  CONSTRAINT `Department_parentId_fkey` FOREIGN KEY (`parentId`) REFERENCES `Department` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='部门表（组织架构树；仅组织归属，不参与权限交集计算）';
 
 -- 角色（权限分组，通过 UserRole 关联用户、RoleMenu 关联菜单权限）
 CREATE TABLE `Role` (
@@ -200,3 +215,13 @@ CREATE TABLE `Notification` (
   KEY `Notification_userId_isRead_createdAt_idx` (`userId`, `isRead`, `createdAt`),
   CONSTRAINT `Notification_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站内通知表（系统/管理员发送，按接收用户隔离；发送方不落库，仅接收方可见）';
+
+CREATE TABLE `Announcement` (
+  `id`        VARCHAR(32)  NOT NULL COMMENT '主键（cuid 全局唯一）',
+  `title`     VARCHAR(64)  NOT NULL COMMENT '公告标题',
+  `content`   TEXT         NOT NULL COMMENT '公告内容（正文，可多行）',
+  `status`    BOOLEAN      NOT NULL DEFAULT TRUE COMMENT '发布状态（false=下架，下架后首页不再展示）',
+  `createdAt` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
+  `updatedAt` DATETIME     NOT NULL COMMENT '更新时间（UTC）',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='公告表（全局公告：管理员发布，登录用户首页横幅展示）';

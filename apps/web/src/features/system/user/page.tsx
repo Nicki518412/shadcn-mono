@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/table"
 import { usePagination } from "@/hooks/usePagination"
 import i18n from "@/localization/i18n"
-import { roleDisplayName } from "@/localization/menuName"
+import { menuDisplayName, roleDisplayName } from "@/localization/menuName"
 import { RoleAssignDialog } from "./RoleAssignDialog"
 import { UserFormDialog } from "./UserFormDialog"
 import { ImportDialog } from "./ImportDialog"
@@ -188,6 +188,7 @@ export default function UserPage(): JSX.Element {
               <TableHead>{t("nickname")}</TableHead>
               <TableHead>{t("email")}</TableHead>
               <TableHead>{t("telephone")}</TableHead>
+              <TableHead>{t("department")}</TableHead>
               <TableHead>{t("status")}</TableHead>
               <TableHead>{t("roles")}</TableHead>
               <TableHead>{t("createdAt")}</TableHead>
@@ -198,7 +199,7 @@ export default function UserPage(): JSX.Element {
             {isLoading
               ? Array.from({ length: 5 }, (_, rowIndex) => (
                   <TableRow key={rowIndex}>
-                    {Array.from({ length: 8 }, (_, cellIndex) => (
+                    {Array.from({ length: 9 }, (_, cellIndex) => (
                       <TableCell key={cellIndex}>
                         <Skeleton className="h-4 w-16" />
                       </TableCell>
@@ -211,6 +212,7 @@ export default function UserPage(): JSX.Element {
                     <TableCell>{user.nickname}</TableCell>
                     <TableCell>{user.email ?? "-"}</TableCell>
                     <TableCell>{user.telephone ?? "-"}</TableCell>
+                    <TableCell>{user.department ? menuDisplayName(user.department) : "-"}</TableCell>
                     <TableCell>
                       <Badge variant={user.status ? "default" : "destructive"}>
                         {user.status ? t("enabled") : t("disabled")}

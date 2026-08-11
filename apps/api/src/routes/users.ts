@@ -23,6 +23,7 @@ const userCreateSchema = z.object({
   nickname: z.string().min(1).max(64),
   email: z.string().email().optional(),
   telephone: z.string().min(5).max(32).optional(),
+  departmentId: z.string().nullable().optional(),
   roleIds: z.array(z.string()).optional(),
 })
 
@@ -127,11 +128,11 @@ async function resolveRoleIds(tx: Prisma.TransactionClient, roleIds: string[]): 
   return unique
 }
 
-/** 用户详情（含已挂角色）；不存在 → 404 */
+/** 用户详情（含已挂角色与部门名）；不存在 → 404 */
 async function fetchUserDetail(id: string) {
   const user = await prisma.user.findUnique({
     where: { id },
-    include: { roles: { include: { role: true } } },
+    include: { roles: { include: { role: true } }, department: { select: { id: true, nameZh: true, nameEn: true } } },
   })
   if (!user) throw notFound("用户不存在")
   return user
@@ -147,6 +148,9 @@ function toUserDetail(user: UserDetail) {
     email: user.email,
     telephone: user.telephone,
     avatar: user.avatar,
+    department: user.department
+      ? { id: user.department.id, nameZh: user.department.nameZh, nameEn: user.department.nameEn }
+      : null,
     status: user.status,
     createdAt: user.createdAt,
     roles: user.roles.map((r) => ({ id: r.role.id, nameZh: r.role.nameZh, nameEn: r.role.nameEn, code: r.role.code })),
@@ -190,7 +194,7 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
           skip: (page - 1) * pageSize,
           take: pageSize,
           orderBy: { createdAt: "desc" },
-          include: { roles: { include: { role: true } } },
+          include: { roles: { include: { role: true } }, department: { select: { id: true, nameZh: true, nameEn: true } } },
         }),
         prisma.user.count({ where }),
       ])
@@ -214,12 +218,18 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
       },
     }),
     async (c) => {
-      const { username, password, nickname, email, telephone, roleIds } = c.req.valid("json")
+      const { username, password, nickname, email, telephone, departmentId, roleIds } = c.req.valid("json")
       const passwordHash = await hashPassword(password)
       const data: Prisma.UserCreateInput = { username: username.toLowerCase(), passwordHash, nickname }
       // exactOptionalPropertyTypes：undefined 不传；username/email 统一小写存储
       if (email) data.email = email.toLowerCase()
       if (telephone) data.telephone = telephone
+      if (departmentId !== undefined && departmentId !== null) {
+        const dept = await prisma.department.findUnique({ where: { id: departmentId }, select: { id: true } })
+        if (!dept) throw badRequest("部门不存在")
+        // UserCreateInput 为关系型：外键 scalar（departmentId）在 Unchecked 变体，此处用嵌套连接
+        data.department = { connect: { id: departmentId } }
+      }
       try {
         const user = await prisma.$transaction(async (tx) => {
           const roles = roleIds ? await resolveRoleIds(tx, roleIds) : []
@@ -376,6 +386,16 @@ export function userRoutes(cfg: AppConfig): OpenAPIHono {
       if (fields.email !== undefined) data.email = fields.email === null ? null : fields.email.toLowerCase()
       if (fields.telephone !== undefined) data.telephone = fields.telephone
       if (fields.status !== undefined) data.status = fields.status
+      // 部门：undefined 不修改、null 断开连接、id 校验存在后连接（UserUpdateInput 关系型语法）
+      if (fields.departmentId !== undefined) {
+        if (fields.departmentId !== null) {
+          const dept = await prisma.department.findUnique({ where: { id: fields.departmentId }, select: { id: true } })
+          if (!dept) throw badRequest("部门不存在")
+          data.department = { connect: { id: fields.departmentId } }
+        } else {
+          data.department = { disconnect: true }
+        }
+      }
       if (password !== undefined) data.passwordHash = await hashPassword(password)
       try {
         if (roleIds !== undefined) {

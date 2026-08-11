@@ -28,6 +28,8 @@ model User {
   telephone     String?        @unique
   /// 头像文件名（上传到 /api/files，访问路径 /api/files/{avatar}）
   avatar        String?
+  /// 所属部门 ID（组织归属；不参与权限计算，null=未分配）
+  departmentId  String?
   /// Clerk 用户 ID 映射（Clerk 登录时关联）
   clerkId       String?        @unique
   /// 启用状态（false=禁用）
@@ -48,6 +50,34 @@ model User {
   operationLogs OperationLog[]
   /// 站内通知记录（用户删除时级联删除）
   notifications Notification[]
+  /// 所属部门（部门删除时置空，不级联删用户）
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+}
+
+/// 部门表（组织架构树；仅组织归属，不参与权限交集计算）
+model Department {
+  /// 主键（cuid 全局唯一）
+  id        String   @id @default(cuid())
+  /// 中文名称（zh 界面展示）
+  nameZh    String
+  /// 英文名称（en 界面展示，未填回落 nameZh）
+  nameEn    String?
+  /// 上级部门 ID（null=根部门）
+  parentId  String?
+  /// 排序值（同层展示顺序）
+  sort      Int      @default(0)
+  /// 启用状态（false=禁用）
+  status    Boolean  @default(true)
+  /// 创建时间（UTC）
+  createdAt DateTime @default(now())
+  /// 更新时间（UTC）
+  updatedAt DateTime @updatedAt
+  /// 子部门（父部门删除时级联删除——onDelete 定义在 parent 引用侧）
+  children  Department[] @relation("DepartmentChildren")
+  /// 上级部门
+  parent    Department?  @relation("DepartmentChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  /// 部门内用户（部门删除时置空）
+  users     User[]
 }
 
 /// 角色（权限分组，通过 UserRole 关联用户、RoleMenu 关联菜单权限）
@@ -340,4 +370,20 @@ model Notification {
 
   /// 复合索引（按用户分页查询 + 未读数统计）
   @@index([userId, isRead, createdAt])
+}
+
+/// 公告表（全局公告：管理员发布，登录用户首页横幅展示）
+model Announcement {
+  /// 主键（cuid 全局唯一）
+  id        String   @id @default(cuid())
+  /// 公告标题
+  title     String
+  /// 公告内容（正文，可多行；切 MySQL 如需超长请加 @db.Text——默认 VARCHAR(191) 会截断）
+  content   String
+  /// 发布状态（false=下架，下架后首页不再展示）
+  status    Boolean  @default(true)
+  /// 创建时间（UTC）
+  createdAt DateTime @default(now())
+  /// 更新时间（UTC）
+  updatedAt DateTime @updatedAt
 }

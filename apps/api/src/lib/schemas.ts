@@ -108,6 +108,10 @@ export const userListItemSchema = z
     email: z.string().nullable(),
     telephone: z.string().nullable(),
     avatar: z.string().nullable(),
+    /** 所属部门（双名，前端按语言选择展示；null=未分配） */
+    department: z
+      .object({ id: z.string(), nameZh: z.string(), nameEn: z.string().nullable() })
+      .nullable(),
     status: z.boolean(),
     createdAt: z.string(),
     roles: z.array(userRoleSchema),
@@ -307,3 +311,43 @@ export const fileDetailSchema = z
     mimeType: z.string(),
   })
   .openapi("FileDetail")
+
+/** 部门列表项（扁平列表返回，前端经 shared buildTree 建树；userCount 为部门直属用户数） */
+export const departmentItemSchema = z
+  .object({
+    id: z.string(),
+    parentId: z.string().nullable(),
+    nameZh: z.string(),
+    nameEn: z.string().nullable(),
+    sort: z.number(),
+    status: z.boolean(),
+    userCount: z.number(),
+    createdAt: z.string(),
+  })
+  .openapi("DepartmentItem")
+
+/** 部门列表响应（扁平数组；前端建树展示） */
+export const departmentListSchema = z.array(departmentItemSchema).openapi("DepartmentList")
+
+/** 公告列表项（分页列表 data.list 元素；status=false 下架，首页不再展示） */
+export const announcementItemSchema = z
+  .object({
+    id: z.string(),
+    title: z.string(),
+    content: z.string(),
+    status: z.boolean(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  })
+  .openapi("AnnouncementItem")
+
+/** 公告分页结果 */
+export const announcementPageResultSchema = z
+  .object({ list: z.array(announcementItemSchema), total: z.number() })
+  .openapi("AnnouncementPageResult")
+
+/** 最新已发布公告（首页横幅；无公告时 data 为 null） */
+export const latestAnnouncementSchema = announcementItemSchema
+  .omit({ updatedAt: true })
+  .nullable()
+  .openapi("LatestAnnouncement")

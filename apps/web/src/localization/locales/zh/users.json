@@ -13,6 +13,8 @@
   "telephone": "手机号",
   "status": "状态",
   "roles": "角色",
+  "department": "部门",
+  "departmentNone": "未分配",
   "createdAt": "创建时间",
   "actions": "操作",
   "enabled": "启用",

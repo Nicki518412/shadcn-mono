@@ -13,6 +13,8 @@
   "telephone": "Phone",
   "status": "Status",
   "roles": "Roles",
+  "department": "Department",
+  "departmentNone": "Unassigned",
   "createdAt": "Created At",
   "actions": "Actions",
   "enabled": "Enabled",

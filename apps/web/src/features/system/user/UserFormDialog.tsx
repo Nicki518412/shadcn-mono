@@ -21,11 +21,33 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { roleDisplayName } from "@/localization/menuName"
+import { menuDisplayName, roleDisplayName } from "@/localization/menuName"
+import { useDepartmentsQuery } from "../department/useDepartments"
+import { buildDepartmentTree } from "../department/DepartmentTreeTable"
+import type { DepartmentNode } from "../department/DepartmentTreeTable"
 import { useRolesListQuery } from "../role/useRoles"
 import { useCreateUserMutation, useUpdateUserMutation } from "./useUsers"
 import type { UserCreateInput, UserListItem, UserUpdateInput } from "./useUsers"
+
+/** 收集部门树选项（{ id, name, depth }，depth 用于缩进展示） */
+function collectDepartmentOptions(
+  list: DepartmentNode[],
+  depth: number,
+  result: { id: string; name: string; depth: number }[],
+): void {
+  for (const node of list) {
+    result.push({ id: node.id, name: menuDisplayName(node), depth })
+    collectDepartmentOptions(node.children, depth + 1, result)
+  }
+}
 
 /**
  * 新增/编辑用户 Dialog（页面按条件挂载，每次打开全新初始化，无需重置逻辑）：
@@ -44,6 +66,7 @@ export function UserFormDialog({
   const { t } = useTranslation("users")
   const isEdit = Boolean(user)
   const rolesQuery = useRolesListQuery()
+  const departmentsQuery = useDepartmentsQuery()
   const createMutation = useCreateUserMutation()
   const updateMutation = useUpdateUserMutation()
 
@@ -53,6 +76,9 @@ export function UserFormDialog({
   const [telephone, setTelephone] = useState(user?.telephone ?? "")
   const [password, setPassword] = useState("")
   const [status, setStatus] = useState(user?.status ?? true)
+  const [departmentId, setDepartmentId] = useState(user?.department?.id ?? "")
+  const departmentOptions: { id: string; name: string; depth: number }[] = []
+  collectDepartmentOptions(buildDepartmentTree(departmentsQuery.data ?? []), 0, departmentOptions)
   const [roleIds, setRoleIds] = useState<Set<string>>(
     () => new Set(user?.roles.map((role) => role.id) ?? []),
   )
@@ -84,6 +110,8 @@ export function UserFormDialog({
       return
     }
     setError(null)
+    // 部门：留空 = null（未分配/清空），否则传选中部门 id
+    const department: string | null = departmentId === "" ? null : departmentId
     if (isEdit && user) {
       const body: UserUpdateInput = {
         nickname: nickname.trim(),
@@ -91,6 +119,7 @@ export function UserFormDialog({
         telephone: telephone.trim() === "" ? null : telephone.trim(),
         status,
         roleIds: [...roleIds],
+        departmentId: department,
       }
       if (password) body.password = password
       updateMutation.mutate({ id: user.id, body }, { onSuccess: () => { onClose(); } })
@@ -103,6 +132,7 @@ export function UserFormDialog({
       if (email.trim()) body.email = email.trim()
       if (telephone.trim()) body.telephone = telephone.trim()
       if (roleIds.size > 0) body.roleIds = [...roleIds]
+      if (department !== null) body.departmentId = department
       createMutation.mutate(body, { onSuccess: () => { onClose(); } })
     }
   }
@@ -213,6 +243,37 @@ export function UserFormDialog({
                 onCheckedChange={setStatus}
               />
               <FieldLabel htmlFor="user-form-status">{t("enabled")}</FieldLabel>
+            </Field>
+            {/* 所属部门：树形缩进选项；留空 = 未分配（编辑时清空已挂部门） */}
+            <Field>
+              <FieldLabel htmlFor="user-form-department">{t("department")}</FieldLabel>
+              <FieldContent>
+                <Select
+                  value={departmentId}
+                  onValueChange={(value) => {
+                    if (value !== null) setDepartmentId(value)
+                  }}
+                >
+                  <SelectTrigger id="user-form-department" className="w-full">
+                    <SelectValue>
+                      {(value) =>
+                        departmentOptions.find((option) => option.id === value)?.name ??
+                        t("departmentNone")
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">{t("departmentNone")}</SelectItem>
+                    {departmentOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id} label={option.name}>
+                        <span style={{ paddingLeft: `${String(option.depth * 12)}px` }}>
+                          {option.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FieldContent>
             </Field>
             <Field>
               <FieldLabel>{t("roles")}</FieldLabel>

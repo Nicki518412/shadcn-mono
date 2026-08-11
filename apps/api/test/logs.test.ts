@@ -192,8 +192,11 @@ describe("audit logs", () => {
     }
     expect(Array.isArray(body.data.list)).toBe(true)
     expect(typeof body.data.total).toBe("number")
-    // 列表按时间倒序，最近的记录（admin 成功登录）应在前
-    expect(body.data.list[0]?.username).toBe(ADMIN_USERNAME)
-    expect(body.data.list[0]?.status).toBe("SUCCESS")
+    // 列表按时间倒序；本用例内 log_plain 登录在 admin 之后，不能断言"第一条是 admin"——
+    // 改为包含性断言：admin 的成功登录记录存在（时序无关）
+    const adminSuccess = body.data.list.find(
+      (item) => item.username === ADMIN_USERNAME && item.status === "SUCCESS",
+    )
+    expect(adminSuccess).toBeDefined()
   })
 })

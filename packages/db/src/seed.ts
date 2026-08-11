@@ -44,6 +44,19 @@ async function upsertMenu(input: MenuSeedInput): Promise<string> {
   return created.id
 }
 
+/** 部门幂等 upsert：按 nameZh+parentId 匹配（无唯一键），存在则同步 nameEn/sort，不重复创建 */
+async function upsertDepartment(nameZh: string, nameEn: string, parentId: string | null, sort: number): Promise<string> {
+  const existing = await prisma.department.findFirst({ where: { nameZh, parentId } })
+  if (existing) {
+    if (existing.nameEn !== nameEn || existing.sort !== sort) {
+      await prisma.department.update({ where: { id: existing.id }, data: { nameEn, sort } })
+    }
+    return existing.id
+  }
+  const created = await prisma.department.create({ data: { nameZh, nameEn, parentId, sort } })
+  return created.id
+}
+
 export async function runSeed(): Promise<void> {
   try {
     // 1. 菜单树（与设计文档 §9 一致；nameEn 为英文展示名，en 语言时优先展示，未填回落 nameZh）
@@ -102,6 +115,20 @@ export async function runSeed(): Promise<void> {
       sort: 8, parentId: sysId,
     })
     await upsertMenu({ nameZh: "发送通知", nameEn: "Send Notification", type: "BUTTON", permission: "system:notification:create", sort: 1, parentId: notificationMenuId })
+    const deptMenuId = await upsertMenu({
+      nameZh: "部门管理", nameEn: "Departments", type: "MENU", path: "/system/department", component: "system/department",
+      permission: "system:dept:query", sort: 9, parentId: sysId,
+    })
+    await upsertMenu({ nameZh: "部门新增", nameEn: "Add Department", type: "BUTTON", permission: "system:dept:create", sort: 1, parentId: deptMenuId })
+    await upsertMenu({ nameZh: "部门编辑", nameEn: "Edit Department", type: "BUTTON", permission: "system:dept:update", sort: 2, parentId: deptMenuId })
+    await upsertMenu({ nameZh: "部门删除", nameEn: "Delete Department", type: "BUTTON", permission: "system:dept:delete", sort: 3, parentId: deptMenuId })
+    const announcementMenuId = await upsertMenu({
+      nameZh: "公告管理", nameEn: "Announcements", type: "MENU", path: "/system/announcement", component: "system/announcement",
+      permission: "system:announcement:query", sort: 10, parentId: sysId,
+    })
+    await upsertMenu({ nameZh: "公告新增", nameEn: "Add Announcement", type: "BUTTON", permission: "system:announcement:create", sort: 1, parentId: announcementMenuId })
+    await upsertMenu({ nameZh: "公告编辑", nameEn: "Edit Announcement", type: "BUTTON", permission: "system:announcement:update", sort: 2, parentId: announcementMenuId })
+    await upsertMenu({ nameZh: "公告删除", nameEn: "Delete Announcement", type: "BUTTON", permission: "system:announcement:delete", sort: 3, parentId: announcementMenuId })
 
     // 2. 角色：ADMIN 授权全量菜单+按钮；GUEST 仅 Dashboard（deleteMany + createMany 全量覆盖，幂等）
     const allMenuIds = (await prisma.menu.findMany({ select: { id: true } })).map((m) => m.id)
@@ -169,6 +196,25 @@ export async function runSeed(): Promise<void> {
       create: { configKey: "user.password.minLength", configValue: "8", nameZh: "密码最小长度", nameEn: "Min Password Length", description: "登录/修改密码时密码的最小长度（示例数据，供演示参数配置用法）" },
     })
 
+    // 3.1 演示部门树：按 nameZh+parentId 幂等 upsert（无唯一键，匹配名称与上级）；admin 挂根部门
+    const hqDept = await upsertDepartment("总部", "Headquarters", null, 1)
+    await upsertDepartment("技术部", "Engineering", hqDept, 1)
+    await upsertDepartment("市场部", "Marketing", hqDept, 2)
+    await upsertDepartment("财务部", "Finance", hqDept, 3)
+    if (adminUser.departmentId === null) {
+      await prisma.user.update({ where: { id: adminUser.id }, data: { departmentId: hqDept } })
+    }
+
+    // 4.0 演示公告：仅表空时插入（公告是运营数据，重复 seed 不得覆盖人工编辑的内容）
+    if ((await prisma.announcement.count()) === 0) {
+      await prisma.announcement.create({
+        data: {
+          title: "平台上线公告",
+          content: "欢迎使用本管理平台（示例公告，可在「系统管理 → 公告管理」中维护，首页顶部横幅展示）",
+        },
+      })
+    }
+
     // 4.1 演示通知：仅表空时插入（通知是用户数据，重复 seed 不得覆盖已读状态；已存在则不追加）
     if ((await prisma.notification.count()) === 0) {
       await prisma.notification.createMany({
@@ -186,7 +232,8 @@ export async function runSeed(): Promise<void> {
     const dictTypeCount = await prisma.dictType.count()
     const configCount = await prisma.config.count()
     const notificationCount = await prisma.notification.count()
-    console.log(`seed done: 菜单 ${String(menuCount)} 条 / 角色 ${String(roleCount)} 个 / 用户 ${String(userCount)} 个 / 字典类型 ${String(dictTypeCount)} 个 / 参数 ${String(configCount)} 个 / 通知 ${String(notificationCount)} 条`)
+    const announcementCount = await prisma.announcement.count()
+    console.log(`seed done: 菜单 ${String(menuCount)} 条 / 角色 ${String(roleCount)} 个 / 用户 ${String(userCount)} 个 / 字典类型 ${String(dictTypeCount)} 个 / 参数 ${String(configCount)} 个 / 通知 ${String(notificationCount)} 条 / 公告 ${String(announcementCount)} 条`)
     console.log("默认账号: admin / Admin@123（角色 ADMIN，已授权全部菜单）")
   } finally {
     await prisma.$disconnect()

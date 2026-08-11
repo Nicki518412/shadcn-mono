@@ -10,8 +10,10 @@ import { API_INFO, type PublicUser } from "./lib/schemas.js"
 import { validationHook } from "./lib/validation-hook.js"
 import { requestIp, requestUserAgent } from "./lib/request-log.js"
 import { redactJson } from "./lib/redact.js"
+import { announcementRoutes } from "./routes/announcements.js"
 import { authRoutes } from "./routes/auth.js"
 import { configRoutes } from "./routes/configs.js"
+import { departmentRoutes } from "./routes/departments.js"
 import { dictRoutes } from "./routes/dicts.js"
 import { fileRoutes } from "./routes/files.js"
 import { logRoutes } from "./routes/logs.js"
@@ -129,6 +131,7 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
     required: ["id", "parentId", "nameZh", "nameEn", "type", "path", "component", "icon", "permission", "sort", "status", "children"],
   })
 
+  app.route("/", announcementRoutes(cfg))
   app.route("/", authRoutes(cfg))
   app.route("/", otpRoutes(cfg))
   app.route("/", meRoutes(cfg))
@@ -139,6 +142,7 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
   app.route("/", sessionRoutes(cfg))
   app.route("/", dictRoutes(cfg))
   app.route("/", configRoutes(cfg))
+  app.route("/", departmentRoutes(cfg))
   app.route("/", notificationRoutes(cfg))
   app.route("/", fileRoutes(cfg))
 

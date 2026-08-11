@@ -23,6 +23,7 @@ const userList: components["schemas"]["UserListItem"][] = [
     email: "admin@example.com",
     telephone: "13800138000",
     avatar: null,
+    department: null,
     status: true,
     createdAt: "2026-08-01T02:00:00.000Z",
     roles: [{ id: "r1", nameZh: "管理员", nameEn: "Administrator", code: "ADMIN" }],
@@ -34,6 +35,7 @@ const userList: components["schemas"]["UserListItem"][] = [
     email: null,
     telephone: null,
     avatar: null,
+    department: null,
     status: false,
     createdAt: "2026-08-02T02:00:00.000Z",
     roles: [],
@@ -194,9 +196,9 @@ describe("UserPage", () => {
     expect(screen.getByText("zhangsan")).toBeInTheDocument()
     expect(screen.getByText("启用")).toBeInTheDocument()
     expect(screen.getByText("禁用")).toBeInTheDocument()
-    // 角色 Badge（管理员）；空邮箱/手机号/角色渲染占位符
+    // 角色 Badge（管理员）；空邮箱/手机号/部门/角色渲染占位符（u1 部门空 + u2 四项空 = 5 处）
     expect(screen.getByText("管理员")).toBeInTheDocument()
-    expect(screen.getAllByText("-")).toHaveLength(3)
+    expect(screen.getAllByText("-")).toHaveLength(5)
     // Permission 全量授权：新增/编辑/分配角色/删除按钮均渲染
     expect(screen.getByRole("button", { name:"新增用户" })).toBeInTheDocument()
     expect(screen.getAllByRole("button", { name:"编辑" })).toHaveLength(2)
@@ -261,6 +263,8 @@ describe("UserPage", () => {
         telephone: null,
         status: false,
         roleIds: [],
+        // 部门未操作时提交 null（编辑表单部门下拉初始为空）
+        departmentId: null,
       })
     })
   })
