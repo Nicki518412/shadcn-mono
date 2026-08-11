@@ -1,6 +1,6 @@
 import type { JSX } from "react"
 import { useTranslation } from "react-i18next"
-import { MenuIcon, ShieldCheckIcon } from "lucide-react"
+import { MegaphoneIcon, MenuIcon, ShieldCheckIcon } from "lucide-react"
 
 import type { components } from "@/api/schema"
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { PageHeader } from "@/components/business/PageHeader"
+import { useLatestAnnouncementQuery } from "@/features/system/announcement/useAnnouncements"
 import { roleDisplayName } from "@/localization/menuName"
 import { useMeQuery } from "@/router/guards"
 
@@ -49,10 +50,25 @@ export default function DashboardPage(): JSX.Element {
   const roles = me?.roles ?? []
   const permissionCount = me?.permissionCodes.length ?? 0
   const menuCount = countMenus(me?.navTree ?? [])
+  // 最新已发布公告（全员接口仅要求登录；无公告时 data 为 null）
+  const latestAnnouncement = useLatestAnnouncementQuery().data
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={t("workspace")} description={t("welcome", { nickname: user?.nickname ?? "…" })} />
+
+      {/* 公告横幅：最新已发布公告（公告管理页维护；下架/删除后此处消失） */}
+      {latestAnnouncement && (
+        <div className="flex items-start gap-3 rounded-lg border bg-accent/50 px-4 py-3">
+          <MegaphoneIcon className="mt-0.5 size-4 shrink-0 text-primary" />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <p className="text-sm font-medium">{latestAnnouncement.title}</p>
+            <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+              {latestAnnouncement.content}
+            </p>
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader>

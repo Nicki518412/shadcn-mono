@@ -16,6 +16,11 @@ vi.mock("../src/router/guards", () => ({
   useMeQuery: () => mockMe(),
 }))
 
+// 公告横幅查询：Dashboard 依赖 latest 接口（本组用例不关心公告，mock 为无公告）
+vi.mock("../src/features/system/announcement/useAnnouncements", () => ({
+  useLatestAnnouncementQuery: () => ({ data: null }),
+}))
+
 const me: MeResponse = {
   user: {
     id: "u1",
