@@ -29,13 +29,15 @@ export class LayoutPage {
     }
   }
 
-  /** 通过侧边栏菜单导航（支持多级：目录名 → 菜单名），到达后等待路径 */
+  /** 通过侧边栏菜单导航（支持多级：目录名 → 菜单名），到达后等待路径。
+   * 目录 trigger 为开关（点击切换折叠）——仅当收起（aria-expanded=false）时才点击展开，
+   * 避免"默认展开 → 点击收起 → 菜单不可见"的误折叠 */
   async gotoMenu(dir: string, menu: string, path: string): Promise<void> {
-    // 目录默认展开；先定位目录 trigger（按钮），若子菜单不可见则点击展开
-    const dirTrigger = this.page.locator("button", { hasText: dir }).first()
+    const dirTrigger = this.page.getByRole("button", { name: dir, exact: true })
     const menuItem = this.page.getByRole("link", { name: menu }).first()
     if (!(await menuItem.isVisible().catch(() => false))) {
-      await dirTrigger.click()
+      const expanded = (await dirTrigger.getAttribute("aria-expanded")) === "true"
+      if (!expanded) await dirTrigger.click()
     }
     await menuItem.click()
     await expect(this.page).toHaveURL(new RegExp(path))
@@ -62,9 +64,9 @@ export class LayoutPage {
     await this.page.getByRole("menuitem", { name: target }).click()
   }
 
-  /** 打开左下角用户菜单 */
+  /** 打开左下角用户菜单（sidebar-footer 内 dropdown trigger；不依赖昵称文案——用例可能改过昵称） */
   async openUserMenu(): Promise<void> {
-    await this.page.getByText(/系统管理员|系统管理员/i).first().click()
+    await this.page.locator('[data-slot="sidebar-footer"] [data-slot="dropdown-menu-trigger"]').click()
   }
 }
 

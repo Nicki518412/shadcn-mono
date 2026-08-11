@@ -5,10 +5,10 @@ export const E2E_DB_URL = "file:../../../e2e/e2e.db"
 
 export default defineConfig({
   testDir: "./tests",
-  timeout: 30_000,
+  timeout: 45_000,
   expect: { timeout: 10_000 },
-  // 本地失败保留 trace 便于排查；CI 重试 1 次（webServer 首次启动慢）
-  retries: process.env.CI ? 1 : 0,
+  // 本地/CI 均重试 1 次：Windows 长时运行 + vite dev 偶发慢加载（实测单文件连跑稳定、全量组合偶发超时）
+  retries: 1,
   reporter: process.env.CI ? [["line"], ["html", { open: "never" }]] : "line",
   globalSetup: "./global-setup.ts",
   use: {
