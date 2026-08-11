@@ -69,13 +69,19 @@ export function NotificationBell(): JSX.Element {
     >
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" size="icon-sm" aria-label={t("notifications")} />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("notifications")}
+            // relative：未读徽标以铃铛按钮为定位基准（否则漂到最近的定位祖先）
+            className="relative"
+          />
         }
       >
         <BellIcon />
-        {/* 未读徽标：红点 + 数字（99+ 封顶） */}
+        {/* 未读徽标：黑白色随主题（bg-foreground/text-background），99+ 封顶 */}
         {unreadCount > 0 && (
-          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
+          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-foreground px-1 text-[10px] font-semibold leading-none text-background">
             {unreadCount > 99 ? "99+" : String(unreadCount)}
           </span>
         )}
