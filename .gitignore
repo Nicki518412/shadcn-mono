@@ -13,3 +13,5 @@ coverage/
 pnpm-debug.log*
 .eslintcache
 uploads/
+test-results/
+playwright-report/
