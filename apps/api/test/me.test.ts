@@ -242,4 +242,50 @@ describe("auth me", () => {
     expect(body.data.navTree).toEqual([])
     expect(body.data.permissionCodes).toEqual([])
   })
+
+  it("已签发 access token 在用户禁用后立即返回 401", async () => {
+    const username = "me_status_changed"
+    await createTestUser({ username, password: PASSWORD })
+    const token = await loginAs(username)
+    const user = await prisma.user.findUnique({ where: { username }, select: { id: true } })
+    if (!user) throw new Error("测试用户未创建")
+
+    await prisma.user.update({ where: { id: user.id }, data: { status: false } })
+    const res = await createApp().request("/api/auth/me", {
+      headers: { authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(401)
+    expect(((await res.json()) as { code: string }).code).toBe("UNAUTHORIZED")
+  })
+
+  it("已签发 access token 在角色撤销后立即返回空权限", async () => {
+    const username = "me_role_revoked"
+    await createTestUser({ username, password: PASSWORD })
+    const user = await prisma.user.findUnique({ where: { username }, select: { id: true } })
+    if (!user) throw new Error("测试用户未创建")
+    const role = await prisma.role.create({ data: { nameZh: "时效角色", code: "ROLE_LIVE_REVOKE" } })
+    await prisma.userRole.create({ data: { userId: user.id, roleId: role.id } })
+    await prisma.roleMenu.createMany({
+      data: [
+        { roleId: role.id, menuId: d1Id },
+        { roleId: role.id, menuId: m1Id },
+      ],
+    })
+    const token = await loginAs(username)
+
+    const before = await createApp().request("/api/auth/me", {
+      headers: { authorization: `Bearer ${token}` },
+    })
+    expect(((await before.json()) as MeBody).data.permissionCodes).toContain("system:user:query")
+
+    await prisma.userRole.deleteMany({ where: { userId: user.id } })
+    const after = await createApp().request("/api/auth/me", {
+      headers: { authorization: `Bearer ${token}` },
+    })
+    expect(after.status).toBe(200)
+    const body = (await after.json()) as MeBody
+    expect(body.data.roles).toEqual([])
+    expect(body.data.navTree).toEqual([])
+    expect(body.data.permissionCodes).toEqual([])
+  })
 })

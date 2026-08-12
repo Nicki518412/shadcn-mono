@@ -15,21 +15,35 @@ test.describe("会话管理", () => {
     await expect(adminPage.getByRole("cell").filter({ hasText: "admin" }).first()).toBeVisible()
   })
 
-  test("强制下线：fixture 会话被踢后 refresh 失效", async ({ adminPage }) => {
-    // 当前页面 context 的会话（fixture 登录）是列表中的 admin 会话——从 localStorage 取 refresh token
-    const refreshToken = await adminPage.evaluate(() => localStorage.getItem("refreshToken"))
-    if (!refreshToken) throw new Error("页面无 refresh token")
+  test("强制下线：目标会话被踢后 refresh 失效", async ({ adminPage }) => {
+    // 使用专用账号建立唯一会话，避免全量并发时从多个 admin 会话中误选其他 worker 的记录。
+    const username = `e2e_session_${Date.now()}`
+    const password = "Passw0rd!"
+    const adminLogin = await adminPage.request.post("http://localhost:3001/api/auth/login", {
+      data: { username: "admin", password: "Admin@123" },
+    })
+    const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
+    const createRes = await adminPage.request.post("http://localhost:3001/api/users", {
+      headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
+      data: { username, password, nickname: "会话测试" },
+    })
+    expect(createRes.status()).toBe(200)
+    const targetLogin = await adminPage.request.post("http://localhost:3001/api/auth/login", {
+      data: { username, password },
+    })
+    expect(targetLogin.status()).toBe(200)
+    const targetBody = (await targetLogin.json()) as { data: { refreshToken: string } }
 
     await gotoSessions(adminPage)
-    const row = adminPage.getByRole("row").filter({ hasText: "admin" }).first()
-    await row.getByRole("button", { name: "强制下线" }).click()
+    const row = adminPage.getByRole("row").filter({ hasText: username })
+    await row.getByRole("button", { name: /强制下线|Force logout/i }).click()
     const alert = adminPage.getByRole("alertdialog")
-    await alert.getByRole("button", { name: "强制下线", exact: true }).click()
+    await alert.getByRole("button", { name: /强制下线|Force logout/i, exact: true }).click()
     await expect(alert).toBeHidden()
 
     // 被踢会话的 refresh token 已吊销：refresh 轮换必须 401（JWT access token 5 分钟内仍有效，不做该断言）
     const refreshRes = await adminPage.request.post("http://localhost:3001/api/auth/refresh", {
-      data: { refreshToken },
+      data: { refreshToken: targetBody.data.refreshToken },
     })
     expect(refreshRes.status()).toBe(401)
   })

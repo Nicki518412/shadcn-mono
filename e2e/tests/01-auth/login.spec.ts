@@ -9,6 +9,16 @@ import { LoginPage } from "../../pages/login"
  * - 连续失败触发账号锁定（15 分钟）
  */
 test.describe("登录", () => {
+  test("未登录访问业务深链：登录后恢复原地址", async ({ page }) => {
+    await page.goto("/system/user?source=e2e#users")
+    await expect(page).toHaveURL(/\/login$/)
+
+    const login = new LoginPage(page)
+    await login.login("admin", "Admin@123")
+    await expect(page).toHaveURL(/\/system\/user\?source=e2e#users$/)
+    await expect(page.getByRole("heading", { name: /用户管理|Users/i })).toBeVisible()
+  })
+
   test("正确凭据登录成功并进入管理端", async ({ page }) => {
     const login = new LoginPage(page)
     await login.goto()
@@ -32,6 +42,29 @@ test.describe("登录", () => {
     await login.login("no_such_user_e2e", "WrongPass1!")
     await login.expectError()
     await expect(page.getByRole("alert")).toContainText(/用户名或密码错误|Invalid username or password/i)
+  })
+
+  test("邮箱动态码：发送后进入冷却，错误验证码给出反馈", async ({ page, request }) => {
+    const email = `e2e_otp_${Date.now()}@example.com`
+    const adminLogin = await request.post("http://localhost:3001/api/auth/login", {
+      data: { username: "admin", password: "Admin@123" },
+    })
+    const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
+    const createRes = await request.post("http://localhost:3001/api/users", {
+      headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
+      data: { username: `e2e_otp_${Date.now()}`, password: "Passw0rd!", nickname: "动态码测试", email },
+    })
+    expect(createRes.status()).toBe(200)
+
+    await page.goto("/login")
+    await page.getByRole("tab", { name: /邮箱验证码|Email/i }).click()
+    await page.getByRole("textbox", { name: /邮箱|Email/i }).fill(email)
+    await page.getByRole("button", { name: /发送验证码|Send code/i }).click()
+    await expect(page.getByRole("button", { name: /秒后重发|Resend in/i })).toBeDisabled()
+    await page.locator("#login-otp-email-code").fill("000000")
+    await page.getByRole("button", { name: /登录|Sign in/i, exact: true }).click()
+    await expect(page.getByRole("alert")).toBeVisible()
+    await expect(page).toHaveURL(/\/login$/)
   })
 
   test("连续 5 次失败：账号锁定 15 分钟", async ({ page, request }) => {

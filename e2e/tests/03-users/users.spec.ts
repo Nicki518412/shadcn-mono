@@ -102,7 +102,8 @@ test.describe("用户管理", () => {
     const download = await downloadPromise
     expect(download.suggestedFilename()).toBe("users.csv")
     const path = await download.path()
-    const content = await (await import("node:fs/promises")).readFile(path ?? "", "utf8")
+    if (!path) throw new Error("导出文件无本地路径")
+    const content = await (await import("node:fs/promises")).readFile(path, "utf8")
     expect(content).toContain("用户名")
   })
 })

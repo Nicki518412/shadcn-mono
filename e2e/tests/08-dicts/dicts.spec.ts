@@ -38,17 +38,25 @@ test.describe("数据字典", () => {
     await adminPage.reload()
     const row = adminPage.getByRole("row").filter({ hasText: code })
     await expect(row).toBeVisible()
-    await row.getByRole("button", { name: /编辑/ }).click()
+    await row.getByRole("button", { name: /编辑|Edit/i }).click()
     // 字典项为行内编辑：新增一行后直接填列（labelZh/labelEn/value/sort/status）
     const dialog = adminPage.getByRole("dialog")
-    await dialog.getByRole("button", { name: /新增字典项/ }).click()
+    await dialog.getByRole("button", { name: /添加项|Add Item/i }).click()
     const newRow = dialog.locator("tbody tr").last()
     await newRow.locator("input").nth(0).fill("E2E 项")
     await newRow.locator("input").nth(2).fill("e2e_value")
-    await dialog.getByRole("button", { name: "保存" }).click()
-    await expect(dialog).toBeHidden()
-    // 列表可见项
+    const saveResponse = adminPage.waitForResponse(
+      (response) => response.request().method() === "PUT" && /\/api\/dicts\/types\/[^/]+\/items$/.test(response.url()),
+    )
+    await dialog.getByRole("button", { name: /保存字典项|Save Items/i }).click()
+    expect((await saveResponse).status()).toBe(200)
+    // 保存后详情弹窗保持打开；刷新并重新打开详情，验证持久化回显。
     await adminPage.reload()
-    await expect(adminPage.getByRole("cell").filter({ hasText: "E2E 项" }).first()).toBeVisible()
+    const persistedRow = adminPage.getByRole("row").filter({ hasText: code })
+    await persistedRow.getByRole("button", { name: /编辑|Edit/i }).click()
+    const persistedDialog = adminPage.getByRole("dialog")
+    const persistedItemRow = persistedDialog.locator("tbody tr").last()
+    await expect(persistedItemRow.locator("input").nth(0)).toHaveValue("E2E 项")
+    await expect(persistedItemRow.locator("input").nth(2)).toHaveValue("e2e_value")
   })
 })

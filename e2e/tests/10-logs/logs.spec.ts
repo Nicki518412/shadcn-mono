@@ -40,10 +40,10 @@ test.describe("日志管理", () => {
 
     await gotoLogs(adminPage)
     await adminPage.getByRole("tab", { name: "操作日志" }).click()
-    // 最新一条为刚创建的参数写操作（列表倒序；行文本含请求路径 /api/configs）
-    const firstRow = adminPage.getByRole("row").nth(1)
-    await expect(firstRow).toContainText("/api/configs")
-    await firstRow.getByRole("button", { name: "详情" }).click()
+    // 其他业务也可能同时写日志，按本用例的请求路径定位，避免依赖全库最新记录。
+    const configRow = adminPage.getByRole("row").filter({ hasText: "/api/configs" }).first()
+    await expect(configRow).toBeVisible()
+    await configRow.getByRole("button", { name: /详情|Details/i }).click()
     await expect(adminPage.getByRole("dialog")).toContainText(/操作日志详情|Details/i)
   })
 })

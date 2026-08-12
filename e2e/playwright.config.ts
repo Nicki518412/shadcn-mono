@@ -9,6 +9,9 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   // 本地/CI 均重试 1 次：Windows 长时运行 + vite dev 偶发慢加载（实测单文件连跑稳定、全量组合偶发超时）
   retries: 1,
+  // 全套场景共享一份 E2E 数据库，且包含修改 admin 密码/语言等全局状态的用例。
+  // 串行执行可避免跨文件 worker 互相污染；单个用例内部仍可自行验证并发业务。
+  workers: 1,
   reporter: process.env.CI ? [["line"], ["html", { open: "never" }]] : "line",
   globalSetup: "./global-setup.ts",
   use: {

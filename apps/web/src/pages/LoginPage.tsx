@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { SignIn } from "@clerk/clerk-react"
-import { useNavigate } from "react-router"
+import { useQueryClient } from "@tanstack/react-query"
+import { useLocation, useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
 
 import { useAuth } from "@/auth/AuthProvider"
@@ -14,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { Spinner } from "@/components/ui/spinner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ME_QUERY_KEY } from "@/router/guards"
 
 /** 发送动态码后的冷却秒数 */
 const OTP_SEND_COOLDOWN_SECONDS = 60
@@ -127,6 +129,8 @@ function OtpLoginForm({
 
 export default function LoginPage() {
   const auth = useAuth()
+  const queryClient = useQueryClient()
+  const location = useLocation()
   const navigate = useNavigate()
   const { t } = useTranslation("login")
 
@@ -136,6 +140,12 @@ export default function LoginPage() {
   const [otpCooldown, setOtpCooldown] = useState(0)
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
+
+  const from = (location.state as { from?: { pathname?: unknown; search?: unknown; hash?: unknown } } | null)?.from
+  const destination =
+    typeof from?.pathname === "string" && from.pathname.startsWith("/") && !from.pathname.startsWith("//")
+      ? `${from.pathname}${typeof from.search === "string" ? from.search : ""}${typeof from.hash === "string" ? from.hash : ""}`
+      : "/"
 
   useEffect(() => {
     if (otpCooldown <= 0) return
@@ -152,9 +162,8 @@ export default function LoginPage() {
     setPending(true)
     try {
       await auth.login({ kind: "password", username, password })
-      // from 恢复未做（简单方案）：RequireAuth 已在 state.from 携带原地址，后续如需可改为
-      // const from = (location.state as { from?: Location } | null)?.from?.pathname ?? "/" 后 navigate(from, { replace: true })
-      void navigate("/")
+      queryClient.removeQueries({ queryKey: ME_QUERY_KEY })
+      void navigate(destination, { replace: true })
     } catch (err) {
       setError(errorMessage(err))
     } finally {
@@ -167,7 +176,8 @@ export default function LoginPage() {
     setPending(true)
     try {
       await auth.login({ kind: "otp", channel, target: target.trim(), code })
-      void navigate("/")
+      queryClient.removeQueries({ queryKey: ME_QUERY_KEY })
+      void navigate(destination, { replace: true })
     } catch (err) {
       setError(errorMessage(err))
     } finally {

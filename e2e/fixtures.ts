@@ -1,4 +1,5 @@
 import { test as base, expect } from "@playwright/test"
+import type { Page } from "@playwright/test"
 
 /**
  * 管理端会话 fixture：每个用例独立 API 登录并注入 refresh token。
@@ -6,7 +7,7 @@ import { test as base, expect } from "@playwright/test"
  * 多 context 复用同一 token 会因轮换竞态把后续 context 踢回登录页。
  * 登录为幂等操作（每次新建独立会话），用例之间互不干扰。
  */
-export const test = base.extend({
+export const test = base.extend<{ adminPage: Page }>({
   adminPage: async ({ page, request }, use) => {
     const loginRes = await request.post("http://localhost:3001/api/auth/login", {
       data: { username: "admin", password: "Admin@123" },

@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { NavigateFunction } from "react-router"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
@@ -11,6 +12,7 @@ const { navigate } = vi.hoisted(() => ({
 }))
 
 vi.mock("react-router", () => ({
+  useLocation: () => ({ pathname: "/login", search: "", hash: "", state: null, key: "test" }),
   useNavigate: () => navigate,
 }))
 
@@ -37,10 +39,13 @@ function createMockProvider(overrides: Partial<AuthProvider> = {}): AuthProvider
 }
 
 function renderLoginPage(provider: AuthProvider) {
+  const queryClient = new QueryClient()
   return render(
-    <AuthProviderView provider={provider}>
-      <LoginPage />
-    </AuthProviderView>,
+    <QueryClientProvider client={queryClient}>
+      <AuthProviderView provider={provider}>
+        <LoginPage />
+      </AuthProviderView>
+    </QueryClientProvider>,
   )
 }
 
@@ -85,7 +90,7 @@ describe("LoginPage", () => {
         username: "admin",
         password: "Admin@123",
       })
-      expect(navigate).toHaveBeenCalledWith("/")
+      expect(navigate).toHaveBeenCalledWith("/", { replace: true })
     })
   })
 

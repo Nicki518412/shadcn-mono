@@ -52,7 +52,10 @@ jobs:
           git diff --exit-code -- apps/api/openapi.json apps/web/src/api/schema.d.ts
 
       - name: Lint
-        run: pnpm turbo lint
+        run: pnpm turbo lint && pnpm lint:e2e
+
+      - name: Typecheck E2E
+        run: pnpm typecheck:e2e
 
       - name: Test
         run: pnpm turbo test

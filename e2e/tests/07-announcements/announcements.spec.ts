@@ -37,7 +37,7 @@ test.describe("公告管理", () => {
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
     const createRes = await adminPage.request.post("http://localhost:3001/api/announcements", {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
-      data: { title, content: "待删除公告", published: true },
+      data: { title, content: "待删除公告", status: true },
     })
     if (createRes.status() !== 200) throw new Error(`API 创建公告失败: ${String(createRes.status())}`)
     await adminPage.reload()

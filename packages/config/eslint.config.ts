@@ -31,6 +31,15 @@ export const config = tseslint.config(
       "apps/web/src/hooks/use-mobile.ts",
     ],
   },
+  {
+    files: ["e2e/**/*.ts"],
+    rules: {
+      // Playwright page-object helper 中内联框架类型可避免只为单个参数增加重复 import。
+      "@typescript-eslint/consistent-type-imports": "off",
+      // E2E 数据使用 Date.now() 生成跨场景唯一标识，数字模板是预期行为。
+      "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
+    },
+  },
 )
 
 export default config
