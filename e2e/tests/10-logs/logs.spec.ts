@@ -27,21 +27,22 @@ test.describe("日志管理", () => {
   })
 
   test("操作日志详情：弹窗展示请求信息", async ({ adminPage }) => {
-    // 前置：制造一条写操作（POST /api/configs 会被操作日志中间件记录，登录接口被跳过）
+    // 前置：制造一条写操作（POST /api/dicts/types 会被操作日志中间件记录，登录接口被跳过）。
+    // 不用 /api/configs：其请求体快照已被审计侧跳过（configValue 可能存凭据），无快照则详情按钮不渲染
     const adminLogin = await adminPage.request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
-    const writeRes = await adminPage.request.post(`${API_BASE_URL}/api/configs`, {
+    const writeRes = await adminPage.request.post(`${API_BASE_URL}/api/dicts/types`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
-      data: { configKey: `e2e_log_src_${Date.now()}`, configValue: "v", nameZh: "日志详情来源" },
+      data: { typeCode: `e2e_log_src_${Date.now()}`, nameZh: "日志详情来源" },
     })
     if (writeRes.status() !== 200) throw new Error(`API 写操作失败: ${String(writeRes.status())}`)
 
     await gotoLogs(adminPage)
     await adminPage.getByRole("tab", { name: "操作日志" }).click()
     // 其他业务也可能同时写日志，按本用例的请求路径定位，避免依赖全库最新记录。
-    const configRow = adminPage.getByRole("row").filter({ hasText: "/api/configs" }).first()
+    const configRow = adminPage.getByRole("row").filter({ hasText: "/api/dicts/types" }).first()
     await expect(configRow).toBeVisible()
     await configRow.getByRole("button", { name: /详情|Details/i }).click()
     await expect(adminPage.getByRole("dialog")).toContainText(/操作日志详情|Details/i)

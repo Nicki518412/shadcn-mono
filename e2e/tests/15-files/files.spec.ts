@@ -40,10 +40,12 @@ test.describe("文件与头像", () => {
       headers: { authorization: `Bearer ${loginBody.data.accessToken}` },
     })
     expect(meRes.status()).toBe(200)
-    const meBody = (await meRes.json()) as { data: { avatar: string | null } }
-    expect(meBody.data.avatar).not.toBeNull()
+    // me 响应结构：data.user.avatar（UserPublic 嵌套在 user 下）
+    const meBody = (await meRes.json()) as { data: { user: { avatar: string | null } } }
+    const savedAvatar = meBody.data.user.avatar
+    expect(savedAvatar).not.toBeNull()
 
-    const fileRes = await adminPage.request.get(`${API_BASE_URL}/api/files/${String(meBody.data.avatar)}`, {
+    const fileRes = await adminPage.request.get(`${API_BASE_URL}/api/files/${String(savedAvatar)}`, {
       headers: { authorization: `Bearer ${loginBody.data.accessToken}` },
     })
     expect(fileRes.status()).toBe(200)
