@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest"
+import { beforeAll, describe, expect, it, vi } from "vitest"
 import type { z } from "@hono/zod-openapi"
 import type { loginResponseSchema, tokenPairSchema } from "../src/lib/schemas.js"
 import { createApp } from "../src/index.js"
@@ -61,6 +61,27 @@ describe("auth", () => {
     const res = await loginRequest(app, "throttle_test", "Passw0rd!")
     expect(res.status).toBe(423)
     expect(((await res.json()) as { code: string }).code).toBe("ACCOUNT_LOCKED")
+  })
+
+  it("锁定 15 分钟自然过期后恢复登录", async () => {
+    await createTestUser({ username: "expire_lock_test", password: "Passw0rd!" })
+    const app = createApp()
+    // 仅伪造 Date（不动 setTimeout 等）：scrypt/JWT 为原生异步，不受影响；
+    // 锁定时间与 token exp 均基于 Date.now，伪造后可在测试内前进 15 分钟验证自然解锁
+    vi.useFakeTimers({ toFake: ["Date"] })
+    try {
+      for (let i = 0; i < 5; i++) {
+        const res = await loginRequest(app, "expire_lock_test", "wrongpass")
+        expect(res.status).toBe(401)
+      }
+      expect((await loginRequest(app, "expire_lock_test", "Passw0rd!")).status).toBe(423)
+      // 前进 15 分钟 + 1ms：锁定自然过期，正确密码可登录
+      vi.setSystemTime(Date.now() + 15 * 60 * 1000 + 1)
+      const recovered = await loginRequest(app, "expire_lock_test", "Passw0rd!")
+      expect(recovered.status).toBe(200)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it("更换 X-Forwarded-For 不能绕过账号锁定", async () => {

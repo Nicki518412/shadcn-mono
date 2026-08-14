@@ -3,6 +3,7 @@ import type { z } from "@hono/zod-openapi"
 import { prisma } from "@repo/db"
 import { createApp } from "../src/index.js"
 import { hashPassword } from "@repo/db"
+import { loginAs, upsertMenu } from "./helpers.js"
 import type { roleListItemSchema, rolePageResultSchema } from "../src/lib/schemas.js"
 
 const ADMIN_USERNAME = "roles_admin"
@@ -23,33 +24,6 @@ let bCreateId: string
 let bUpdateId: string
 let bDeleteId: string
 let bAssignId: string
-
-/** 按权限码查菜单，不存在则创建（permission 唯一索引：其他测试文件可能已建同码菜单，复用而非重建） */
-async function upsertMenu(data: {
-  nameZh:string
-  type: string
-  permission: string
-  parentId?: string
-  path?: string
-  component?: string
-  icon?: string
-  sort: number
-}): Promise<{ id: string }> {
-  const existing = await prisma.menu.findUnique({ where: { permission: data.permission } })
-  return existing ?? prisma.menu.create({ data })
-}
-
-async function loginAdmin(): Promise<string> {
-  const app = createApp()
-  const res = await app.request("/api/auth/login", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ username: ADMIN_USERNAME, password: ADMIN_PASSWORD }),
-  })
-  if (res.status !== 200) throw new Error(`登录失败: ${String(res.status)}`)
-  const body = (await res.json()) as { data: { accessToken: string } }
-  return body.data.accessToken
-}
 
 describe("roles CRUD", () => {
   beforeAll(async () => {
@@ -122,7 +96,7 @@ describe("roles CRUD", () => {
 
   it("创建角色：code 统一转大写存储；重复 code（不同大小写）409 且 message 含“角色编码”", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const create = await app.request("/api/roles", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
@@ -150,7 +124,7 @@ describe("roles CRUD", () => {
 
   it("菜单授权：PUT 全量提交（含 DIR/MENU/BUTTON 混合）+ GET 回显一致；不存在的菜单 id 返回 400", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const role = await prisma.role.create({ data: { nameZh:"授权角色", code: "ROLE_CRUD_GRANT" } })
     const menuIds = [dirId, roleMenuId, bCreateId, bUpdateId, bDeleteId, bAssignId]
@@ -180,7 +154,7 @@ describe("roles CRUD", () => {
 
   it("删除角色：UserRole 级联清理、用户不受影响；不存在的 id GET/PATCH/DELETE 返回 404", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { authorization: `Bearer ${token}` }
     const role = await prisma.role.create({ data: { nameZh:"待删角色", code: "ROLE_CRUD_DEL" } })
     const user = await prisma.user.create({
@@ -208,7 +182,7 @@ describe("roles CRUD", () => {
 
   it("更新角色：PATCH 改名/禁用/清空描述/改 code（小写输入转大写存储）；code 撞已存在角色 409 不落库", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const role = await prisma.role.create({
       data: { nameZh:"旧名", code: "ROLE_CRUD_PATCH1", description: "原始描述", sort: 1 },
@@ -246,7 +220,7 @@ describe("roles CRUD", () => {
 
   it("菜单授权边界：重复 menuId 去重、空数组清空、超大数组 400、不存在角色 GET/PUT 404", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const role = await prisma.role.create({ data: { nameZh:"边界角色", code: "ROLE_CRUD_EDGE" } })
     // 重复 menuId：Set 去重后落库（回显仅 1 个）
@@ -297,7 +271,7 @@ describe("roles CRUD", () => {
 
   it("pageSize 超过上限 100 返回 400", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const res = await app.request("/api/roles?page=1&pageSize=101", {
       headers: { authorization: `Bearer ${token}` },
     })
@@ -306,7 +280,7 @@ describe("roles CRUD", () => {
 
   it("分页列表：page/pageSize 生效、total 正确；keyword 匹配 name 与 code", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { authorization: `Bearer ${token}` }
     await Promise.all([
       prisma.role.create({ data: { nameZh:"关键词一号", code: "ROLE_CRUD_KW1", sort: 1 } }),
@@ -339,7 +313,7 @@ describe("roles CRUD", () => {
 
   it("GET /roles/list：全量返回（无分页、含管理员角色），供下拉使用", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { authorization: `Bearer ${token}` }
     await prisma.role.create({ data: { nameZh:"下拉角色一", code: "ROLE_CRUD_LIST1", sort: 5 } })
     await prisma.role.create({ data: { nameZh:"下拉角色二", code: "ROLE_CRUD_LIST2", sort: 6 } })

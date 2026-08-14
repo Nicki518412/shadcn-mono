@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 import type { z } from "@hono/zod-openapi"
 import { hashPassword, prisma } from "@repo/db"
 import { createApp } from "../src/index.js"
+import { loginAs, upsertMenu } from "./helpers.js"
 import type { sessionPageResultSchema } from "../src/lib/schemas.js"
 import { hashToken } from "../src/lib/tokens.js"
 
@@ -17,21 +18,6 @@ interface TokenBody {
 
 // beforeAll 建的菜单 id（测试间复用）
 let sessionQueryMenuId: string
-
-/** 按权限码查菜单，不存在则创建（permission 唯一索引：其他测试文件可能已建同码菜单，复用而非重建） */
-async function upsertMenu(data: {
-  nameZh: string
-  type: string
-  permission: string
-  parentId?: string
-  path?: string
-  component?: string
-  icon?: string
-  sort: number
-}): Promise<{ id: string }> {
-  const existing = await prisma.menu.findUnique({ where: { permission: data.permission } })
-  return existing ?? prisma.menu.create({ data })
-}
 
 function loginRequest(
   app: ReturnType<typeof createApp>,
@@ -52,14 +38,6 @@ function refreshRequest(app: ReturnType<typeof createApp>, refreshToken: string)
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ refreshToken }),
   })
-}
-
-async function loginAdmin(): Promise<string> {
-  const app = createApp()
-  const res = await loginRequest(app, ADMIN_USERNAME, ADMIN_PASSWORD)
-  if (res.status !== 200) throw new Error(`登录失败: ${String(res.status)}`)
-  const body = (await res.json()) as TokenBody
-  return body.data.accessToken
 }
 
 describe("sessions", () => {
@@ -107,7 +85,7 @@ describe("sessions", () => {
       "user-agent": "sess-ua-test",
     })
     expect(loginRes.status).toBe(200)
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const res = await app.request("/api/sessions?page=1&pageSize=10", {
       headers: { authorization: `Bearer ${token}` },
     })
@@ -127,7 +105,7 @@ describe("sessions", () => {
     const record = await prisma.refreshToken.findUnique({ where: { tokenHash: hashToken(refreshToken) } })
     if (!record) throw new Error("未找到会话记录")
 
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { authorization: `Bearer ${token}` }
     const del = await app.request(`/api/sessions/${record.id}`, { method: "DELETE", headers: auth })
     expect(del.status).toBe(200)
@@ -154,7 +132,7 @@ describe("sessions", () => {
     const victim = await prisma.user.findUnique({ where: { username: "stest_victim" } })
     if (!victim) throw new Error("未找到受害用户")
 
-    const adminToken = await loginAdmin()
+    const adminToken = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { authorization: `Bearer ${adminToken}` }
     const revokeAll = await app.request(`/api/sessions/${victim.id}/revoke-all`, {
       method: "POST",

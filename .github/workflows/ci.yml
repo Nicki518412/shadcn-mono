@@ -16,7 +16,9 @@ concurrency:
 
 env:
   NODE_VERSION: 22
+  # Prisma 相对路径按 schema 目录（packages/db/prisma）解析：generate 仅需变量存在，CI 不写 dev.db
   DATABASE_URL: file:./dev.db
+  # api 集成测试专用库：apps/api/test/setup.ts 在每个测试进程启动前 force-reset 重建，与开发库隔离
   TEST_DATABASE_URL: file:./test.db
   HUSKY: "0"
 
@@ -54,11 +56,50 @@ jobs:
       - name: Lint
         run: pnpm turbo lint && pnpm lint:e2e
 
-      - name: Typecheck E2E
-        run: pnpm typecheck:e2e
+      - name: Typecheck
+        run: pnpm typecheck
 
       - name: Test
         run: pnpm turbo test
 
       - name: Build
         run: pnpm turbo build
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # webServer 由 e2e/playwright.config.ts 自起 api（独立 e2e.db）+ web（vite dev），
+      # CI 下 reuseExistingServer=false 强制自起；global-setup 每次 force-reset 重建 e2e 库
+      - name: Run E2E
+        run: pnpm e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

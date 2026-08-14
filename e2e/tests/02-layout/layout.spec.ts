@@ -39,11 +39,14 @@ test.describe("布局", () => {
 
   test("语言切换：切英文后侧边栏菜单显示英文名", async ({ adminPage }) => {
     const layout = new LayoutPage(adminPage)
-    await layout.switchLanguage("English")
-    // zh → en：概览变 Dashboard（en 环境 nameEn 生效）
-    await expect(adminPage.getByRole("link", { name: "Dashboard" }).first()).toBeVisible()
-    // 切回中文，避免影响后续用例
-    await layout.switchLanguage("中文")
+    // try/finally：中途断言失败也切回中文，避免污染依赖中文文案的后续用例
+    try {
+      await layout.switchLanguage("English")
+      // zh → en：概览变 Dashboard（en 环境 nameEn 生效）
+      await expect(adminPage.getByRole("link", { name: "Dashboard" }).first()).toBeVisible()
+    } finally {
+      await layout.switchLanguage("中文")
+    }
     await expect(adminPage.getByRole("link", { name: /概览/ }).first()).toBeVisible()
   })
 

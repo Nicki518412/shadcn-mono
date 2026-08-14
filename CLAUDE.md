@@ -19,9 +19,9 @@ shadcn-mono：RBAC 管理端 monorepo（Hono + zod-openapi 后端 / Vite + React
 | `pnpm dev` | 同时起 web（5173）与 api（3001）；`/api` 由 Vite 代理到 3001 |
 | `pnpm turbo test` | shared 单元 + api 集成（自动重建 SQLite 测试库）+ web RTL |
 | `pnpm turbo build` / `pnpm turbo lint` | 全量构建 / 全量 lint |
-| `pnpm --filter @repo/db seed` | 幂等种子；会重置 admin 口令与演示联系方式 |
+| `pnpm --filter @repo/db seed` | 幂等种子；**默认不重置** admin 凭据，加 `-- --reset-admin`（或 `seed:reset`）恢复演示口令与联系方式 |
 | `pnpm --filter @repo/api generate:openapi && pnpm --filter @repo/api generate:types` | 重生成 `openapi.json` 与 `web/src/api/schema.d.ts`；改 api 源码后建议跑（pre-commit 会自动执行） |
-| `pnpm --filter @repo/db db:migrate -- --name <name>` | Prisma migrate dev（切库见 `.claude/skills/switch-database`） |
+| `pnpm --filter @repo/db db:migrate -- --name <name>` | Prisma migrate dev（预留；当前项目无迁移文件，结构同步统一走 `db push`，约定见 docs/database/README.md） |
 
 ## 规范要点
 

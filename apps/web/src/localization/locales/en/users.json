@@ -78,5 +78,6 @@
   "newPassword": "New password",
   "newPasswordPlaceholder": "At least 8 characters; leave blank to keep",
   "currentPasswordRequired": "Current password is required when setting a new one",
-  "passwordChangedReLogin": "Password changed. Please sign in again"
+  "passwordChangedReLogin": "Password changed. Please sign in again",
+  "importFailedRow": "Row {{row}}"
 }

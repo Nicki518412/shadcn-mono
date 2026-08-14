@@ -1,11 +1,22 @@
 import { lazy, Suspense } from "react"
-import type { ComponentType, LazyExoticComponent } from "react"
+import type { ComponentType, JSX, LazyExoticComponent } from "react"
 import type { RouteObject } from "react-router"
+import { useTranslation } from "react-i18next"
 
 import type { components } from "@/api/schema"
 import { Spinner } from "@/components/ui/spinner"
 
 type MenuNode = components["schemas"]["MenuNode"]
+
+/** 路由懒加载 fallback（文案走 i18n，英文界面不出现硬编码中文） */
+function RouteLoading(): JSX.Element {
+  const { t } = useTranslation()
+  return (
+    <div className="flex items-center gap-2 text-muted-foreground">
+      <Spinner /> {t("loading")}
+    </div>
+  )
+}
 
 /**
  * 页面组件映射：`../features/<component>/page.tsx`（约定式路由，component 如 "system/user"）。
@@ -59,13 +70,7 @@ function collectMenuRoutes(nodes: MenuNode[], routes: RouteObject[]): void {
       routes.push({
         path: node.path,
         element: (
-          <Suspense
-            fallback={
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Spinner /> 加载中…
-              </div>
-            }
-          >
+          <Suspense fallback={<RouteLoading />}>
             <Page />
           </Suspense>
         ),

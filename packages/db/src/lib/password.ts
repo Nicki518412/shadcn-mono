@@ -1,5 +1,5 @@
-// scrypt 密码哈希（N=2^17，异步调用不阻塞事件循环；格式 scrypt$salt$hash，无存量哈希故无兼容问题）
-// 内存占用 128*N*r = 32MB，达到默认 maxmem(32MB) 上限，需显式上调（否则 OpenSSL 报 memory limit exceeded）
+// scrypt 密码哈希（N=2^15，异步调用不阻塞事件循环；格式 scrypt$salt$hash，无存量哈希故无兼容问题）
+// 内存占用 128*N*r = 128*32768*8 = 32MB，达到默认 maxmem(32MB) 上限，需显式上调（否则 OpenSSL 报 memory limit exceeded）
 import { randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from "node:crypto"
 
 const SCRYPT_N = 32768

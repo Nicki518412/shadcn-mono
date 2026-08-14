@@ -2,25 +2,11 @@ import { beforeAll, describe, expect, it } from "vitest"
 import { prisma } from "@repo/db"
 import { hashPassword } from "@repo/db"
 import { createApp } from "../src/index.js"
+import { loginAs, upsertMenu } from "./helpers.js"
 
 const ADMIN_USERNAME = "log_admin"
 const ADMIN_PASSWORD = "Passw0rd!"
 const PLAIN_USERNAME = "log_plain"
-
-/** 按权限码查菜单，不存在则创建（permission 唯一索引：其他测试文件可能已建同码菜单，复用而非重建） */
-async function upsertMenu(data: {
-  nameZh: string
-  type: string
-  permission: string
-  parentId?: string
-  path?: string
-  component?: string
-  icon?: string
-  sort: number
-}): Promise<{ id: string }> {
-  const existing = await prisma.menu.findUnique({ where: { permission: data.permission } })
-  return existing ?? prisma.menu.create({ data })
-}
 
 /** 登录日志/操作日志均为 fire-and-forget 写入（不 await 响应返回），轮询等待落库 */
 async function waitForCount(getCount: () => Promise<number>, timeoutMs = 2000): Promise<number> {
@@ -32,18 +18,6 @@ async function waitForCount(getCount: () => Promise<number>, timeoutMs = 2000): 
     await new Promise((resolve) => setTimeout(resolve, 25))
   }
   return count
-}
-
-async function login(username: string, password: string): Promise<string> {
-  const app = createApp()
-  const res = await app.request("/api/auth/login", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  })
-  if (res.status !== 200) throw new Error(`登录失败: ${String(res.status)}`)
-  const body = (await res.json()) as { data: { accessToken: string } }
-  return body.data.accessToken
 }
 
 describe("audit logs", () => {
@@ -127,7 +101,7 @@ describe("audit logs", () => {
 
   it("POST /api/users 写操作产生 OperationLog（操作账号 / 方法 / 路径 / 状态码 / 耗时 / 请求体快照脱敏）", async () => {
     const app = createApp()
-    const token = await login(ADMIN_USERNAME, ADMIN_PASSWORD)
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const res = await app.request("/api/users", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
@@ -156,7 +130,7 @@ describe("audit logs", () => {
     await prisma.user.create({
       data: { username: "log_changepw", passwordHash: await hashPassword("OldPassw0rd!"), nickname: "改密测试" },
     })
-    const token = await login("log_changepw", "OldPassw0rd!")
+    const token = await loginAs("log_changepw", "OldPassw0rd!")
     const res = await app.request("/api/auth/change-password", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
@@ -175,14 +149,14 @@ describe("audit logs", () => {
 
   it("GET /api/logs/login：无 system:log:query 权限 403，有则 200 返回分页列表", async () => {
     const app = createApp()
-    const plainToken = await login(PLAIN_USERNAME, ADMIN_PASSWORD)
+    const plainToken = await loginAs(PLAIN_USERNAME, ADMIN_PASSWORD)
     const forbidden = await app.request("/api/logs/login?page=1&pageSize=10", {
       headers: { authorization: `Bearer ${plainToken}` },
     })
     expect(forbidden.status).toBe(403)
     expect(((await forbidden.json()) as { code: string }).code).toBe("PERMISSION_DENIED")
 
-    const adminToken = await login(ADMIN_USERNAME, ADMIN_PASSWORD)
+    const adminToken = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const ok = await app.request("/api/logs/login?page=1&pageSize=10", {
       headers: { authorization: `Bearer ${adminToken}` },
     })

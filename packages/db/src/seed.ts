@@ -57,7 +57,7 @@ async function upsertDepartment(nameZh: string, nameEn: string, parentId: string
   return created.id
 }
 
-export async function runSeed(): Promise<void> {
+export async function runSeed(options: { resetAdminCredentials?: boolean } = {}): Promise<void> {
   try {
     // 1. 菜单树（与设计文档 §9 一致；nameEn 为英文展示名，en 语言时优先展示，未填回落 nameZh）
     const dashboardId = await upsertMenu({ nameZh: "概览", nameEn: "Dashboard", type: "MENU", path: "/", component: "dashboard", sort: 0 })
@@ -151,16 +151,21 @@ export async function runSeed(): Promise<void> {
       prisma.roleMenu.createMany({ data: [{ roleId: guestRole.id, menuId: dashboardId }] }),
     ])
 
-    // 3. 用户：admin / Admin@123（挂 ADMIN；update 分支同样重置口令与联系信息，保证 seed 后账号口令与演示联系方式确定）
+    // 3. 用户：admin / Admin@123（挂 ADMIN）。
+    // 安全默认：不重置已有 admin 的口令与联系信息（防生产库误跑 seed 回滚凭据）；
+    // 显式传入 resetAdminCredentials（CLI 为 --reset-admin）时才恢复演示凭据
     const adminPasswordHash = await hashPassword("Admin@123")
+    const resetAdmin = options.resetAdminCredentials === true
     const adminUser = await prisma.user.upsert({
       where: { username: "admin" },
-      update: {
-        passwordHash: adminPasswordHash,
-        nickname: "系统管理员",
-        email: "admin@example.com",
-        telephone: "13800138000",
-      },
+      update: resetAdmin
+        ? {
+            passwordHash: adminPasswordHash,
+            nickname: "系统管理员",
+            email: "admin@example.com",
+            telephone: "13800138000",
+          }
+        : {},
       create: {
         username: "admin",
         passwordHash: adminPasswordHash,
@@ -240,10 +245,11 @@ export async function runSeed(): Promise<void> {
   }
 }
 
-// 仅直接运行时执行种子（tsx src/seed.ts）；容器首启经 init.ts 条件调用（User 表空才 seed，避免重置 admin 密码）
+// 仅直接运行时执行种子（tsx src/seed.ts [--reset-admin]）；容器首启经 init.ts 条件调用（User 表空才 seed）。
+// --reset-admin：恢复 admin 演示口令与联系方式（默认不重置，防误跑回滚凭据）
 const entry = process.argv[1]
 if (entry !== undefined && import.meta.url === pathToFileURL(entry).href) {
-  runSeed().catch((err: unknown) => {
+  runSeed({ resetAdminCredentials: process.argv.includes("--reset-admin") }).catch((err: unknown) => {
     const message = err instanceof Error ? err.stack ?? err.message : String(err)
     console.error("[seed] 失败:", message)
     process.exit(1)

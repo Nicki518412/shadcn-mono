@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test"
-import { test } from "../../fixtures"
+import { API_BASE_URL, test } from "../../fixtures"
 import { RolesPage } from "../../pages/roles"
 
 /** 按编码查角色 id（权限验证用例用） */
@@ -8,7 +8,7 @@ async function findRoleId(
   token: string,
   code: string,
 ): Promise<string> {
-  const res = await request.get("http://localhost:3001/api/roles?page=1&pageSize=100", {
+  const res = await request.get(`${API_BASE_URL}/api/roles?page=1&pageSize=100`, {
     headers: { authorization: `Bearer ${token}` },
   })
   const body = (await res.json()) as { data: { list: { id: string; code: string }[] } }
@@ -37,11 +37,11 @@ test.describe("角色管理", () => {
     const code = "E2E_ROLE_DELETE"
     const nameZh = "删除测试角色"
     // API 前置创建
-    const adminLogin = await request.post("http://localhost:3001/api/auth/login", {
+    const adminLogin = await request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
-    await request.post("http://localhost:3001/api/roles", {
+    await request.post(`${API_BASE_URL}/api/roles`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
       data: { nameZh, nameEn: "Delete Test Role", code },
     })
@@ -66,27 +66,27 @@ test.describe("角色管理", () => {
     await expect(dialog).toBeHidden()
 
     // 验证：新角色用户（API 创建）登录后 navTree 含数据字典，但无用户管理
-    const adminLogin = await request.post("http://localhost:3001/api/auth/login", {
+    const adminLogin = await request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
-    const userRes = await request.post("http://localhost:3001/api/users", {
+    const userRes = await request.post(`${API_BASE_URL}/api/users`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
       data: { username: "e2e_u_granted", password: "Passw0rd!", nickname: "授权用户" },
     })
     const userBody = (await userRes.json()) as { data: { id: string } }
     const roleId = await findRoleId(request, adminBody.data.accessToken, code)
-    await request.put(`http://localhost:3001/api/users/${userBody.data.id}/roles`, {
+    await request.put(`${API_BASE_URL}/api/users/${userBody.data.id}/roles`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
       data: { roleIds: [roleId] },
     })
 
-    const grantLogin = await request.post("http://localhost:3001/api/auth/login", {
+    const grantLogin = await request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username: "e2e_u_granted", password: "Passw0rd!" },
     })
     const grantBody = (await grantLogin.json()) as { data: { accessToken: string } }
     // navTree 在 /auth/me（登录响应只含 token + user）
-    const meRes = await request.get("http://localhost:3001/api/auth/me", {
+    const meRes = await request.get(`${API_BASE_URL}/api/auth/me`, {
       headers: { authorization: `Bearer ${grantBody.data.accessToken}` },
     })
     const meBody = (await meRes.json()) as {

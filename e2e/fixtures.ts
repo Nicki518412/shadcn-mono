@@ -1,5 +1,9 @@
 import { test as base, expect } from "@playwright/test"
 import type { Page } from "@playwright/test"
+import { E2E_API_URL } from "./playwright.config.js"
+
+/** spec 直连 API 用（与 webServer 同源），避免散落硬编码地址 */
+export const API_BASE_URL = E2E_API_URL
 
 /**
  * 管理端会话 fixture：每个用例独立 API 登录并注入 refresh token。
@@ -9,7 +13,7 @@ import type { Page } from "@playwright/test"
  */
 export const test = base.extend<{ adminPage: Page }>({
   adminPage: async ({ page, request }, use) => {
-    const loginRes = await request.post("http://localhost:3001/api/auth/login", {
+    const loginRes = await request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     if (loginRes.status() !== 200) {

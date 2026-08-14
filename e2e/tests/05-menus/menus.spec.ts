@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test"
-import { test } from "../../fixtures"
+import { API_BASE_URL, test } from "../../fixtures"
 import { LayoutPage } from "../../pages/layout"
 
 /**
@@ -46,11 +46,11 @@ test.describe("菜单管理", () => {
     await gotoMenus(adminPage)
     const name = "e2e_m_delete"
     // API 前置创建（permission 唯一键避免与种子冲突）
-    const adminLogin = await adminPage.request.post("http://localhost:3001/api/auth/login", {
+    const adminLogin = await adminPage.request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
-    const createRes = await adminPage.request.post("http://localhost:3001/api/menus", {
+    const createRes = await adminPage.request.post(`${API_BASE_URL}/api/menus`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
       data: { nameZh: name, type: "MENU", path: "/e2e/delete", component: "system/e2e-delete", sort: 0, status: true },
     })

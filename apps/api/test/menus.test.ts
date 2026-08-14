@@ -3,6 +3,7 @@ import { prisma } from "@repo/db"
 import type { MenuNode } from "@repo/shared"
 import { createApp } from "../src/index.js"
 import { hashPassword } from "@repo/db"
+import { loginAs, upsertMenu } from "./helpers.js"
 
 const ADMIN_USERNAME = "menus_admin"
 const ADMIN_PASSWORD = "Passw0rd!"
@@ -13,33 +14,6 @@ let menuId: string
 let bCreateId: string
 let bUpdateId: string
 let bDeleteId: string
-
-/** 按权限码查菜单，不存在则创建（permission 唯一索引：其他测试文件/seed 可能已建同码菜单，复用而非重建） */
-async function upsertMenu(data: {
-  nameZh:string
-  type: string
-  permission: string
-  parentId?: string
-  path?: string
-  component?: string
-  icon?: string
-  sort: number
-}): Promise<{ id: string }> {
-  const existing = await prisma.menu.findUnique({ where: { permission: data.permission } })
-  return existing ?? prisma.menu.create({ data })
-}
-
-async function loginAdmin(): Promise<string> {
-  const app = createApp()
-  const res = await app.request("/api/auth/login", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ username: ADMIN_USERNAME, password: ADMIN_PASSWORD }),
-  })
-  if (res.status !== 200) throw new Error(`登录失败: ${String(res.status)}`)
-  const body = (await res.json()) as { data: { accessToken: string } }
-  return body.data.accessToken
-}
 
 describe("menus CRUD", () => {
   beforeAll(async () => {
@@ -102,7 +76,7 @@ describe("menus CRUD", () => {
 
   it("菜单树：GET /api/menus/tree 返回全量树（DIR 含 children、BUTTON 挂在 MENU 下、同层按 sort 升序）", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const res = await app.request("/api/menus/tree", { headers: { authorization: `Bearer ${token}` } })
     expect(res.status).toBe(200)
     const body = (await res.json()) as { data: MenuNode[] }
@@ -118,7 +92,7 @@ describe("menus CRUD", () => {
 
   it("类型约束：MENU 下挂 DIR 400、MENU 下挂 BUTTON 200、DIR 下挂 MENU 200、BUTTON 下挂子节点 400；MENU 缺 path/component 400；BUTTON 带 path/无父 400", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const post = (body: Record<string, unknown>) =>
       app.request("/api/menus", { method: "POST", headers: auth, body: JSON.stringify(body) })
@@ -164,7 +138,7 @@ describe("menus CRUD", () => {
 
   it("权限码唯一：重复 permission 409 且 message 含“权限码”；空 permission（不传）可重复", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const post = (body: Record<string, unknown>) =>
       app.request("/api/menus", { method: "POST", headers: auth, body: JSON.stringify(body) })
@@ -195,7 +169,7 @@ describe("menus CRUD", () => {
 
   it("英文名称：create 传 nameEn 存储并返回；PATCH null 清空、不传不修改", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const created = await app.request("/api/menus", {
       method: "POST",
@@ -238,7 +212,7 @@ describe("menus CRUD", () => {
 
   it("防自挂：PATCH parentId 改到自己/子孙 400、改到合法父/根 200；父不存在 400；不存在的 id 404", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const patch = (id: string, body: Record<string, unknown>) =>
       app.request(`/api/menus/${id}`, { method: "PATCH", headers: auth, body: JSON.stringify(body) })
@@ -278,7 +252,7 @@ describe("menus CRUD", () => {
 
   it("级联删除：删 DIR 整棵子树消失 + RoleMenu 关联清理；不存在的 id 404", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { authorization: `Bearer ${token}` }
     // 建 DIR → MENU → BUTTON 三层
     const dir = await prisma.menu.create({ data: { nameZh:"MENU_CRUD_级联目录", type: "DIR" } })
@@ -314,7 +288,7 @@ describe("menus CRUD", () => {
 
   it("PATCH 条件字段合并校验：MENU 清空 path 400；MENU 改 type 为 BUTTON 400（存量 path 不兼容）", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const patch = (id: string, body: Record<string, unknown>) =>
       app.request(`/api/menus/${id}`, { method: "PATCH", headers: auth, body: JSON.stringify(body) })
@@ -340,7 +314,7 @@ describe("menus CRUD", () => {
 
   it("PATCH 改 type 校验子节点与组合挂载：不兼容子节点 400；移走子节点后 MENU→DIR 200；type+parent 双变不兼容 400", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const patch = (id: string, body: Record<string, unknown>) =>
       app.request(`/api/menus/${id}`, { method: "PATCH", headers: auth, body: JSON.stringify(body) })

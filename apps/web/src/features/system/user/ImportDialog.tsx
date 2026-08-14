@@ -19,7 +19,8 @@ import { useImportUsersMutation } from "./useUsers"
 
 type ImportResult = components["schemas"]["ImportResult"]
 
-/** 导入模板表头（与后端 CSV_HEADERS 前 5 列同构；状态/角色列导入时忽略，导出文件可直接复用） */
+/** 导入模板表头：必须保持中文且列序固定——后端按中文表头定位列解析（users.ts CSV_HEADERS），
+ *  英文界面下载的模板同为中文表头（后端契约如此）；状态/角色列导入时忽略，导出文件可直接复用 */
 const TEMPLATE_HEADER = "用户名,密码,昵称,邮箱,手机号,状态,角色"
 
 /**
@@ -103,7 +104,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }): JSX.Element 
                         key={`${String(item.row)}-${item.message}`}
                         className="border-b px-2 py-1 text-xs last:border-b-0"
                       >
-                        <span className="font-mono">第 {String(item.row)} 行</span>：{item.message}
+                        <span className="font-mono">{t("importFailedRow", { row: item.row })}</span>：{item.message}
                       </li>
                     ))}
                   </ul>

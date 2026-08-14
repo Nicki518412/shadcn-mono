@@ -105,6 +105,7 @@ CREATE TABLE `RefreshToken` (
   `createdAt` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
   PRIMARY KEY (`id`),
   UNIQUE KEY `RefreshToken_tokenHash_key` (`tokenHash`),
+  KEY `RefreshToken_expiresAt_idx` (`expiresAt`),
   CONSTRAINT `RefreshToken_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='刷新令牌（登录后签发，轮换时旧令牌吊销）';
 
@@ -135,6 +136,7 @@ CREATE TABLE `LoginLog` (
   `message`   VARCHAR(255) NULL COMMENT '失败原因（如 LOGIN_FAILED 错误码）',
   `createdAt` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
   PRIMARY KEY (`id`),
+  KEY `LoginLog_createdAt_idx` (`createdAt`),
   CONSTRAINT `LoginLog_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='登录日志表（登录成功/失败审计；失败也记录尝试的用户名——防枚举场景）';
 
@@ -153,6 +155,7 @@ CREATE TABLE `OperationLog` (
   `requestBody`  TEXT         NULL COMMENT '请求体 JSON 快照（仅 application/json 写操作；180 字符截断；登录/OTP/改密等敏感路径不记录）',
   `createdAt`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
   PRIMARY KEY (`id`),
+  KEY `OperationLog_createdAt_idx` (`createdAt`),
   CONSTRAINT `OperationLog_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作日志表（非 GET 写操作审计：操作人 / 接口 / 结果 / 耗时）';
 
@@ -213,7 +216,7 @@ CREATE TABLE `Notification` (
   `createdAt` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
   PRIMARY KEY (`id`),
   KEY `Notification_userId_isRead_createdAt_idx` (`userId`, `isRead`, `createdAt`),
-  CONSTRAINT `Notification_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE CASCADE
+  CONSTRAINT `Notification_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站内通知表（系统/管理员发送，按接收用户隔离；发送方不落库，仅接收方可见）';
 
 CREATE TABLE `Announcement` (
@@ -223,5 +226,10 @@ CREATE TABLE `Announcement` (
   `status`    BOOLEAN      NOT NULL DEFAULT TRUE COMMENT '发布状态（false=下架，下架后首页不再展示）',
   `createdAt` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（UTC）',
   `updatedAt` DATETIME     NOT NULL COMMENT '更新时间（UTC）',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `Announcement_createdAt_idx` (`createdAt`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='公告表（全局公告：管理员发布，登录用户首页横幅展示）';
+
+-- 补充约束：User.departmentId 外键（Department 表定义在 User 之后，MySQL 下以 ALTER 形式后置；
+-- 对应 schema.prisma User.department @relation(onDelete: SetNull)）
+ALTER TABLE `User` ADD CONSTRAINT `User_departmentId_fkey` FOREIGN KEY (`departmentId`) REFERENCES `Department` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;

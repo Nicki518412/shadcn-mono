@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test"
+import { E2E_API_URL } from "../../playwright.config"
 import { LoginPage } from "../../pages/login"
 
 /**
@@ -46,11 +47,11 @@ test.describe("登录", () => {
 
   test("邮箱动态码：发送后进入冷却，错误验证码给出反馈", async ({ page, request }) => {
     const email = `e2e_otp_${Date.now()}@example.com`
-    const adminLogin = await request.post("http://localhost:3001/api/auth/login", {
+    const adminLogin = await request.post(`${E2E_API_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
-    const createRes = await request.post("http://localhost:3001/api/users", {
+    const createRes = await request.post(`${E2E_API_URL}/api/users`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
       data: { username: `e2e_otp_${Date.now()}`, password: "Passw0rd!", nickname: "动态码测试", email },
     })
@@ -70,11 +71,11 @@ test.describe("登录", () => {
   test("连续 5 次失败：账号锁定 15 分钟", async ({ page, request }) => {
     // 用专用账号测试锁定（throttle 为 server 进程内存级，锁定 admin 会污染同次运行其他用例的登录）
     const lockUsername = "e2e_lockme"
-    const adminLogin = await request.post("http://localhost:3001/api/auth/login", {
+    const adminLogin = await request.post(`${E2E_API_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
-    await request.post("http://localhost:3001/api/users", {
+    await request.post(`${E2E_API_URL}/api/users`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
       data: { username: lockUsername, password: "Passw0rd!", nickname: "锁定测试" },
     })

@@ -2,36 +2,11 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { prisma } from "@repo/db"
 import { hashPassword } from "@repo/db"
 import { createApp } from "../src/index.js"
+import { loginAs, upsertMenu } from "./helpers.js"
 
 const ADMIN_USERNAME = "ann_admin"
 const NO_PERM_USERNAME = "ann_noperm"
 const PASSWORD = "Passw0rd!"
-
-/** 按权限码查菜单，不存在则创建（permission 唯一索引：其他测试文件可能已建同码菜单，复用而非重建） */
-async function upsertMenu(data: {
-  nameZh: string
-  type: string
-  permission: string
-  parentId?: string
-  path?: string
-  component?: string
-  sort: number
-}): Promise<{ id: string }> {
-  const existing = await prisma.menu.findUnique({ where: { permission: data.permission } })
-  return existing ?? prisma.menu.create({ data })
-}
-
-async function login(username: string): Promise<string> {
-  const app = createApp()
-  const res = await app.request("/api/auth/login", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ username, password: PASSWORD }),
-  })
-  if (res.status !== 200) throw new Error(`登录失败: ${String(res.status)}`)
-  const body = (await res.json()) as { data: { accessToken: string } }
-  return body.data.accessToken
-}
 
 describe("announcements CRUD", () => {
   beforeAll(async () => {
@@ -67,7 +42,7 @@ describe("announcements CRUD", () => {
 
   it("创建/分页/更新/删除：status 默认发布；下架后 latest 不返回", async () => {
     const app = createApp()
-    const token = await login(ADMIN_USERNAME)
+    const token = await loginAs(ADMIN_USERNAME, PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
 
     // 创建（默认发布）
@@ -111,9 +86,37 @@ describe("announcements CRUD", () => {
     expect((await app.request("/api/announcements/no_such_id", { method: "DELETE", headers: { authorization: `Bearer ${token}` } })).status).toBe(404)
   })
 
+  it("latest 排序：仅取已发布中 createdAt 最新的一条", async () => {
+    // 用 prisma 直插并显式指定 createdAt，避免毫秒级时间戳并列导致排序不确定
+    const app = createApp()
+    const token = await loginAs(ADMIN_USERNAME, PASSWORD)
+    const auth = { authorization: `Bearer ${token}` }
+    const base = Date.now()
+    const older = await prisma.announcement.create({
+      data: { title: "ann_crud_older", content: "旧公告", createdAt: new Date(base - 60_000) },
+    })
+    const newer = await prisma.announcement.create({
+      data: { title: "ann_crud_newer", content: "新公告", createdAt: new Date(base) },
+    })
+    // 未发布但 createdAt 更晚：不参与 latest
+    await prisma.announcement.create({
+      data: { title: "ann_crud_unpub", content: "未发布", status: false, createdAt: new Date(base + 60_000) },
+    })
+
+    const latest = await app.request("/api/announcements/latest", { headers: auth })
+    expect(latest.status).toBe(200)
+    const body = (await latest.json()) as { data: { id: string; title: string } | null }
+    expect(body.data?.id).toBe(newer.id)
+    expect(body.data?.title).toBe("ann_crud_newer")
+    // 清理（ann_crud_ 前缀，下个用例的 beforeEach 也会清）
+    await prisma.announcement.deleteMany({
+      where: { id: { in: [older.id, newer.id] } },
+    })
+  })
+
   it("权限：管理接口无权限 403；latest 全员可用（无权限用户 200）", async () => {
     const app = createApp()
-    const nopermToken = await login(NO_PERM_USERNAME)
+    const nopermToken = await loginAs(NO_PERM_USERNAME, PASSWORD)
     const nopermAuth = { "content-type": "application/json", authorization: `Bearer ${nopermToken}` }
 
     const list = await app.request("/api/announcements", { headers: nopermAuth })

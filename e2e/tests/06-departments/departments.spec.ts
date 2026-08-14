@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test"
-import { test } from "../../fixtures"
+import { API_BASE_URL, test } from "../../fixtures"
 import { LayoutPage } from "../../pages/layout"
 
 /**
@@ -24,11 +24,11 @@ test.describe("部门管理", () => {
   test("新增子部门：父级选择根部门", async ({ adminPage }) => {
     await gotoDepartments(adminPage)
     // 前置：API 创建根部门
-    const adminLogin = await adminPage.request.post("http://localhost:3001/api/auth/login", {
+    const adminLogin = await adminPage.request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
-    const rootRes = await adminPage.request.post("http://localhost:3001/api/departments", {
+    const rootRes = await adminPage.request.post(`${API_BASE_URL}/api/departments`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
       data: { nameZh: "e2e_d_parent", sort: 0, status: true },
     })
@@ -48,11 +48,11 @@ test.describe("部门管理", () => {
   test("删除部门：确认后从树中消失（级联子部门）", async ({ adminPage }) => {
     await gotoDepartments(adminPage)
     const name = "e2e_d_delete"
-    const adminLogin = await adminPage.request.post("http://localhost:3001/api/auth/login", {
+    const adminLogin = await adminPage.request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
-    const res = await adminPage.request.post("http://localhost:3001/api/departments", {
+    const res = await adminPage.request.post(`${API_BASE_URL}/api/departments`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
       data: { nameZh: name, sort: 0, status: true },
     })

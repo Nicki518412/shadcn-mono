@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test"
-import { test } from "../../fixtures"
+import { API_BASE_URL, test } from "../../fixtures"
 import { LayoutPage } from "../../pages/layout"
 
 /**
@@ -26,11 +26,11 @@ test.describe("参数配置", () => {
   test("编辑参数：修改值后列表更新", async ({ adminPage }) => {
     await gotoConfigs(adminPage)
     const key = `e2e_config_edit_${Date.now()}`
-    const adminLogin = await adminPage.request.post("http://localhost:3001/api/auth/login", {
+    const adminLogin = await adminPage.request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
-    const createRes = await adminPage.request.post("http://localhost:3001/api/configs", {
+    const createRes = await adminPage.request.post(`${API_BASE_URL}/api/configs`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
       data: { configKey: key, configValue: "old", nameZh: "E2E 编辑参数" },
     })
@@ -51,11 +51,11 @@ test.describe("参数配置", () => {
   test("删除参数：确认后列表消失", async ({ adminPage }) => {
     await gotoConfigs(adminPage)
     const key = `e2e_config_del_${Date.now()}`
-    const adminLogin = await adminPage.request.post("http://localhost:3001/api/auth/login", {
+    const adminLogin = await adminPage.request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
-    const createRes = await adminPage.request.post("http://localhost:3001/api/configs", {
+    const createRes = await adminPage.request.post(`${API_BASE_URL}/api/configs`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
       data: { configKey: key, configValue: "v", nameZh: "E2E 删除参数" },
     })

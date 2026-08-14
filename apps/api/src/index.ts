@@ -48,8 +48,9 @@ export function createApp(cfg: AppConfig = loadConfig()): OpenAPIHono {
 
   // 操作日志：非 GET /api 写操作审计（fire-and-forget，不阻塞响应）。
   // 跳过登录/OTP/文档/健康检查等路径；GET 属读操作不记录。未匹配路由的写请求（404）也记录。
-  // 敏感路径（登录/OTP/改密）不记录请求体快照；application/json 请求体截断 2KB 落库。
-  const SENSITIVE_PATHS = ["/api/auth/login", "/api/auth/change-password", "/api/auth/otp/"]
+  // 敏感路径（登录/OTP/改密/系统参数——configValue 可能存第三方凭据）不记录请求体快照；
+  // application/json 请求体先按键名脱敏（password/token/secret/code）再截断 180 字符落库。
+  const SENSITIVE_PATHS = ["/api/auth/login", "/api/auth/change-password", "/api/auth/otp/", "/api/configs"]
   app.use("*", async (c: Context, next) => {
     const method = c.req.method
     const path = c.req.path

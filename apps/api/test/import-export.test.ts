@@ -5,38 +5,13 @@ import { createApp } from "../src/index.js"
 import { hashPassword } from "@repo/db"
 import type { importResultSchema } from "../src/lib/schemas.js"
 import { parseCsv } from "../src/lib/csv.js"
+import { loginAs, upsertMenu } from "./helpers.js"
 
 const ADMIN_USERNAME = "iex_admin"
 const NO_PERM_USERNAME = "iex_noperm"
 const PASSWORD = "Passw0rd!"
 
 type ImportResult = z.infer<typeof importResultSchema>
-
-/** 按权限码查菜单，不存在则创建（permission 唯一索引：其他测试文件可能已建同码菜单，复用而非重建） */
-async function upsertMenu(data: {
-  nameZh: string
-  type: string
-  permission: string
-  parentId?: string
-  path?: string
-  component?: string
-  sort: number
-}): Promise<{ id: string }> {
-  const existing = await prisma.menu.findUnique({ where: { permission: data.permission } })
-  return existing ?? prisma.menu.create({ data })
-}
-
-async function login(username: string): Promise<string> {
-  const app = createApp()
-  const res = await app.request("/api/auth/login", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ username, password: PASSWORD }),
-  })
-  if (res.status !== 200) throw new Error(`登录失败: ${String(res.status)}`)
-  const body = (await res.json()) as { data: { accessToken: string } }
-  return body.data.accessToken
-}
 
 function csvFormData(csvText: string): FormData {
   const form = new FormData()
@@ -78,7 +53,7 @@ describe("用户 CSV 导入导出", () => {
 
   it("导出：UTF-8 BOM + 表头列 + 数据行；含逗号/引号的字段正确转义", async () => {
     const app = createApp()
-    const token = await login(ADMIN_USERNAME)
+    const token = await loginAs(ADMIN_USERNAME, PASSWORD)
     await prisma.user.create({
       data: { username: "iex_crud_zhangsan", passwordHash: await hashPassword(PASSWORD), nickname: "张三,销售\"部\"", email: "zs@example.com" },
     })
@@ -101,7 +76,7 @@ describe("用户 CSV 导入导出", () => {
 
   it("导出：keyword 过滤生效（与列表一致）", async () => {
     const app = createApp()
-    const token = await login(ADMIN_USERNAME)
+    const token = await loginAs(ADMIN_USERNAME, PASSWORD)
     await Promise.all([
       prisma.user.create({ data: { username: "iex_crud_kw1", passwordHash: await hashPassword(PASSWORD), nickname: "关键词用户" } }),
       prisma.user.create({ data: { username: "iex_crud_kw2", passwordHash: await hashPassword(PASSWORD), nickname: "其他用户" } }),
@@ -119,7 +94,7 @@ describe("用户 CSV 导入导出", () => {
 
   it("导入：成功行创建、失败行收集明细（校验错误 + 唯一冲突 + 空行跳过）", async () => {
     const app = createApp()
-    const token = await login(ADMIN_USERNAME)
+    const token = await loginAs(ADMIN_USERNAME, PASSWORD)
     await prisma.user.create({
       data: { username: "iex_crud_existing", passwordHash: await hashPassword(PASSWORD), nickname: "已存在" },
     })
@@ -156,7 +131,7 @@ describe("用户 CSV 导入导出", () => {
     // 组合用例含 2 次 scrypt 登录 + 多请求，放宽超时（Windows 上 scrypt N=32768 单次可达 500ms+）
     const app = createApp()
     // 复用 token（scrypt 登录较慢，避免组合用例超时）
-    const adminAuth = { authorization: `Bearer ${await login(ADMIN_USERNAME)}` }
+    const adminAuth = { authorization: `Bearer ${await loginAs(ADMIN_USERNAME, PASSWORD)}` }
     // 表头错误
     const badHeader = await app.request("/api/users/import", {
       method: "POST",
@@ -185,7 +160,7 @@ describe("用户 CSV 导入导出", () => {
     expect((await app.request("/api/users/export")).status).toBe(401)
     expect((await app.request("/api/users/import", { method: "POST" })).status).toBe(401)
     // 无权限
-    const nopermAuth = { authorization: `Bearer ${await login(NO_PERM_USERNAME)}` }
+    const nopermAuth = { authorization: `Bearer ${await loginAs(NO_PERM_USERNAME, PASSWORD)}` }
     expect((await app.request("/api/users/export", { headers: nopermAuth })).status).toBe(403)
     expect((await app.request("/api/users/import", {
       method: "POST",

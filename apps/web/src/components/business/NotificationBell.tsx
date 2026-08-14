@@ -21,8 +21,20 @@ import {
   useReadNotificationMutation,
   useUnreadCountQuery,
 } from "@/features/system/notifications/useNotifications"
+import type { components } from "@/api/schema"
 import { cn } from "@/lib/utils"
 import i18n from "@/localization/i18n"
+import { useMeQuery } from "@/router/guards"
+
+/** 从服务端 navTree 递归找通知中心菜单路径（菜单 path 为服务端数据，前端不硬编码；找不到回落默认值） */
+function findNotificationPath(nodes: components["schemas"]["MenuNode"][]): string | null {
+  for (const node of nodes) {
+    if (node.type === "MENU" && node.component === "system/notifications" && node.path) return node.path
+    const childPath = findNotificationPath(node.children)
+    if (childPath) return childPath
+  }
+  return null
+}
 
 /** 时间展示跟随界面语言（同各管理页 formatDateTime 惯例） */
 function formatTime(value: string): string {
@@ -51,9 +63,12 @@ export function NotificationBell(): JSX.Element {
   const recentQuery = useNotificationsQuery(1, 5)
   const readMutation = useReadNotificationMutation()
   const readAllMutation = useReadAllNotificationsMutation()
+  const meQuery = useMeQuery()
 
   const unreadCount = unreadQuery.data?.count ?? 0
   const recent = recentQuery.data?.list ?? []
+  // 通知中心路径来自服务端菜单数据；登录守卫已缓存 me 查询，此处零额外请求
+  const notificationPath = findNotificationPath(meQuery.data?.navTree ?? []) ?? "/system/notification"
 
   return (
     <DropdownMenu
@@ -146,7 +161,7 @@ export function NotificationBell(): JSX.Element {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => {
-            void navigate("/system/notification")
+            void navigate(notificationPath)
           }}
           className="justify-center text-sm text-muted-foreground"
         >

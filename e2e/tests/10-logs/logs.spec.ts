@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test"
-import { test } from "../../fixtures"
+import { API_BASE_URL, test } from "../../fixtures"
 import { LayoutPage } from "../../pages/layout"
 
 /**
@@ -28,11 +28,11 @@ test.describe("日志管理", () => {
 
   test("操作日志详情：弹窗展示请求信息", async ({ adminPage }) => {
     // 前置：制造一条写操作（POST /api/configs 会被操作日志中间件记录，登录接口被跳过）
-    const adminLogin = await adminPage.request.post("http://localhost:3001/api/auth/login", {
+    const adminLogin = await adminPage.request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
-    const writeRes = await adminPage.request.post("http://localhost:3001/api/configs", {
+    const writeRes = await adminPage.request.post(`${API_BASE_URL}/api/configs`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
       data: { configKey: `e2e_log_src_${Date.now()}`, configValue: "v", nameZh: "日志详情来源" },
     })

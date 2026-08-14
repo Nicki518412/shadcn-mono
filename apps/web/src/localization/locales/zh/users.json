@@ -78,5 +78,6 @@
   "newPassword": "新密码",
   "newPasswordPlaceholder": "至少 8 个字符，留空不修改",
   "currentPasswordRequired": "填写新密码时必须输入当前密码",
-  "passwordChangedReLogin": "密码已修改，请重新登录"
+  "passwordChangedReLogin": "密码已修改，请重新登录",
+  "importFailedRow": "第 {{row}} 行"
 }

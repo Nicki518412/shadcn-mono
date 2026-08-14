@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test"
-import { test } from "../../fixtures"
+import { API_BASE_URL, test } from "../../fixtures"
 import { LayoutPage } from "../../pages/layout"
 
 /**
@@ -25,12 +25,12 @@ test.describe("数据字典", () => {
   test("字典项维护：新增字典项后展开类型可见", async ({ adminPage }) => {
     await gotoDicts(adminPage)
     // API 前置创建字典类型
-    const adminLogin = await adminPage.request.post("http://localhost:3001/api/auth/login", {
+    const adminLogin = await adminPage.request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
     const code = `e2e_dict_items_${Date.now()}`
-    const createRes = await adminPage.request.post("http://localhost:3001/api/dicts/types", {
+    const createRes = await adminPage.request.post(`${API_BASE_URL}/api/dicts/types`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
       data: { typeCode: code, nameZh: "E2E 字典项类型" },
     })

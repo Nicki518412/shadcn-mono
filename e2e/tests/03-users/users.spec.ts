@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test"
-import { test } from "../../fixtures"
+import { API_BASE_URL, test } from "../../fixtures"
 import { UsersPage } from "../../pages/users"
 
 /**
@@ -21,11 +21,11 @@ test.describe("用户管理", () => {
     await users.goto()
     const username = "e2e_u_edit"
     // API 前置创建（UI 已覆盖创建流程，此处聚焦编辑）
-    const adminLogin = await request.post("http://localhost:3001/api/auth/login", {
+    const adminLogin = await request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
-    await request.post("http://localhost:3001/api/users", {
+    await request.post(`${API_BASE_URL}/api/users`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
       data: { username, password: "Passw0rd!", nickname: "旧昵称" },
     })
@@ -63,7 +63,7 @@ test.describe("用户管理", () => {
     await users.searchAndExpect(username, true)
     await users.setStatus(username, false)
     // 禁用后登录被拒（403 ACCOUNT_DISABLED）
-    const login = await request.post("http://localhost:3001/api/auth/login", {
+    const login = await request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username, password: "Passw0rd!" },
     })
     expect(login.status()).toBe(403)

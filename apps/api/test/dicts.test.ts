@@ -3,6 +3,7 @@ import type { z } from "@hono/zod-openapi"
 import { prisma } from "@repo/db"
 import { createApp } from "../src/index.js"
 import { hashPassword } from "@repo/db"
+import { loginAs, upsertMenu } from "./helpers.js"
 import type { dictOptionSchema, dictTypeDetailSchema, dictTypePageResultSchema } from "../src/lib/schemas.js"
 
 const ADMIN_USERNAME = "dicts_admin"
@@ -14,32 +15,6 @@ interface PageBody {
 }
 type DictTypeDetail = z.infer<typeof dictTypeDetailSchema>
 type DictOption = z.infer<typeof dictOptionSchema>
-
-/** 按权限码查菜单，不存在则创建（permission 唯一索引：其他测试文件可能已建同码菜单，复用而非重建） */
-async function upsertMenu(data: {
-  nameZh: string
-  type: string
-  permission: string
-  parentId?: string
-  path?: string
-  component?: string
-  sort: number
-}): Promise<{ id: string }> {
-  const existing = await prisma.menu.findUnique({ where: { permission: data.permission } })
-  return existing ?? prisma.menu.create({ data })
-}
-
-async function loginAdmin(): Promise<string> {
-  const app = createApp()
-  const res = await app.request("/api/auth/login", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ username: ADMIN_USERNAME, password: ADMIN_PASSWORD }),
-  })
-  if (res.status !== 200) throw new Error(`登录失败: ${String(res.status)}`)
-  const body = (await res.json()) as { data: { accessToken: string } }
-  return body.data.accessToken
-}
 
 describe("dicts CRUD", () => {
   beforeAll(async () => {
@@ -79,7 +54,7 @@ describe("dicts CRUD", () => {
 
   it("创建字典类型：返回列表项 itemCount=0；重复 typeCode（大小写变体）409 且 message 含“字典”", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const create = await app.request("/api/dicts/types", {
       method: "POST",
@@ -107,7 +82,7 @@ describe("dicts CRUD", () => {
 
   it("字典项 PUT 全量替换：GET 详情回显一致且按 sort 升序；空值/重复值 400；不存在的类型 404", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const type = await prisma.dictType.create({ data: { typeCode: "dict_crud_items", nameZh: "字典项测试" } })
     // 打乱 sort 顺序验证详情按 sort 升序返回
@@ -166,7 +141,7 @@ describe("dicts CRUD", () => {
 
   it("options 接口：仅返回启用项且按 sort 升序；未知 typeCode 404", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const type = await prisma.dictType.create({ data: { typeCode: "dict_crud_opts", nameZh: "选项测试" } })
     await prisma.dictItem.createMany({
       data: [
@@ -193,7 +168,7 @@ describe("dicts CRUD", () => {
 
   it("更新字典类型：PATCH 改名/改状态/清空描述/改 typeCode（大小写变体）；typeCode 撞已存在类型 409 不落库", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const type = await prisma.dictType.create({
       data: { typeCode: "dict_crud_patch1", nameZh: "旧名", description: "原始描述", sort: 1 },
@@ -229,7 +204,7 @@ describe("dicts CRUD", () => {
 
   it("删除字典类型：字典项级联清理；不存在的 id GET/PATCH/DELETE 返回 404", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { authorization: `Bearer ${token}` }
     const type = await prisma.dictType.create({ data: { typeCode: "dict_crud_del", nameZh: "待删类型" } })
     await prisma.dictItem.createMany({
@@ -258,7 +233,7 @@ describe("dicts CRUD", () => {
 
   it("分页列表：page/pageSize 生效、total 正确、itemCount 统计；keyword 匹配 typeCode 与 nameZh", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { authorization: `Bearer ${token}` }
     const t1 = await prisma.dictType.create({ data: { typeCode: "dict_crud_kw1", nameZh: "关键词一号", sort: 1 } })
     await prisma.dictItem.create({ data: { typeId: t1.id, labelZh: "子项", value: "child" } })
@@ -312,7 +287,7 @@ describe("dicts CRUD", () => {
 
   it("pageSize 超过上限 100 返回 400", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const res = await app.request("/api/dicts/types?page=1&pageSize=101", {
       headers: { authorization: `Bearer ${token}` },
     })

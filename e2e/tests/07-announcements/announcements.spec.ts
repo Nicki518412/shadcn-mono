@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test"
-import { test } from "../../fixtures"
+import { API_BASE_URL, test } from "../../fixtures"
 import { LayoutPage } from "../../pages/layout"
 
 /**
@@ -31,11 +31,11 @@ test.describe("公告管理", () => {
     await gotoAnnouncements(adminPage)
     const title = `e2e_a_delete_${Date.now()}`
     // API 前置创建
-    const adminLogin = await adminPage.request.post("http://localhost:3001/api/auth/login", {
+    const adminLogin = await adminPage.request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
-    const createRes = await adminPage.request.post("http://localhost:3001/api/announcements", {
+    const createRes = await adminPage.request.post(`${API_BASE_URL}/api/announcements`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
       data: { title, content: "待删除公告", status: true },
     })

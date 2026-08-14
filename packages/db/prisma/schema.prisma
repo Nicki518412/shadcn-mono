@@ -192,6 +192,9 @@ model RefreshToken {
   createdAt DateTime  @default(now())
   /// 所属用户（级联删除）
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// 索引（定时清理按 expiresAt 范围删除，避免全表扫描）
+  @@index([expiresAt])
 }
 
 /// 动态码（邮箱/手机号一次性验证码，OTP 登录用）
@@ -241,6 +244,9 @@ model LoginLog {
   createdAt DateTime @default(now())
   /// 关联用户（用户删除后置空，登录历史保留）
   user      User?    @relation(fields: [userId], references: [id])
+
+  /// 索引（列表按 createdAt 倒序分页查询热点）
+  @@index([createdAt])
 }
 
 /// 字典类型表（数据字典的类型定义，如 user_status；字典项见 DictItem）
@@ -339,12 +345,15 @@ model OperationLog {
   /// 非 2xx 时的响应 message（可选）
   errorMessage String?
   /// 请求体 JSON 快照（仅 application/json 写操作；180 字符截断——兼容 MySQL 默认 VARCHAR(191)；
-  /// 登录/OTP/改密等敏感路径不记录；切 MySQL 如需更大容量改 @db.Text）
+  /// 登录/OTP/改密/系统参数等敏感路径不记录）
   requestBody  String?
   /// 创建时间（UTC）
   createdAt    DateTime @default(now())
   /// 关联用户（用户删除时级联删除操作日志）
   user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// 索引（列表按 createdAt 倒序分页查询热点）
+  @@index([createdAt])
 }
 
 /// 站内通知表（系统/管理员发送，按接收用户隔离；发送方不落库，仅接收方可见）
@@ -378,7 +387,7 @@ model Announcement {
   id        String   @id @default(cuid())
   /// 公告标题
   title     String
-  /// 公告内容（正文，可多行；切 MySQL 如需超长请加 @db.Text——默认 VARCHAR(191) 会截断）
+  /// 公告内容（正文，可多行；MySQL 下需 @db.Text——默认 VARCHAR(191) 会截断，切库清单见 docs/database/README.md）
   content   String
   /// 发布状态（false=下架，下架后首页不再展示）
   status    Boolean  @default(true)
@@ -386,4 +395,7 @@ model Announcement {
   createdAt DateTime @default(now())
   /// 更新时间（UTC）
   updatedAt DateTime @updatedAt
+
+  /// 索引（首页 latest 按 createdAt 倒序查询）
+  @@index([createdAt])
 }

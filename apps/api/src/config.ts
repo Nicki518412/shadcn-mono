@@ -6,6 +6,9 @@ export interface AppConfig {
   uploadDir: string
 }
 
+/** 已知公开占位密钥（文档/示例/compose 模板出现过），生产环境一律拒绝——防容器以公开密钥静默启动 */
+const KNOWN_INSECURE_SECRETS = new Set(["dev-secret-change-me", "change-me-in-prod-please-use-32-chars"])
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const provider = env.AUTH_PROVIDER ?? "local"
   if (provider !== "local" && provider !== "clerk") {
@@ -15,9 +18,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (
     provider === "local" &&
     env.NODE_ENV === "production" &&
-    (jwtSecret === "dev-secret-change-me" || jwtSecret.length < 32)
+    (KNOWN_INSECURE_SECRETS.has(jwtSecret) || jwtSecret.length < 32)
   ) {
-    throw new Error("生产环境 JWT_SECRET 必须配置为至少 32 个字符的随机密钥")
+    throw new Error("生产环境 JWT_SECRET 必须配置为至少 32 个字符的随机密钥（禁止使用示例占位值）")
   }
   const port = Number(env.PORT ?? 3001)
   if (!Number.isInteger(port) || port < 1 || port > 65535) {

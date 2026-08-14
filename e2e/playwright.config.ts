@@ -3,6 +3,9 @@ import { defineConfig } from "@playwright/test"
 /** E2E 专用 SQLite 库（相对 packages/db/prisma 解析，与 dev.db 隔离；global-setup 重建+种子） */
 export const E2E_DB_URL = "file:../../../e2e/e2e.db"
 
+/** E2E API 服务地址（fixtures 与各 spec 直连 API 共用，webServer 健康检查也用它） */
+export const E2E_API_URL = "http://localhost:3001"
+
 export default defineConfig({
   testDir: "./tests",
   timeout: 45_000,
@@ -26,7 +29,7 @@ export default defineConfig({
     {
       command: "pnpm exec tsx src/index.ts",
       cwd: "../apps/api",
-      url: "http://localhost:3001/api/health",
+      url: `${E2E_API_URL}/api/health`,
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
       env: {

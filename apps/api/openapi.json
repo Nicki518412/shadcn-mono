@@ -2099,7 +2099,8 @@
                     "pattern": "^[A-Za-z0-9_-]+$"
                   },
                   "description": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 255
                   },
                   "sort": {
                     "type": "integer",
@@ -2363,7 +2364,8 @@
                   },
                   "description": {
                     "type": "string",
-                    "nullable": true
+                    "nullable": true,
+                    "maxLength": 255
                   },
                   "sort": {
                     "type": "integer",

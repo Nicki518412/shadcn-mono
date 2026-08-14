@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest"
 import { prisma } from "@repo/db"
 import { hashPassword } from "@repo/db"
 import { createApp } from "../src/index.js"
+import { loginAs, upsertMenu } from "./helpers.js"
 import type { departmentItemSchema } from "../src/lib/schemas.js"
 import type { z } from "@hono/zod-openapi"
 
@@ -9,32 +10,6 @@ const ADMIN_USERNAME = "dept_admin"
 const PASSWORD = "Passw0rd!"
 
 type DepartmentItem = z.infer<typeof departmentItemSchema>
-
-/** 按权限码查菜单，不存在则创建（permission 唯一索引：其他测试文件可能已建同码菜单，复用而非重建） */
-async function upsertMenu(data: {
-  nameZh: string
-  type: string
-  permission: string
-  parentId?: string
-  path?: string
-  component?: string
-  sort: number
-}): Promise<{ id: string }> {
-  const existing = await prisma.menu.findUnique({ where: { permission: data.permission } })
-  return existing ?? prisma.menu.create({ data })
-}
-
-async function login(): Promise<string> {
-  const app = createApp()
-  const res = await app.request("/api/auth/login", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ username: ADMIN_USERNAME, password: PASSWORD }),
-  })
-  if (res.status !== 200) throw new Error(`登录失败: ${String(res.status)}`)
-  const body = (await res.json()) as { data: { accessToken: string } }
-  return body.data.accessToken
-}
 
 describe("departments CRUD", () => {
   beforeAll(async () => {
@@ -65,7 +40,7 @@ describe("departments CRUD", () => {
 
   it("创建/查询：根部门 + 子部门，列表扁平返回且 userCount 正确", async () => {
     const app = createApp()
-    const token = await login()
+    const token = await loginAs(ADMIN_USERNAME, PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
 
     const root = await app.request("/api/departments", {
@@ -83,7 +58,8 @@ describe("departments CRUD", () => {
       body: JSON.stringify({ nameZh: "测试研发部", nameEn: "R&D", parentId: rootBody.data.id, sort: 1 }),
     })
     expect(child.status).toBe(200)
-    expect(((await child.json()) as { data: DepartmentItem }).data.parentId).toBe(rootBody.data.id)
+    const childBody = (await child.json()) as { data: DepartmentItem }
+    expect(childBody.data.parentId).toBe(rootBody.data.id)
 
     // 用户挂到子部门 → 列表 userCount=1
     const user = await prisma.user.create({
@@ -94,14 +70,16 @@ describe("departments CRUD", () => {
     expect(listBody.data.length).toBeGreaterThanOrEqual(2)
     const rootItem = listBody.data.find((d) => d.id === rootBody.data.id)
     expect(rootItem?.userCount).toBe(1)
-    const childItem = listBody.data.find((d) => d.id === rootBody.data.id)
-    expect(childItem?.nameEn).toBe("HQ")
+    // 修复：此前误用 rootBody.data.id 又查了一次根部门，子部门的 nameEn 从未被真正断言（假阳性）
+    const childItem = listBody.data.find((d) => d.id === childBody.data.id)
+    expect(childItem).toBeDefined()
+    expect(childItem?.nameEn).toBe("R&D")
     await prisma.user.delete({ where: { id: user.id } })
   })
 
   it("更新：改名/移动上级/挂到自身或后代 400；上级不存在 400", async () => {
     const app = createApp()
-    const token = await login()
+    const token = await loginAs(ADMIN_USERNAME, PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
 
     const parent = await prisma.department.create({ data: { nameZh: "dept_p_parent" } })
@@ -150,7 +128,7 @@ describe("departments CRUD", () => {
 
   it("删除：级联删子树；部门内用户保留并置空部门；不存在 404", async () => {
     const app = createApp()
-    const token = await login()
+    const token = await loginAs(ADMIN_USERNAME, PASSWORD)
     const auth = { authorization: `Bearer ${token}` }
 
     const parent = await prisma.department.create({ data: { nameZh: "dept_d_parent" } })
@@ -173,7 +151,7 @@ describe("departments CRUD", () => {
 
   it("用户挂部门：创建/更新携带 departmentId，响应带 department 双名；部门不存在 400；null 清空", async () => {
     const app = createApp()
-    const token = await login()
+    const token = await loginAs(ADMIN_USERNAME, PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
 
     const dept = await prisma.department.create({ data: { nameZh: "dept_u_target", nameEn: "Target Dept" } })

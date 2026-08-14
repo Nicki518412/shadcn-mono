@@ -1,6 +1,7 @@
 import { prisma } from "@repo/db"
 import { hashPassword } from "@repo/db"
 import { getDevOtpCode } from "../src/lib/otp-sender.js"
+import { createApp } from "../src/index.js"
 
 export async function createTestUser(opts: {
   username: string
@@ -26,3 +27,32 @@ export function captureDevOtpCode(target: string, channel: "email" | "telephone"
   if (!code) throw new Error(`未找到未消费验证码: ${target}`)
   return code
 }
+
+/** 按权限码查菜单，不存在则创建（permission 唯一索引：其他测试文件可能已建同码菜单，复用而非重建） */
+export async function upsertMenu(data: {
+  nameZh: string
+  type: string
+  permission: string
+  parentId?: string
+  path?: string
+  component?: string
+  icon?: string
+  sort: number
+}): Promise<{ id: string }> {
+  const existing = await prisma.menu.findUnique({ where: { permission: data.permission } })
+  return existing ?? prisma.menu.create({ data })
+}
+
+/** 登录指定账号并返回 access token（失败抛错带状态码） */
+export async function loginAs(username: string, password: string): Promise<string> {
+  const app = createApp()
+  const res = await app.request("/api/auth/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  })
+  if (res.status !== 200) throw new Error(`登录失败: ${String(res.status)}`)
+  const body = (await res.json()) as { data: { accessToken: string } }
+  return body.data.accessToken
+}
+

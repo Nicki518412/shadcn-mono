@@ -19,14 +19,14 @@ const roleCreateSchema = z.object({
   nameZh: z.string().min(1).max(64),
   nameEn: z.string().max(64).nullable().optional(),
   code: z.string().min(2).max(32).regex(/^[A-Za-z0-9_-]+$/),
-  description: z.string().optional(),
+  description: z.string().max(255).optional(),
   sort: z.number().int().default(0),
   status: z.boolean().optional(),
 })
 
 // 全部字段可选（改谁传谁）；description 显式传 null 表示清空（undefined 不修改），与 users email 清空语义对称
 const roleUpdateSchema = roleCreateSchema.partial().extend({
-  description: z.string().nullable().optional(),
+  description: z.string().max(255).nullable().optional(),
 })
 
 // 授权全量提交的菜单 id 数组；上限 500 防超大 payload（菜单树规模远小于此）

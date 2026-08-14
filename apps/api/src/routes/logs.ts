@@ -16,7 +16,8 @@ const pageQuery = z.object({
   keyword: z.string().optional(),
 })
 
-// 列表响应仅返回契约字段（不含 userId/userAgent/errorMessage 等内部字段）
+// 列表响应返回对外可展示字段（含 userAgent / 操作日志的 requestBody 脱敏快照与 errorMessage——
+// 日志详情页展示所需，属有意设计；requestBody 在写入前已按键名脱敏并截断 180 字符）
 const loginSelect = {
   id: true,
   username: true,

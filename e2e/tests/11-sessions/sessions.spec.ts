@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test"
-import { test } from "../../fixtures"
+import { API_BASE_URL, test } from "../../fixtures"
 import { LayoutPage } from "../../pages/layout"
 
 /**
@@ -19,16 +19,16 @@ test.describe("会话管理", () => {
     // 使用专用账号建立唯一会话，避免全量并发时从多个 admin 会话中误选其他 worker 的记录。
     const username = `e2e_session_${Date.now()}`
     const password = "Passw0rd!"
-    const adminLogin = await adminPage.request.post("http://localhost:3001/api/auth/login", {
+    const adminLogin = await adminPage.request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username: "admin", password: "Admin@123" },
     })
     const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
-    const createRes = await adminPage.request.post("http://localhost:3001/api/users", {
+    const createRes = await adminPage.request.post(`${API_BASE_URL}/api/users`, {
       headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
       data: { username, password, nickname: "会话测试" },
     })
     expect(createRes.status()).toBe(200)
-    const targetLogin = await adminPage.request.post("http://localhost:3001/api/auth/login", {
+    const targetLogin = await adminPage.request.post(`${API_BASE_URL}/api/auth/login`, {
       data: { username, password },
     })
     expect(targetLogin.status()).toBe(200)
@@ -42,7 +42,7 @@ test.describe("会话管理", () => {
     await expect(alert).toBeHidden()
 
     // 被踢会话的 refresh token 已吊销：refresh 轮换必须 401（JWT access token 5 分钟内仍有效，不做该断言）
-    const refreshRes = await adminPage.request.post("http://localhost:3001/api/auth/refresh", {
+    const refreshRes = await adminPage.request.post(`${API_BASE_URL}/api/auth/refresh`, {
       data: { refreshToken: targetBody.data.refreshToken },
     })
     expect(refreshRes.status()).toBe(401)

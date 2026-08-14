@@ -3,6 +3,7 @@ import type { z } from "@hono/zod-openapi"
 import { prisma } from "@repo/db"
 import { createApp } from "../src/index.js"
 import { hashPassword } from "@repo/db"
+import { loginAs } from "./helpers.js"
 import type { notificationItemSchema, notificationPageResultSchema, unreadCountSchema } from "../src/lib/schemas.js"
 
 const SENDER_USERNAME = "notif_sender"
@@ -16,18 +17,6 @@ interface PageBody {
 }
 interface UnreadBody {
   data: z.infer<typeof unreadCountSchema>
-}
-
-async function login(username: string): Promise<string> {
-  const app = createApp()
-  const res = await app.request("/api/auth/login", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ username, password: PASSWORD }),
-  })
-  if (res.status !== 200) throw new Error(`登录失败: ${String(res.status)}`)
-  const body = (await res.json()) as { data: { accessToken: string } }
-  return body.data.accessToken
 }
 
 /** 按权限码查菜单，不存在则创建（permission 唯一索引：其他测试文件可能已建同码菜单，复用而非重建） */
@@ -102,7 +91,7 @@ describe("notifications", () => {
         { userId: receiver.id, title: "notif_crud_b", content: "第二条", isRead: true, readAt: new Date(), createdAt: new Date("2026-01-02T00:00:00Z") },
       ],
     })
-    const token = await login("notif_crud_r1")
+    const token = await loginAs("notif_crud_r1", PASSWORD)
     const auth = { authorization: `Bearer ${token}` }
 
     const list = await app.request("/api/notifications?page=1&pageSize=10", { headers: auth })
@@ -137,7 +126,7 @@ describe("notifications", () => {
     const otherNotification = await prisma.notification.create({
       data: { userId: other.id, title: "notif_crud_other", content: "他人的通知" },
     })
-    const token = await login(receiver.username)
+    const token = await loginAs(receiver.username, PASSWORD)
     const auth = { authorization: `Bearer ${token}` }
 
     const cross = await app.request(`/api/notifications/${otherNotification.id}/read`, { method: "PATCH", headers: auth })
@@ -157,7 +146,7 @@ describe("notifications", () => {
         { userId: receiver.id, title: "notif_crud_b", content: "第二条" },
       ],
     })
-    const token = await login("notif_crud_r3")
+    const token = await loginAs("notif_crud_r3", PASSWORD)
     const auth = { authorization: `Bearer ${token}` }
 
     const res = await app.request("/api/notifications/read-all", { method: "PATCH", headers: auth })
@@ -171,7 +160,7 @@ describe("notifications", () => {
 
   it("发送通知：管理员创建成功且接收方可见；接收用户不存在 404", async () => {
     const app = createApp()
-    const token = await login(SENDER_USERNAME)
+    const token = await loginAs(SENDER_USERNAME, PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
 
     const receiver = await prisma.user.create({
@@ -200,7 +189,7 @@ describe("notifications", () => {
 
   it("权限与隔离：无权限用户 POST 403 且不落库；发送方看不到接收方的通知（个人数据隔离）", async () => {
     const app = createApp()
-    const nopermToken = await login(NO_PERM_USERNAME)
+    const nopermToken = await loginAs(NO_PERM_USERNAME, PASSWORD)
     const nopermAuth = { "content-type": "application/json", authorization: `Bearer ${nopermToken}` }
     const receiver = await prisma.user.create({
       data: { username: "notif_crud_iso", passwordHash: await hashPassword(PASSWORD), nickname: "隔离目标" },
@@ -218,7 +207,7 @@ describe("notifications", () => {
     expect(list.status).toBe(200)
 
     // 隔离：发送方列表不含接收方通知
-    const senderToken = await login(SENDER_USERNAME)
+    const senderToken = await loginAs(SENDER_USERNAME, PASSWORD)
     const senderList = (await (await app.request("/api/notifications?pageSize=100", {
       headers: { authorization: `Bearer ${senderToken}` },
     })).json()) as PageBody

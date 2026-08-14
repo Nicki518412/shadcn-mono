@@ -1,6 +1,7 @@
 import { expect } from "@playwright/test"
-import { test } from "../../fixtures"
+import { API_BASE_URL, test } from "../../fixtures"
 import { LayoutPage } from "../../pages/layout"
+import { LoginPage } from "../../pages/login"
 
 /**
  * 个人资料类目：用户设置弹窗（修改昵称/邮箱/手机号 + 修改密码）。
@@ -25,37 +26,49 @@ test.describe("个人资料", () => {
     await expect(dialog).toBeHidden()
   })
 
-  test("修改密码：新密码登录成功，旧密码失效", async ({ adminPage }) => {
+  test("修改密码：新密码登录成功，旧密码失效（一次性账号，不动 admin）", async ({ adminPage }) => {
+    // 全局态解耦：改用 admin 会话经 API 创建一次性账号并对其改密，
+    // admin 口令全程不变——用例中途失败也不会污染共享 e2e 库，避免后续用例雪崩
+    const adminLogin = await adminPage.request.post(`${API_BASE_URL}/api/auth/login`, {
+      data: { username: "admin", password: "Admin@123" },
+    })
+    const adminBody = (await adminLogin.json()) as { data: { accessToken: string } }
+    const username = `e2e_pw_${Date.now()}`
+    const oldPassword = "OldPass123!"
+    const newPassword = "NewPassw0rd!"
+    const createRes = await adminPage.request.post(`${API_BASE_URL}/api/users`, {
+      headers: { authorization: `Bearer ${adminBody.data.accessToken}` },
+      data: { username, password: oldPassword, nickname: "改密用例账号" },
+    })
+    expect(createRes.status()).toBe(200)
+
+    // 登出 admin → 以一次性账号登录
     const layout = new LayoutPage(adminPage)
+    await layout.openUserMenu()
+    await adminPage.getByRole("menuitem", { name: /退出登录|Sign out/i }).click()
+    await expect(adminPage).toHaveURL(/\/login/)
+    const loginPage = new LoginPage(adminPage)
+    await loginPage.login(username, oldPassword)
+    await loginPage.expectLoggedIn()
+
+    // 修改密码
     await layout.openUserMenu()
     await adminPage.getByRole("menuitem", { name: /用户设置|User settings/i }).click()
     const dialog = adminPage.getByRole("dialog")
-    const newPassword = "NewPassw0rd!"
-    await dialog.getByLabel("当前密码").fill("Admin@123")
+    await dialog.getByLabel("当前密码").fill(oldPassword)
     await dialog.getByLabel("新密码").fill(newPassword)
     await dialog.getByRole("button", { name: "保存" }).click()
     // 修改密码成功后吊销全部会话 → 主动登出回登录页
     await expect(adminPage).toHaveURL(/\/login/)
 
-    // 新密码登录成功
-    const newLogin = await adminPage.request.post("http://localhost:3001/api/auth/login", {
-      data: { username: "admin", password: newPassword },
+    // 新密码登录成功 / 旧密码失效
+    const newLogin = await adminPage.request.post(`${API_BASE_URL}/api/auth/login`, {
+      data: { username, password: newPassword },
     })
     expect(newLogin.status()).toBe(200)
-    // 旧密码失效
-    const oldLogin = await adminPage.request.post("http://localhost:3001/api/auth/login", {
-      data: { username: "admin", password: "Admin@123" },
+    const oldLogin = await adminPage.request.post(`${API_BASE_URL}/api/auth/login`, {
+      data: { username, password: oldPassword },
     })
     expect(oldLogin.status()).toBe(401)
-    // 还原密码（global-setup 每次运行重建库，本用例需保持后续用例可用：还原 Admin@123）
-    const restoreLogin = await adminPage.request.post("http://localhost:3001/api/auth/login", {
-      data: { username: "admin", password: newPassword },
-    })
-    const restoreBody = (await restoreLogin.json()) as { data: { accessToken: string } }
-    const changeRes = await adminPage.request.post("http://localhost:3001/api/auth/change-password", {
-      headers: { authorization: `Bearer ${restoreBody.data.accessToken}` },
-      data: { currentPassword: newPassword, newPassword: "Admin@123" },
-    })
-    expect(changeRes.status()).toBe(200)
   })
 })

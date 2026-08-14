@@ -3,6 +3,7 @@ import type { z } from "@hono/zod-openapi"
 import { prisma } from "@repo/db"
 import { createApp } from "../src/index.js"
 import { hashPassword } from "@repo/db"
+import { loginAs, upsertMenu } from "./helpers.js"
 import type { userDetailSchema, userPageResultSchema } from "../src/lib/schemas.js"
 
 const ADMIN_USERNAME = "perm_admin"
@@ -18,33 +19,6 @@ interface DetailBody {
 // beforeAll 建的记录 id（测试间复用）
 let adminId: string
 let adminRoleId: string
-
-/** 按权限码查菜单，不存在则创建（permission 唯一索引：其他测试文件可能已建同码菜单，复用而非重建） */
-async function upsertMenu(data: {
-  nameZh:string
-  type: string
-  permission: string
-  parentId?: string
-  path?: string
-  component?: string
-  icon?: string
-  sort: number
-}): Promise<{ id: string }> {
-  const existing = await prisma.menu.findUnique({ where: { permission: data.permission } })
-  return existing ?? prisma.menu.create({ data })
-}
-
-async function loginAdmin(): Promise<string> {
-  const app = createApp()
-  const res = await app.request("/api/auth/login", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ username: ADMIN_USERNAME, password: ADMIN_PASSWORD }),
-  })
-  if (res.status !== 200) throw new Error(`登录失败: ${String(res.status)}`)
-  const body = (await res.json()) as { data: { accessToken: string } }
-  return body.data.accessToken
-}
 
 describe("users CRUD", () => {
   beforeAll(async () => {
@@ -111,7 +85,7 @@ describe("users CRUD", () => {
 
   it("分页列表：GET /api/users?page=1&pageSize=10 返回 list + total", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const res = await app.request("/api/users?page=1&pageSize=10", {
       headers: { authorization: `Bearer ${token}` },
     })
@@ -123,7 +97,7 @@ describe("users CRUD", () => {
 
   it("创建用户：大写用户名存储为小写；重复用户名 409（message 含“用户名”）", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const create = await app.request("/api/users", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
@@ -146,7 +120,7 @@ describe("users CRUD", () => {
 
   it("更新用户：改昵称/密码/角色；旧密码失效、新密码可登录", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const user = await prisma.user.create({
       data: { username: "crud_upd", passwordHash: await hashPassword("Passw0rd!"), nickname: "旧名" },
     })
@@ -176,7 +150,7 @@ describe("users CRUD", () => {
 
   it("删除用户（库中消失）；禁止删除自己返回 400", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const user = await prisma.user.create({
       data: { username: "crud_del", passwordHash: await hashPassword("Passw0rd!"), nickname: "待删" },
     })
@@ -198,7 +172,7 @@ describe("users CRUD", () => {
 
   it("分配角色 PUT：全量替换；详情返回已挂角色", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const user = await prisma.user.create({
       data: { username: "crud_roles", passwordHash: await hashPassword("Passw0rd!"), nickname: "角色分配" },
     })
@@ -218,7 +192,7 @@ describe("users CRUD", () => {
 
   it("keyword 搜索：username 与 nickname 模糊匹配，total 正确", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { authorization: `Bearer ${token}` }
     const passwordHash = await hashPassword("Passw0rd!")
     await Promise.all([
@@ -246,7 +220,7 @@ describe("users CRUD", () => {
 
   it("重复 email / telephone 创建返回 409（字段级 message）", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const base = { password: "Passw0rd!", nickname: "字段冲突" }
     const first = await app.request("/api/users", {
@@ -277,7 +251,7 @@ describe("users CRUD", () => {
 
   it("不存在的用户 id：GET/PATCH/DELETE 返回 404", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { authorization: `Bearer ${token}` }
     const missing = "no_such_user_id"
     const get = await app.request(`/api/users/${missing}`, { headers: auth })
@@ -294,7 +268,7 @@ describe("users CRUD", () => {
 
   it("PUT roles 传入不存在的角色 id 返回 400", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const user = await prisma.user.create({
       data: { username: "crud_badrole", passwordHash: await hashPassword("Passw0rd!"), nickname: "坏角色" },
     })
@@ -309,7 +283,7 @@ describe("users CRUD", () => {
 
   it("pageSize 超过上限 100 返回 400", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const res = await app.request("/api/users?page=1&pageSize=101", {
       headers: { authorization: `Bearer ${token}` },
     })
@@ -318,7 +292,7 @@ describe("users CRUD", () => {
 
   it("PUT roleIds 为空数组清空全部角色", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const user = await prisma.user.create({
       data: { username: "crud_clearrows", passwordHash: await hashPassword("Passw0rd!"), nickname: "清空角色" },
     })
@@ -342,7 +316,7 @@ describe("users CRUD", () => {
 
   it("PATCH email 传 null 清空邮箱（DB 值置空）", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const user = await prisma.user.create({
       data: {
         username: "crud_clear",
@@ -363,7 +337,7 @@ describe("users CRUD", () => {
 
   it("PATCH /users/me：修改个人资料（昵称/邮箱/手机号，无需 system:user:update 权限）", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const res = await app.request("/api/users/me", {
       method: "PATCH",
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
@@ -394,7 +368,7 @@ describe("users CRUD", () => {
     })
     expect(noAuth.status).toBe(401)
 
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const conflict = await app.request("/api/users/me", {
       method: "PATCH",
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },

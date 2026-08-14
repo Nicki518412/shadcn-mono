@@ -3,6 +3,7 @@ import type { z } from "@hono/zod-openapi"
 import { prisma } from "@repo/db"
 import { createApp } from "../src/index.js"
 import { hashPassword } from "@repo/db"
+import { loginAs, upsertMenu } from "./helpers.js"
 import type { configDetailSchema, configPageResultSchema } from "../src/lib/schemas.js"
 
 const ADMIN_USERNAME = "cfgs_admin"
@@ -13,32 +14,6 @@ interface PageBody {
   data: z.infer<typeof configPageResultSchema>
 }
 type ConfigDetail = z.infer<typeof configDetailSchema>
-
-/** 按权限码查菜单，不存在则创建（permission 唯一索引：其他测试文件可能已建同码菜单，复用而非重建） */
-async function upsertMenu(data: {
-  nameZh: string
-  type: string
-  permission: string
-  parentId?: string
-  path?: string
-  component?: string
-  sort: number
-}): Promise<{ id: string }> {
-  const existing = await prisma.menu.findUnique({ where: { permission: data.permission } })
-  return existing ?? prisma.menu.create({ data })
-}
-
-async function loginAdmin(): Promise<string> {
-  const app = createApp()
-  const res = await app.request("/api/auth/login", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ username: ADMIN_USERNAME, password: ADMIN_PASSWORD }),
-  })
-  if (res.status !== 200) throw new Error(`登录失败: ${String(res.status)}`)
-  const body = (await res.json()) as { data: { accessToken: string } }
-  return body.data.accessToken
-}
 
 describe("configs CRUD", () => {
   beforeAll(async () => {
@@ -78,7 +53,7 @@ describe("configs CRUD", () => {
 
   it("创建参数：返回详情；重复 configKey（大小写变体）409 且 message 含“参数键”", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const create = await app.request("/api/configs", {
       method: "POST",
@@ -106,7 +81,7 @@ describe("configs CRUD", () => {
 
   it("更新参数：PATCH 改值/改名/禁用/清空说明/改 configKey（大小写变体）；configKey 撞已存在参数 409 不落库", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { "content-type": "application/json", authorization: `Bearer ${token}` }
     const config = await prisma.config.create({
       data: { configKey: "cfg_crud_patch1", configValue: "old", nameZh: "旧名", description: "原始说明", status: true },
@@ -143,7 +118,7 @@ describe("configs CRUD", () => {
 
   it("删除参数；不存在的 id GET/PATCH/DELETE 返回 404", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { authorization: `Bearer ${token}` }
     const config = await prisma.config.create({ data: { configKey: "cfg_crud_del", configValue: "v", nameZh: "待删参数" } })
     const del = await app.request(`/api/configs/${config.id}`, { method: "DELETE", headers: auth })
@@ -165,7 +140,7 @@ describe("configs CRUD", () => {
 
   it("分页列表：page/pageSize 生效、total 正确；keyword 匹配 configKey 与 nameZh", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const auth = { authorization: `Bearer ${token}` }
     await Promise.all([
       prisma.config.create({ data: { configKey: "cfg_crud_kw1", configValue: "a", nameZh: "关键词一号" } }),
@@ -214,7 +189,7 @@ describe("configs CRUD", () => {
 
   it("pageSize 超过上限 100 返回 400", async () => {
     const app = createApp()
-    const token = await loginAdmin()
+    const token = await loginAs(ADMIN_USERNAME, ADMIN_PASSWORD)
     const res = await app.request("/api/configs?page=1&pageSize=101", {
       headers: { authorization: `Bearer ${token}` },
     })
