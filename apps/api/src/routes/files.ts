@@ -39,6 +39,9 @@ const FILENAME_PATTERN = /^[a-zA-Z0-9-]+\.(jpg|png|webp|gif)$/
  */
 export function fileRoutes(cfg: AppConfig): OpenAPIHono {
   const app = createSubApp()
+  // 归一化为绝对路径（cfg.uploadDir 默认 "./uploads" 相对 cwd）：
+  // 此前 GET 用 path.join(相对) 与 path.resolve(绝对) 做前缀比较，两者恒不等 → 默认配置下合法文件也 400
+  const uploadDir = path.resolve(cfg.uploadDir)
 
   app.openapi(
     createRoute({
@@ -69,8 +72,8 @@ export function fileRoutes(cfg: AppConfig): OpenAPIHono {
       const ext = ALLOWED_TYPES[file.type]
       if (!ext) throw badRequest("仅支持 jpg/png/webp/gif 图片")
       const filename = `${randomUUID()}.${ext}`
-      await mkdir(cfg.uploadDir, { recursive: true })
-      await writeFile(path.join(cfg.uploadDir, filename), Buffer.from(await file.arrayBuffer()))
+      await mkdir(uploadDir, { recursive: true })
+      await writeFile(path.join(uploadDir, filename), Buffer.from(await file.arrayBuffer()))
       return c.json({ code: 0, data: { filename, size: file.size, mimeType: file.type }, message: "ok" }, 200)
     },
   )
@@ -96,8 +99,8 @@ export function fileRoutes(cfg: AppConfig): OpenAPIHono {
       const { filename } = c.req.valid("param")
       // 白名单校验（uuid.ext 格式），配合下方 join 前缀检查双保险防路径穿越
       if (!FILENAME_PATTERN.test(filename)) throw badRequest("文件名不合法")
-      const filePath = path.join(cfg.uploadDir, filename)
-      if (!filePath.startsWith(path.resolve(cfg.uploadDir) + path.sep)) throw badRequest("文件名不合法")
+      const filePath = path.join(uploadDir, filename)
+      if (!filePath.startsWith(uploadDir + path.sep)) throw badRequest("文件名不合法")
       const data = await readFile(filePath).catch(() => null)
       if (data === null) throw notFound("文件不存在")
       const ext = path.extname(filePath).slice(1)

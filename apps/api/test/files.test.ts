@@ -96,6 +96,28 @@ describe("文件上传与访问", () => {
     expect((await app.request(`/api/files/${filename}`)).status).toBe(401)
   })
 
+  it("相对 uploadDir（默认 ./uploads 场景）：上传后 GET 可访问（join 与前缀检查须同一绝对基准）", async () => {
+    // 回归：cfg.uploadDir 默认是相对路径 "./uploads"，曾因 join(相对) vs resolve(绝对) 前缀比较恒不等导致 GET 400
+    const relativeDir = `uploads-regression-${String(Date.now())}`
+    const relApp = createApp({ ...loadConfig(), uploadDir: relativeDir })
+    try {
+      const upload = await relApp.request("/api/files", {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}` },
+        body: fileForm(new File([new Uint8Array(PNG_BYTES)], "avatar.png", { type: "image/png" })),
+      })
+      expect(upload.status).toBe(200)
+      const { filename } = ((await upload.json()) as { data: { filename: string } }).data
+      const get = await relApp.request(`/api/files/${filename}`, {
+        headers: { authorization: `Bearer ${token}` },
+      })
+      expect(get.status).toBe(200)
+      expect(get.headers.get("content-type")).toContain("image/png")
+    } finally {
+      await rm(relativeDir, { recursive: true, force: true })
+    }
+  })
+
   it("GET：不存在的文件 404；非法文件名 400（路径穿越白名单）", async () => {
     const missing = await app.request("/api/files/00000000-0000-0000-0000-000000000000.png", {
       headers: { authorization: `Bearer ${token}` },
